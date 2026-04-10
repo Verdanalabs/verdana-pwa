@@ -12,6 +12,13 @@ import { MOCK_BATCHES, MOCK_WALLET } from '@/mocks';
 import { useThemeColors } from '@/store/theme-context';
 import type { BatchStatus } from '@/types';
 
+const BATCH_PHOTO_FALLBACKS: Record<string, number> = {
+  'B-0047': require('@/assets/carousle/01-image.jpg'),
+  'B-0046': require('@/assets/carousle/02-image.jpg'),
+  'B-0045': require('@/assets/carousle/03-image.jpg'),
+  'B-0044': require('@/assets/carousle/01-image.jpg'),
+};
+
 function formatDateTime(iso?: string) {
   if (!iso) return '-';
   return new Date(iso).toLocaleString('en-US', {
@@ -62,6 +69,11 @@ export default function BatchDetailRoute() {
   const batch = MOCK_BATCHES.find((item) => item.id === id);
   const linkedAsset = MOCK_WALLET.cnfts.find((item) => item.batchId === id);
   const [menuOpen, setMenuOpen] = useState(false);
+  const batchPhoto = linkedAsset?.imageUrl
+    ? { uri: linkedAsset.imageUrl }
+    : id
+      ? BATCH_PHOTO_FALLBACKS[id] ?? BATCH_PHOTO_FALLBACKS['B-0047']
+      : BATCH_PHOTO_FALLBACKS['B-0047'];
 
   if (!batch) {
     return (
@@ -115,7 +127,7 @@ export default function BatchDetailRoute() {
         </View>
 
         <View style={[styles.photoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Image source={{ uri: batch.photoUrl }} style={styles.photo} contentFit="cover" />
+          <Image source={batchPhoto} style={styles.photo} contentFit="cover" />
           <View style={styles.photoMeta}>
             <MaterialBadge material={batch.materialType} />
             <Text style={[styles.photoTime, { color: c.textMuted }]}>

@@ -61,14 +61,14 @@ export default function BatchDetailsRoute() {
 
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: c.foreground }]}>Main Material</Text>
-            <View style={styles.chipRow}>
+            <View style={styles.materialGrid}>
               {MATERIAL_OPTIONS.map((option) => {
                 const selected = option === materialType;
                 return (
                   <Pressable
                     key={option}
                     style={[
-                      styles.chip,
+                      styles.materialCard,
                       {
                         backgroundColor: selected ? c.accent : c.surface,
                         borderColor: selected ? c.accent : c.border,
@@ -209,18 +209,20 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontFamily: Font.semiBold,
   },
-  chipRow: {
+  materialGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
   },
-  chip: {
-    minWidth: 74,
+  materialCard: {
+    width: '47%',
+    minHeight: 54,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 999,
+    borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   chipText: {
     fontSize: FontSize.sm,
