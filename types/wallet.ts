@@ -1,12 +1,14 @@
+import type { BatchGrade, MaterialType } from './batch';
+
 export type CNFTStatus = 'verified' | 'listed' | 'collateral' | 'burned';
 
 export interface CNFT {
   id: string;
   batchId: string;
   mintAddress: string;
-  materialType: string;
+  materialType: MaterialType;
   weightKg: number;
-  grade: string;
+  grade: BatchGrade;
   status: CNFTStatus;
   mintedAt: string;
   imageUrl?: string;

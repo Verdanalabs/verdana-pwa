@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { MOCK_DASHBOARD, MOCK_BATCH_SUMMARIES, MOCK_SUPPLIER } from '@/mocks';
 import { Font, FontSize } from '@/constants/typography';
+import { useAuth } from '@/store/auth-context';
 import { useThemeColors } from '@/store/theme-context';
 import { HeroCard } from './components/HeroCard';
 import { DashboardMetrics } from './components/DashboardMetrics';
@@ -12,27 +13,27 @@ import { LatestBatches } from './components/LatestBatches';
 
 function dicebearUrl(name: string, bgColor?: string) {
   const seed = encodeURIComponent(name);
-  const bg   = (bgColor ?? '#0d160d').replace('#', '');
+  const bg = (bgColor ?? '#0d160d').replace('#', '');
   return `https://api.dicebear.com/9.x/avataaars/png?seed=${seed}&backgroundColor=${bg}&backgroundType=solid`;
 }
 
 export function SupplierHomeScreen() {
   const c = useThemeColors();
+  const { supplier } = useAuth();
+  const activeSupplier = supplier ?? MOCK_SUPPLIER;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
-      {/* Top bar */}
       <View style={[styles.topBar, { backgroundColor: c.background }]}>
         <View>
           <Text style={[styles.appName, { color: c.foreground }]}>
-            {MOCK_SUPPLIER.name}
+            {activeSupplier.name}
           </Text>
           <Text style={[styles.appTagline, { color: c.textFaint }]}>
-            {MOCK_SUPPLIER.tier.charAt(0).toUpperCase() + MOCK_SUPPLIER.tier.slice(1)} · {MOCK_SUPPLIER.operationalArea}
+            {activeSupplier.tier.charAt(0).toUpperCase() + activeSupplier.tier.slice(1)} · {activeSupplier.operationalArea}
           </Text>
         </View>
         <View style={styles.topBarRight}>
-          {/* Notification */}
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1 }]}
           >
@@ -40,10 +41,9 @@ export function SupplierHomeScreen() {
             <View style={[styles.notifDot, { backgroundColor: c.error, borderColor: c.background }]} />
           </TouchableOpacity>
 
-          {/* Avatar */}
           <TouchableOpacity style={[styles.avatar, { borderColor: c.border }]}>
             <Image
-              source={{ uri: dicebearUrl(MOCK_SUPPLIER.name, c.surface) }}
+              source={{ uri: dicebearUrl(activeSupplier.name, c.surface) }}
               style={styles.avatarImg}
               contentFit="cover"
             />
@@ -56,7 +56,7 @@ export function SupplierHomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <HeroCard data={MOCK_DASHBOARD} supplierName={MOCK_SUPPLIER.name} />
+        <HeroCard data={MOCK_DASHBOARD} supplierName={activeSupplier.name} />
         <DashboardMetrics data={MOCK_DASHBOARD} />
         <QuickActions />
         <LatestBatches batches={MOCK_BATCH_SUMMARIES} />

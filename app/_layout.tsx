@@ -9,12 +9,14 @@ import {
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 import * as SplashScreen from 'expo-splash-screen';
+import { AuthProvider } from '@/store/auth-context';
+import { BatchDraftProvider } from '@/store/batch-draft-context';
 import { ThemeProvider, useTheme } from '@/store/theme-context';
 
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  anchor: '(supplier-tabs)',
+  anchor: 'index',
 };
 
 function AppShell() {
@@ -23,7 +25,10 @@ function AppShell() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
         <Stack.Screen name="(supplier-tabs)" />
+        <Stack.Screen name="batch" />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -47,7 +52,11 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <AppShell />
+      <AuthProvider>
+        <BatchDraftProvider>
+          <AppShell />
+        </BatchDraftProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
