@@ -22,7 +22,7 @@ UI Verdana harus terasa operasional, terpercaya, dan cepat dipahami oleh user la
 
 ## Navigation Rules
 
-- Supplier memakai bottom tab
+- Supplier memakai bottom tab dengan FAB center untuk aksi utama (Register Batch)
 - Screen detail memakai stack navigation
 - Proses penting seperti submit, validation, dan success memakai full-screen flow
 - Jangan campur banyak modal untuk alur kritikal
@@ -31,32 +31,92 @@ UI Verdana harus terasa operasional, terpercaya, dan cepat dipahami oleh user la
 
 ### Typography
 
-- Pakai skala tipografi sederhana dan konsisten
+- Font utama: **Space Grotesk** (via `@expo-google-fonts/space-grotesk`)
+- Scale: `xs(11)` `sm(12)` `base(14)` `md(15)` `lg(16)` `xl(18)` `2xl(22)` `3xl(28)` `4xl(36)`
+- Import selalu dari `@/constants/typography` — jangan hardcode fontFamily
 - Heading harus ringkas
 - Data penting seperti `kg`, status, dan batch ID harus punya penekanan visual lebih tinggi
 
-### Color
+```ts
+// @/constants/typography
+Font.regular   = 'SpaceGrotesk_400Regular'
+Font.medium    = 'SpaceGrotesk_500Medium'
+Font.semiBold  = 'SpaceGrotesk_600SemiBold'
+Font.bold      = 'SpaceGrotesk_700Bold'
+```
 
-- Hijau untuk success atau minted
-- Kuning atau amber untuk transit / attention
-- Abu untuk state netral
-- Merah hanya untuk error, reject, atau destructive action
-- Jangan jadikan ungu sebagai warna dominan produk bila tidak punya alasan brand yang kuat
+### Color System — Dark / Light Mode
 
-### Status system
+Warna dikelola via **ThemeContext** (`@/store/theme-context`). Default: **dark mode**.
 
-Minimal warna status:
+Jangan pernah hardcode warna langsung di komponen — selalu gunakan `useThemeColors()`.
 
-- `draft`: abu muda
-- `submitted`: biru muda
-- `transit`: amber
-- `pending_validation`: abu tua
-- `verified`: biru
-- `minting`: hijau dengan activity indicator
-- `minted`: hijau solid
-- `listed`: ungu
-- `collateral`: oranye
-- `rejected`: merah
+```ts
+const c = useThemeColors();
+// c.background, c.surface, c.foreground, c.accent, dll.
+```
+
+#### Dark Mode Palette (`:root` — default)
+
+| Token | Value | Keterangan |
+|---|---|---|
+| `background` | `#070e07` | Latar utama |
+| `surface` | `#0d160d` | Card / panel |
+| `surfaceStrong` | `#101b10` | Card elevated |
+| `border` | `#1a2e1a` | Border halus |
+| `foreground` | `#ffffff` | Teks utama |
+| `textSecondary` | `#cfd6cf` | Teks sekunder |
+| `textMuted` | `#8f9790` | Teks muted |
+| `textFaint` | `#5f6b63` | Teks sangat redup |
+| `accent` | `#b5f23d` | Lime — warna aksen utama |
+| `accentContrast` | `#070e07` | Teks di atas accent bg |
+
+#### Light Mode Palette (`html[data-theme="light"]`)
+
+| Token | Value | Keterangan |
+|---|---|---|
+| `background` | `#f2f7ed` | Sage muda |
+| `surface` | `#f7fbf2` | Off-white hijau |
+| `border` | `#cfe3bb` | Border sage |
+| `foreground` | `#253d27` | Teks hijau gelap |
+| `textSecondary` | `#426048` | |
+| `textMuted` | `#6e8072` | |
+| `accent` | `#96cc2e` | Lime lebih calm |
+| `accentContrast` | `#091406` | |
+
+### Hero Card
+
+Hero card selalu pakai **background gelap** (gradient) di kedua mode — sehingga teksnya selalu putih, bukan mengikuti `foreground` tema.
+
+```ts
+// Konstanta khusus hero card — tidak bergantung pada theme mode
+const HERO_TEXT       = '#ffffff'
+const HERO_TEXT_MUTED = 'rgba(255,255,255,0.55)'
+const HERO_DIVIDER    = 'rgba(255,255,255,0.1)'
+```
+
+Hero gradient:
+- **Dark mode**: `['#182e18', '#0d160d', '#070e07']`
+- **Light mode**: `['#243d28', '#1c3220', '#112518']`
+
+Hero card memakai animasi shimmer `Animated.loop` diagonal yang subtle — jangan matikan animasi ini.
+
+### Color — Status System
+
+Minimal warna status per mode dikelola di `@/constants/themes.ts`:
+
+| Status | Dark bg | Dark text | Light bg | Light text |
+|---|---|---|---|---|
+| `draft` | `#1a2e1a` | `#8f9790` | `#e8f0e0` | `#6e8072` |
+| `submitted` | `#0c1f3a` | `#60a5fa` | `#dbeafe` | `#1d4ed8` |
+| `transit` | `#2a1f08` | `#fbbf24` | `#fef3c7` | `#92400e` |
+| `pending_validation` | `#1a2e1a` | `#cfd6cf` | `#ecf4e4` | `#426048` |
+| `verified` | `#0c2a1f` | `#34d399` | `#d1fae5` | `#065f46` |
+| `minting` | `#162a10` | `#b5f23d` | `#dcfce7` | `#166534` |
+| `minted` | `#b5f23d` | `#070e07` | `#96cc2e` | `#091406` |
+| `listed` | `#1f1040` | `#c4b5fd` | `#ede9fe` | `#5b21b6` |
+| `collateral` | `#2a1500` | `#fb923c` | `#ffedd5` | `#9a3412` |
+| `rejected` | `#2a0808` | `#f87171` | `#fee2e2` | `#991b1b` |
 
 ## Form Rules
 
@@ -77,7 +137,7 @@ Minimal warna status:
 
 - Jelaskan kenapa lokasi dibutuhkan
 - Bila permission lokasi ditolak, user tetap bisa lanjut dengan konfirmasi manual bila bisnis mengizinkan
-- Tampilkan PVP terpilih dan jarak secara jelas
+- Tampilkan Drop-off Point terpilih dan jarak secara jelas — gunakan label "Drop-off Point", bukan "PVP"
 
 ## Wallet and Web3 Rules
 
@@ -87,14 +147,45 @@ Minimal warna status:
 
 ## Copy Rules
 
-- Gunakan bahasa Indonesia operasional
-- Kalimat pendek
-- CTA contoh:
-  - `Lanjut`
-  - `Ambil Foto`
-  - `Kirim Batch`
-  - `Lihat Detail`
-  - `Co-sign & Mint`
+- Gunakan bahasa **English** untuk semua copywriting di app
+- Kalimat pendek, bahasa sehari-hari — bukan istilah teknis atau internal
+- Supplier adalah pekerja lapangan — tulis seperti berbicara kepada mereka, bukan kepada developer
+
+### Terminology yang wajib dipakai di UI
+
+| Internal / Technical | User-facing (UI) | Alasan |
+|---|---|---|
+| PVP | Drop-off Point | Supplier nggak tahu akronim internal |
+| cNFT | Asset / Digital Asset | Jargon blockchain terlalu teknis |
+| Minting | Processing... | Supplier tidak perlu tahu proses on-chain |
+| Pending Validation | Being Checked | Natural dan langsung dipahami |
+| In Transit | On the Way | Bahasa percakapan |
+| Submitted | Sent | Lebih familiar |
+| Collateral | Locked | Sederhana |
+| Rejected | Not Accepted | Lebih halus |
+
+### Status Labels (`@/constants/batch-status.ts`)
+
+| Status | Label |
+|---|---|
+| `draft` | Draft |
+| `submitted` | Sent |
+| `transit` | On the Way |
+| `pending_validation` | Being Checked |
+| `verified` | Approved |
+| `minting` | Processing... |
+| `minted` | Asset Ready |
+| `listed` | For Sale |
+| `collateral` | Locked |
+| `rejected` | Not Accepted |
+
+### CTA contoh
+
+- `Register Batch`
+- `Take Photo`
+- `See All`
+- `View Details`
+- `Co-sign & Submit`
 
 ## Accessibility Rules
 
@@ -113,11 +204,11 @@ Minimal warna status:
 
 Komponen inti yang harus konsisten:
 
-- `StatusBadge`
-- `MaterialBadge`
-- `BatchCard`
-- `QuickActionCard`
-- `StepIndicator`
-- `PrimaryButton`
-- `MetricCard`
-- `TimelineItem`
+| Komponen | Path |
+|---|---|
+| `StatusBadge` | `@/components/ui/StatusBadge` |
+| `MaterialBadge` | `@/components/ui/MaterialBadge` |
+| `BatchCard` | `@/components/ui/BatchCard` |
+| `QuickActionCard` | `@/components/ui/QuickActionCard` |
+| `PrimaryButton` | `@/components/ui/PrimaryButton` |
+| `CustomTabBar` | `@/components/ui/CustomTabBar` |

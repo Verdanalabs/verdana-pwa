@@ -2,36 +2,123 @@
 
 ## Target Architecture
 
-Dokumen ini menyesuaikan arsitektur lama agar selaras dengan repo aktif yang sudah berbasis Expo.
+Dokumen ini mencerminkan arsitektur aktual repo yang sedang dibangun.
 
 ## Frontend Applications
 
 ### Mobile app
 
-Stack target:
+Stack aktual:
 
 - React Native
-- Expo
+- Expo `~54.0.33`
 - TypeScript
-- expo-router
+- expo-router `~6.0.23`
 
 Target platform:
 
 - Android sebagai prioritas utama
 - iOS sebagai kompatibilitas tahap berikutnya
-- Web Expo hanya sebagai preview internal, bukan target pengalaman utama supplier
+- Web Expo hanya sebagai preview internal
 
-### Suggested codebase structure
+### Codebase Structure (Aktual)
 
-Satu monorepo aplikasi mobile dengan pemisahan berdasarkan domain:
+```
+verdana-apps/
+├── app/                          # expo-router pages
+│   ├── _layout.tsx               # Root layout — font loading + ThemeProvider
+│   ├── modal.tsx
+│   └── (supplier-tabs)/          # Bottom tab group (Supplier)
+│       ├── _layout.tsx           # CustomTabBar dengan FAB center
+│       ├── home.tsx              # → mount SupplierHomeScreen
+│       ├── history.tsx           # placeholder
+│       ├── wallet.tsx            # placeholder
+│       └── profile.tsx           # placeholder
+│
+├── features/                     # Domain-based feature modules
+│   └── supplier-home/
+│       ├── index.tsx             # SupplierHomeScreen — screen utama
+│       └── components/
+│           ├── HeroCard.tsx      # Gradient card + shimmer animation
+│           ├── DashboardMetrics.tsx
+│           ├── QuickActions.tsx
+│           └── LatestBatches.tsx
+│
+├── components/
+│   └── ui/                       # Shared reusable UI components
+│       ├── StatusBadge.tsx
+│       ├── MaterialBadge.tsx
+│       ├── BatchCard.tsx
+│       ├── QuickActionCard.tsx
+│       ├── PrimaryButton.tsx
+│       └── CustomTabBar.tsx      # Custom tab bar dengan FAB
+│
+├── constants/
+│   ├── colors.ts                 # Legacy — gunakan themes.ts untuk warna baru
+│   ├── themes.ts                 # Dark + light palette (sumber kebenaran warna)
+│   ├── typography.ts             # Font family + font size tokens
+│   └── batch-status.ts          # Label bahasa Indonesia per status
+│
+├── store/
+│   └── theme-context.tsx         # ThemeProvider, useTheme, useThemeColors
+│
+├── types/
+│   ├── batch.ts                  # BatchStatus, Batch, BatchSummary
+│   ├── user.ts                   # SupplierProfile, DashboardSummary
+│   ├── wallet.ts                 # CNFT, WalletSummary
+│   └── index.ts
+│
+├── mocks/
+│   ├── supplier.ts               # MOCK_SUPPLIER, MOCK_DASHBOARD
+│   ├── batches.ts                # MOCK_BATCHES, MOCK_BATCH_SUMMARIES
+│   └── index.ts
+│
+└── docs/                         # Product briefs (dokumen ini)
+```
 
-- `app/`
-- `components/`
-- `features/`
-- `services/`
-- `store/`
-- `types/`
-- `mocks/`
+## Packages Aktual
+
+### Dependencies utama
+
+```json
+"expo": "~54.0.33",
+"expo-router": "~6.0.23",
+"expo-linear-gradient": "installed",
+"react-native": "0.81.5",
+"react-native-reanimated": "~4.1.1",
+"react-native-safe-area-context": "~5.6.0",
+"@expo/vector-icons": "^15.0.3",
+"@react-navigation/bottom-tabs": "^7.4.0"
+```
+
+### Font packages
+
+```json
+"@expo-google-fonts/space-grotesk": "installed"
+```
+
+Space Grotesk di-load di `app/_layout.tsx` via `useFonts()` sebelum SplashScreen hilang.
+
+## Theme System
+
+Theme dikelola via React Context di `@/store/theme-context.tsx`.
+
+```ts
+// Gunakan di dalam komponen
+const c = useThemeColors();        // dapat ThemeColors object
+const { isDark, toggle } = useTheme(); // dapat mode + toggle fn
+
+// Default: dark mode
+// Toggle: ikon matahari/bulan di top bar home screen
+```
+
+File sumber:
+- `constants/themes.ts` — `DarkColors` dan `LightColors` (type `ThemeColors`)
+- `store/theme-context.tsx` — `ThemeProvider`, `useTheme`, `useThemeColors`
+
+**Aturan warna:**
+- Semua warna wajib ambil dari `useThemeColors()` — jangan import `Colors` lama
+- Hero card adalah pengecualian: selalu pakai background gelap di kedua mode, sehingga teksnya pakai konstanta putih lokal
 
 ## Runtime Modules
 
@@ -44,26 +131,29 @@ Satu monorepo aplikasi mobile dengan pemisahan berdasarkan domain:
 - network state
 - push notification
 
-### Recommended Expo modules
+### Recommended Expo modules (belum semua terinstall)
 
-- `expo-router`
-- `expo-camera`
-- `expo-image-picker`
-- `expo-location`
-- `expo-secure-store`
-- `expo-notifications`
-- `expo-file-system`
+- `expo-router` ✅
+- `expo-camera` — belum
+- `expo-image-picker` — belum
+- `expo-location` — belum
+- `expo-secure-store` — belum
+- `expo-notifications` — belum
+- `expo-file-system` — belum
+- `expo-linear-gradient` ✅
 
 ## State Management
 
-Gunakan pemisahan state berikut:
+Pemisahan state aktual:
 
-- server state untuk data API
-- local UI state untuk screen/form
-- persisted draft state untuk proses batch yang belum selesai
+| Layer | Solusi saat ini |
+|---|---|
+| Theme | `ThemeContext` di `store/theme-context.tsx` |
+| Mock data | Konstanta di `mocks/` |
+| Server state | Belum — akan pakai API layer saat integrasi backend |
+| Persisted draft | Belum — akan pakai `expo-secure-store` atau `AsyncStorage` |
 
-Minimum domain store:
-
+Domain store yang direncanakan:
 - `auth`
 - `supplier`
 - `pvp`
@@ -72,7 +162,7 @@ Minimum domain store:
 
 ## Backend Architecture
 
-Komponen backend tetap mengikuti arah awal:
+Komponen backend tetap mengikuti arah awal (belum diimplementasi):
 
 - Core API `Go`
 - PostgreSQL
@@ -81,6 +171,33 @@ Komponen backend tetap mengikuti arah awal:
 - Pinata
 - Helius / Solana
 - Privy
+
+## Routing Strategy
+
+Struktur `expo-router` aktual:
+
+```
+app/(supplier-tabs)/home     → SupplierHomeScreen
+app/(supplier-tabs)/history  → placeholder
+app/(supplier-tabs)/wallet   → placeholder
+app/(supplier-tabs)/profile  → placeholder
+```
+
+Route yang direncanakan (belum dibuat):
+```
+app/(auth)/welcome
+app/(auth)/login
+app/(auth)/onboarding-profile
+app/batch/new/photo
+app/batch/new/details
+app/batch/new/location
+app/batch/new/review
+app/batch/[id]
+app/pvp/dashboard
+app/pvp/validate/[batchId]
+app/pvp/cosign/[batchId]/success
+app/pvp/history
+```
 
 ## Data Flow
 
@@ -103,8 +220,6 @@ Komponen backend tetap mengikuti arah awal:
 
 ## Offline Strategy
 
-Untuk React Native ini penting, dan tidak dibahas cukup kuat di dokumen lama.
-
 Aturan minimum:
 
 - draft batch tersimpan lokal
@@ -114,35 +229,16 @@ Aturan minimum:
 
 ## Authentication Strategy
 
-Tahap mock:
+Tahap saat ini (mock):
 
 - auth shell lokal
 - mock embedded wallet
 
-Tahap real:
+Tahap real (belum):
 
 - Privy login
 - token verification via Core API
 - secure token storage di device
-
-## Routing Strategy
-
-Gunakan `expo-router` dengan group yang eksplisit:
-
-- `app/(auth)`
-- `app/(supplier-tabs)`
-- `app/batch`
-- `app/pvp`
-
-## Suggested Domain Ownership
-
-- `features/auth`
-- `features/supplier-home`
-- `features/batch-registration`
-- `features/batch-history`
-- `features/batch-detail`
-- `features/wallet`
-- `features/pvp-validation`
 
 ## Observability
 
@@ -161,10 +257,3 @@ Minimum error logging:
 - location unavailable
 - upload failed
 - API timeout
-
-## Migration Notes From Old Stack
-
-- hapus asumsi `Next.js pages/app router`
-- hapus asumsi browser-only APIs
-- ganti penyimpanan lokal browser dengan storage mobile
-- pindahkan fokus dari responsive web ke native device workflow
