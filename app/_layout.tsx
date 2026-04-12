@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -37,12 +38,18 @@ function AppShell() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    SpaceGrotesk_400Regular,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
-  });
+  // On web, fonts are loaded via Google Fonts CSS in app/+html.tsx.
+  // Passing an empty object makes useFonts resolve immediately with true.
+  const [fontsLoaded] = useFonts(
+    Platform.OS === 'web'
+      ? {}
+      : {
+          SpaceGrotesk_400Regular,
+          SpaceGrotesk_500Medium,
+          SpaceGrotesk_600SemiBold,
+          SpaceGrotesk_700Bold,
+        }
+  );
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
