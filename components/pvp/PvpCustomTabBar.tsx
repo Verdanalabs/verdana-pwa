@@ -2,6 +2,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { PlatformPressable } from '@react-navigation/elements';
+import { CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Font, FontSize } from '@/constants/typography';
@@ -28,15 +29,18 @@ export function PvpCustomTabBar({ state, navigation }: BottomTabBarProps) {
     const idx = routes.indexOf(name);
     if (idx === -1) return;
 
-    navigation.emit({
+    const event = navigation.emit({
       type: 'tabPress',
       target: state.routes[idx].key,
       canPreventDefault: true,
     });
 
-    if (!focused(name)) {
-      router.replace(path as never);
-    }
+    if (focused(name) || event.defaultPrevented) return;
+
+    navigation.dispatch({
+      ...CommonActions.navigate(state.routes[idx]),
+      target: state.key,
+    });
   }
 
   function longPress(name: string) {

@@ -39,7 +39,7 @@ export default function LoginRoute() {
 
   function handleLogin(provider: "google" | "whatsapp" | "email") {
     login(provider);
-    router.replace("/(auth)/onboarding-profile");
+    router.replace("/(supplier-tabs)/home");
   }
 
   return (

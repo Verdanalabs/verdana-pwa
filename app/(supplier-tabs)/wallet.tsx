@@ -123,16 +123,16 @@ export default function WalletRoute() {
 
         <View style={[styles.heroCard, { borderColor: c.border }]}>
           <View style={[styles.heroGlow, { backgroundColor: c.heroGlowColor }]} />
-          <Text style={styles.heroLabel}>Connected Wallet</Text>
-          <Text style={styles.heroAddress}>{shortAddress(MOCK_WALLET.address)}</Text>
+          <Text style={styles.heroLabel}>Account Name</Text>
+          <Text style={styles.heroAddress}>{supplier?.name ?? 'Your supplier account'}</Text>
           <Text style={styles.heroHint}>
-            Linked to {supplier?.name ?? 'your supplier account'} and updated as new assets are ready.
+            Track your supplier account points and asset count in one place.
           </Text>
 
           <View style={styles.heroStats}>
             <View style={[styles.heroStatCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
-              <Text style={styles.heroStatValue}>{MOCK_WALLET.usdcBalance.toLocaleString('en-US')}</Text>
-              <Text style={styles.heroStatLabel}>USDC Balance</Text>
+              <Text style={styles.heroStatValue}>{MOCK_WALLET.points.toLocaleString('en-US')}</Text>
+              <Text style={styles.heroStatLabel}>Points</Text>
             </View>
             <View style={[styles.heroStatCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
               <Text style={styles.heroStatValue}>{MOCK_WALLET.cnftCount}</Text>
@@ -143,10 +143,10 @@ export default function WalletRoute() {
 
         <View style={[styles.addressCard, { backgroundColor: c.surface, borderColor: c.border }]}>
           <View style={styles.addressRow}>
-            <Text style={[styles.addressLabel, { color: c.textMuted }]}>Wallet Address</Text>
-            <Ionicons name="copy-outline" size={16} color={c.textFaint} />
+            <Text style={[styles.addressLabel, { color: c.textMuted }]}>Account Name</Text>
+            <Ionicons name="person-outline" size={16} color={c.textFaint} />
           </View>
-          <Text style={[styles.addressValue, { color: c.foreground }]}>{MOCK_WALLET.address}</Text>
+          <Text style={[styles.addressValue, { color: c.foreground }]}>{supplier?.name ?? 'Your supplier account'}</Text>
         </View>
 
         <View style={styles.filterSection}>

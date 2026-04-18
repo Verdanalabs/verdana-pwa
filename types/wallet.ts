@@ -16,7 +16,7 @@ export interface CNFT {
 
 export interface WalletSummary {
   address: string;
-  usdcBalance: number;
+  points: number;
   cnftCount: number;
   cnfts: CNFT[];
 }

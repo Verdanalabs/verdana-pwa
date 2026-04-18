@@ -3,7 +3,7 @@ import { useAuth } from '@/store/auth-context';
 import { usePvpAuth } from '@/store/pvp-auth-context';
 
 export default function IndexRoute() {
-  const { isAuthenticated, needsOnboarding } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { state: pvpState } = usePvpAuth();
 
   if (pvpState === 'active') {
@@ -12,10 +12,6 @@ export default function IndexRoute() {
 
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/welcome" />;
-  }
-
-  if (needsOnboarding) {
-    return <Redirect href="/(auth)/onboarding-profile" />;
   }
 
   return <Redirect href="/(supplier-tabs)/home" />;

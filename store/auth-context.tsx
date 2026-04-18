@@ -38,10 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supplier,
     provider,
     isAuthenticated: provider !== null,
-    needsOnboarding: provider !== null && supplier === null,
+    needsOnboarding: false,
     login: (nextProvider) => {
       setProvider(nextProvider);
-      setSupplier(null);
+      setSupplier(MOCK_SUPPLIER);
     },
     completeOnboarding: (input) => {
       setSupplier({

@@ -2,7 +2,7 @@ import type { WalletSummary } from '@/types';
 
 export const MOCK_WALLET: WalletSummary = {
   address: '9xBf3mk2...3kR7mP',
-  usdcBalance: 2450,
+  points: 2450,
   cnftCount: 3,
   cnfts: [
     {

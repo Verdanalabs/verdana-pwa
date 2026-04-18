@@ -3,14 +3,10 @@ import { CustomTabBar } from '@/components/ui/CustomTabBar';
 import { useAuth } from '@/store/auth-context';
 
 export default function SupplierTabsLayout() {
-  const { isAuthenticated, needsOnboarding } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/welcome" />;
-  }
-
-  if (needsOnboarding) {
-    return <Redirect href="/(auth)/onboarding-profile" />;
   }
 
   return (
