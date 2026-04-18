@@ -22,6 +22,8 @@ err()  { echo -e "${RED}✖ $*${RESET}" >&2; exit 1; }
 STAGING_PROJECT="verdana-pwa-staging"
 PROD_PROJECT="verdana-pwa"
 BUILD_OUTPUT="dist"
+WEB_ASSET_PREFIX_OLD="/assets/node_modules/"
+WEB_ASSET_PREFIX_NEW="/assets/vendor/"
 
 # ─── Parse flags ───────────────────────────────────────────────────────────────
 PROD=false
@@ -73,6 +75,45 @@ command -v npx      >/dev/null 2>&1 || err "npx not found."
 
 ok "Preflight passed."
 
+rewrite_web_assets() {
+  local assets_root="${BUILD_OUTPUT}/assets"
+  local old_dir="${assets_root}/node_modules"
+  local new_dir="${assets_root}/vendor"
+
+  [ -d "$old_dir" ] || return 0
+
+  log "Rewriting web asset paths to avoid deploy ignore rules..."
+  rm -rf "$new_dir"
+  mv "$old_dir" "$new_dir"
+
+  node -e '
+    const fs = require("fs");
+    const path = require("path");
+    const root = process.argv[1];
+    const from = process.argv[2];
+    const to = process.argv[3];
+    const exts = new Set([".html", ".js", ".map", ".css"]);
+
+    function walk(dir) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+          continue;
+        }
+        if (!exts.has(path.extname(entry.name))) continue;
+        const source = fs.readFileSync(full, "utf8");
+        if (!source.includes(from)) continue;
+        fs.writeFileSync(full, source.split(from).join(to));
+      }
+    }
+
+    walk(root);
+  ' "$BUILD_OUTPUT" "$WEB_ASSET_PREFIX_OLD" "$WEB_ASSET_PREFIX_NEW"
+
+  ok "Asset paths rewritten."
+}
+
 # ─── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}  Target  :${RESET} ${TARGET_ENV}"
@@ -84,10 +125,12 @@ echo ""
 if [ "$SKIP_BUILD" = false ]; then
   log "[1/2] Building Expo web export..."
   npm run build:web
+  rewrite_web_assets
   ok "Build complete → ${BUILD_OUTPUT}/"
 else
   warn "Skipping build (--skip-build)"
   [ -d "$BUILD_OUTPUT" ] || err "Build output '${BUILD_OUTPUT}/' not found. Run without --skip-build first."
+  rewrite_web_assets
 fi
 
 # ─── Deploy ────────────────────────────────────────────────────────────────────
