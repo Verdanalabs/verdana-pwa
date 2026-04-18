@@ -6,7 +6,7 @@ Dokumen ini mencerminkan arsitektur aktual repo yang sedang dibangun.
 
 ## Frontend Applications
 
-### Mobile app
+### Operational app
 
 Stack aktual:
 
@@ -17,63 +17,64 @@ Stack aktual:
 
 Target platform:
 
-- Android sebagai prioritas utama
-- iOS sebagai kompatibilitas tahap berikutnya
-- Web Expo hanya sebagai preview internal
+- Browser mobile sebagai target utama
+- Installed PWA sebagai mode yang diutamakan di lapangan
+- Desktop browser tidak didukung untuk flow operasional Supplier dan PVP
+- Jika diakses dari desktop, render blocker page khusus
 
 ### Codebase Structure (Aktual)
 
 ```
 verdana-apps/
-├── app/                          # expo-router pages
-│   ├── _layout.tsx               # Root layout — font loading + ThemeProvider
-│   ├── modal.tsx
-│   └── (supplier-tabs)/          # Bottom tab group (Supplier)
-│       ├── _layout.tsx           # CustomTabBar dengan FAB center
-│       ├── home.tsx              # → mount SupplierHomeScreen
-│       ├── history.tsx           # placeholder
-│       ├── wallet.tsx            # placeholder
-│       └── profile.tsx           # placeholder
-│
-├── features/                     # Domain-based feature modules
-│   └── supplier-home/
-│       ├── index.tsx             # SupplierHomeScreen — screen utama
-│       └── components/
-│           ├── HeroCard.tsx      # Gradient card + shimmer animation
-│           ├── DashboardMetrics.tsx
-│           ├── QuickActions.tsx
-│           └── LatestBatches.tsx
-│
-├── components/
-│   └── ui/                       # Shared reusable UI components
-│       ├── StatusBadge.tsx
-│       ├── MaterialBadge.tsx
-│       ├── BatchCard.tsx
-│       ├── QuickActionCard.tsx
-│       ├── PrimaryButton.tsx
-│       └── CustomTabBar.tsx      # Custom tab bar dengan FAB
-│
-├── constants/
-│   ├── colors.ts                 # Legacy — gunakan themes.ts untuk warna baru
-│   ├── themes.ts                 # Dark + light palette (sumber kebenaran warna)
-│   ├── typography.ts             # Font family + font size tokens
-│   └── batch-status.ts          # Label bahasa Indonesia per status
-│
-├── store/
-│   └── theme-context.tsx         # ThemeProvider, useTheme, useThemeColors
-│
-├── types/
-│   ├── batch.ts                  # BatchStatus, Batch, BatchSummary
-│   ├── user.ts                   # SupplierProfile, DashboardSummary
-│   ├── wallet.ts                 # CNFT, WalletSummary
-│   └── index.ts
-│
-├── mocks/
-│   ├── supplier.ts               # MOCK_SUPPLIER, MOCK_DASHBOARD
-│   ├── batches.ts                # MOCK_BATCHES, MOCK_BATCH_SUMMARIES
-│   └── index.ts
-│
-└── docs/                         # Product briefs (dokumen ini)
+|-- app/                          # expo-router pages
+|   |-- _layout.tsx               # Root layout: font loading + ThemeProvider
+|   |-- modal.tsx
+|   `-- (supplier-tabs)/          # Bottom tab group (Supplier)
+|       |-- _layout.tsx           # CustomTabBar dengan FAB center
+|       |-- home.tsx              # mount SupplierHomeScreen
+|       |-- history.tsx           # placeholder
+|       |-- wallet.tsx            # placeholder
+|       `-- profile.tsx           # placeholder
+|
+|-- features/                     # Domain-based feature modules
+|   `-- supplier-home/
+|       |-- index.tsx             # SupplierHomeScreen
+|       `-- components/
+|           |-- HeroCard.tsx
+|           |-- DashboardMetrics.tsx
+|           |-- QuickActions.tsx
+|           `-- LatestBatches.tsx
+|
+|-- components/
+|   `-- ui/                       # Shared reusable UI components
+|       |-- StatusBadge.tsx
+|       |-- MaterialBadge.tsx
+|       |-- BatchCard.tsx
+|       |-- QuickActionCard.tsx
+|       |-- PrimaryButton.tsx
+|       `-- CustomTabBar.tsx
+|
+|-- constants/
+|   |-- colors.ts                 # Legacy, gunakan themes.ts untuk warna baru
+|   |-- themes.ts                 # Dark + light palette
+|   |-- typography.ts             # Font family + font size tokens
+|   `-- batch-status.ts
+|
+|-- store/
+|   `-- theme-context.tsx
+|
+|-- types/
+|   |-- batch.ts
+|   |-- user.ts
+|   |-- wallet.ts
+|   `-- index.ts
+|
+|-- mocks/
+|   |-- supplier.ts
+|   |-- batches.ts
+|   `-- index.ts
+|
+`-- docs/
 ```
 
 ## Packages Aktual
@@ -104,43 +105,41 @@ Space Grotesk di-load di `app/_layout.tsx` via `useFonts()` sebelum SplashScreen
 Theme dikelola via React Context di `@/store/theme-context.tsx`.
 
 ```ts
-// Gunakan di dalam komponen
-const c = useThemeColors();        // dapat ThemeColors object
-const { isDark, toggle } = useTheme(); // dapat mode + toggle fn
-
-// Default: dark mode
-// Toggle: ikon matahari/bulan di top bar home screen
+const c = useThemeColors();
+const { isDark, toggle } = useTheme();
 ```
 
 File sumber:
-- `constants/themes.ts` — `DarkColors` dan `LightColors` (type `ThemeColors`)
-- `store/theme-context.tsx` — `ThemeProvider`, `useTheme`, `useThemeColors`
 
-**Aturan warna:**
-- Semua warna wajib ambil dari `useThemeColors()` — jangan import `Colors` lama
-- Hero card adalah pengecualian: selalu pakai background gelap di kedua mode, sehingga teksnya pakai konstanta putih lokal
+- `constants/themes.ts` - `DarkColors` dan `LightColors`
+- `store/theme-context.tsx` - `ThemeProvider`, `useTheme`, `useThemeColors`
+
+Aturan warna:
+
+- semua warna wajib ambil dari `useThemeColors()`
+- hero card adalah pengecualian yang boleh memakai konstanta putih lokal
 
 ## Runtime Modules
 
-### Required native capabilities
+### Required device capabilities
 
 - camera
 - media library picker
 - location
-- secure storage
+- secure/local storage abstraction
 - network state
 - push notification
 
-### Recommended Expo modules (belum semua terinstall)
+### Recommended Expo modules
 
-- `expo-router` ✅
-- `expo-camera` — belum
-- `expo-image-picker` — belum
-- `expo-location` — belum
-- `expo-secure-store` — belum
-- `expo-notifications` — belum
-- `expo-file-system` — belum
-- `expo-linear-gradient` ✅
+- `expo-router`
+- `expo-camera`
+- `expo-image-picker`
+- `expo-location`
+- `expo-secure-store`
+- `expo-notifications`
+- `expo-file-system`
+- `expo-linear-gradient`
 
 ## State Management
 
@@ -150,10 +149,11 @@ Pemisahan state aktual:
 |---|---|
 | Theme | `ThemeContext` di `store/theme-context.tsx` |
 | Mock data | Konstanta di `mocks/` |
-| Server state | Belum — akan pakai API layer saat integrasi backend |
-| Persisted draft | Belum — akan pakai `expo-secure-store` atau `AsyncStorage` |
+| Server state | Belum, akan pakai API layer saat integrasi backend |
+| Persisted draft | Belum, akan pakai `expo-secure-store` atau `AsyncStorage` |
 
 Domain store yang direncanakan:
+
 - `auth`
 - `supplier`
 - `pvp`
@@ -162,7 +162,7 @@ Domain store yang direncanakan:
 
 ## Backend Architecture
 
-Komponen backend tetap mengikuti arah awal (belum diimplementasi):
+Komponen backend tetap mengikuti arah awal:
 
 - Core API `Go`
 - PostgreSQL
@@ -177,17 +177,19 @@ Komponen backend tetap mengikuti arah awal (belum diimplementasi):
 Struktur `expo-router` aktual:
 
 ```
-app/(supplier-tabs)/home     → SupplierHomeScreen
-app/(supplier-tabs)/history  → placeholder
-app/(supplier-tabs)/wallet   → placeholder
-app/(supplier-tabs)/profile  → placeholder
+app/(supplier-tabs)/home
+app/(supplier-tabs)/history
+app/(supplier-tabs)/wallet
+app/(supplier-tabs)/profile
 ```
 
-Route yang direncanakan (belum dibuat):
+Route yang direncanakan:
+
 ```
 app/(auth)/welcome
 app/(auth)/login
 app/(auth)/onboarding-profile
+app/(auth)/pvp-login
 app/batch/new/photo
 app/batch/new/details
 app/batch/new/location
@@ -201,8 +203,8 @@ app/pvp/history
 
 ## Data Flow
 
-1. Mobile app ambil auth token
-2. Mobile app kirim metadata batch ke Core API
+1. Mobile PWA ambil auth token
+2. Mobile PWA kirim metadata batch ke Core API
 3. Foto upload ke media storage
 4. Core API menyimpan batch
 5. PVP update data validasi
@@ -212,11 +214,11 @@ app/pvp/history
 
 ## Networking Strategy
 
-- Semua call lewat API layer terpusat
-- Typed request/response model
-- Retry policy untuk request yang aman
-- Upload harus mendukung progress dan retry
-- Draft batch tetap ada walau upload gagal sementara
+- semua call lewat API layer terpusat
+- typed request/response model
+- retry policy untuk request yang aman
+- upload harus mendukung progress dan retry
+- draft batch tetap ada walau upload gagal sementara
 
 ## Offline Strategy
 
@@ -229,16 +231,25 @@ Aturan minimum:
 
 ## Authentication Strategy
 
-Tahap saat ini (mock):
+Tahap saat ini:
 
 - auth shell lokal
 - mock embedded wallet
 
-Tahap real (belum):
+Tahap real:
 
 - Privy login
 - token verification via Core API
-- secure token storage di device
+- secure token storage via device-safe abstraction
+
+## Access Control Strategy
+
+Aturan akses platform:
+
+- role `supplier` dan `pvp_operator` hanya didukung di mobile browser / installed PWA
+- detection dilakukan di layer root routing agar seluruh screen operasional ikut terlindungi
+- jika device terdeteksi desktop, app render blocker page alih-alih screen operasional
+- dashboard desktop untuk role non-operasional harus dipisah dari permukaan ini
 
 ## Observability
 

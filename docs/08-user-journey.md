@@ -2,7 +2,13 @@
 
 ## Overview
 
-Dokumen ini menjabarkan user journey lengkap untuk dua peran utama: **Supplier** (pengepul plastik) dan **Drop-off Operator** (validator di titik pengumpulan). Journey ini berfokus pada alur mobile-first di React Native app.
+Dokumen ini menjabarkan user journey lengkap untuk dua peran utama: **Supplier** (pengepul plastik) dan **Drop-off Operator** (validator di titik pengumpulan). Journey ini berfokus pada alur mobile-first yang dijalankan sebagai mobile-only PWA.
+
+Constraint platform yang berlaku untuk seluruh journey:
+
+- role Supplier dan PVP diakses dari browser mobile atau installed PWA
+- jika diakses dari desktop atau laptop, user tidak masuk ke flow operasional
+- app harus menampilkan halaman khusus yang menjelaskan bahwa akses operasional hanya tersedia di perangkat mobile
 
 > **Terminology note:** Secara internal peran validator disebut "PVP". Di UI yang dilihat supplier, semua referensi ke titik pengumpulan menggunakan **"Drop-off Point"** - bukan "PVP". Lihat `docs/03-ui-rules.md` untuk tabel lengkap terminology.
 
@@ -35,6 +41,7 @@ Dokumen ini menjabarkan user journey lengkap untuk dua peran utama: **Supplier**
 - Jangan minta terlalu banyak data di onboarding - cukup nama, area, material utama
 - Wallet dibuat otomatis di background - supplier tidak perlu tahu detail wallet
 - Welcome screen harus terasa ringan - full-screen visual intro, satu CTA utama, tanpa action stack yang ramai
+- Jika dibuka dari desktop, jangan tampilkan form login supplier; tampilkan blocker page
 
 ---
 
@@ -133,49 +140,193 @@ Dokumen ini menjabarkan user journey lengkap untuk dua peran utama: **Supplier**
 ### Journey Map
 
 ```
-[Login] -> [Queue Dashboard] -> [Validate Batch] -> [Co-sign] -> [Done]
+[Login] -> [Queue Dashboard] -> [Batch Intake] -> [Inspection] -> [Validation Review] -> [Co-sign] -> [Done]
 ```
 
-### Stage 1 - Login
+---
 
-**Goal:** Operator masuk ke app dengan role yang tepat.
+### Stage 1 - Login & Station Context
 
-| Step | Screen | Action |
-|---|---|---|
-| 1 | PVP Login | Masukkan kredensial / scan QR lokasi |
-| 2 | Role detection | App detect role = PVP, arahkan ke queue dashboard |
+**Goal:** Operator masuk ke app dengan role PVP dan terikat ke titik operasional yang benar.
+
+| Step | Screen | Action | App Response |
+|---|---|---|---|
+| 1 | PVP Login | Masukkan email + password / SSO internal | Verifikasi kredensial |
+| 2 | Station Check | Scan QR lokasi atau pilih station yang di-assigned | Simpan `pvpId` aktif untuk sesi berjalan |
+| 3 | Role detection | App detect role = PVP | Arahkan ke queue dashboard PVP |
+
+**Entry condition:** Operator belum login atau sesi sudah expired  
+**Exit condition:** Operator berada di dashboard queue dengan station aktif
+
+**Pain points to avoid:**
+- Operator tidak boleh memilih station yang bukan assignment-nya tanpa override internal
+- Jika station context hilang, app harus block validation supaya batch tidak salah lokasi
+- Login harus cepat - idealnya cukup sekali per shift, lalu session keep-alive
+- Jika operator membuka dari desktop, app harus berhenti di blocker page sebelum masuk flow station
+
+---
 
 ### Stage 2 - Queue Dashboard
 
-**Goal:** Operator melihat antrian batch yang perlu divalidasi.
+**Goal:** Operator melihat batch masuk yang menunggu diterima di titik tersebut.
 
-| Element | Info |
+| Element | Info yang ditampilkan |
 |---|---|
-| Queue list | Batch yang sudah `transit` menuju titik ini |
-| Batch summary | Supplier name, material, estimasi berat, waktu submit |
-| Priority indicator | Berdasarkan waktu tunggu |
+| Active station header | Nama PVP, area, shift aktif |
+| Queue list | Batch dengan status `transit` atau `pending_validation` |
+| Batch summary | Batch ID, supplier name, material, estimasi berat, waktu submit |
+| Priority indicator | Berdasarkan waktu tunggu dan SLA |
+| Search / scan entry | Cari batch ID atau buka scanner |
+| Queue counters | Waiting, in review, rejected today |
 
-### Stage 3 - Validate Batch
+**Key moment:** Operator bisa langsung membedakan batch yang baru tiba, batch yang sedang dicek, dan batch yang butuh keputusan cepat.
 
-**Goal:** Operator mencocokkan fisik material dengan data yang disubmit supplier.
+**List grouping yang disarankan:**
+- `Arriving`: batch masih `transit`, supplier belum check-in fisik
+- `Ready to Inspect`: batch sudah tiba dan siap ditimbang
+- `Needs Resolution`: batch yang punya mismatch atau catatan sebelumnya
 
-| Step | Action | Validasi |
+---
+
+### Stage 3 - Batch Intake
+
+**Goal:** Operator mengambil batch dari antrian dan memulai proses pemeriksaan fisik.
+
+| Step | Screen | Action | Validation |
+|---|---|---|---|
+| 1 | Queue / Scanner | Scan QR batch atau pilih dari daftar | Batch ID harus valid dan milik station ini |
+| 2 | Intake Summary | Lihat foto awal, material claim, estimasi berat, supplier info | Data batch harus lengkap |
+| 3 | Arrival Confirm | Tandai batch sudah diterima fisik di lokasi | Hanya bisa untuk status `transit` |
+| 4 | Start Inspection | Tap "Start Checking" | Status berubah ke `pending_validation` |
+
+**Entry condition:** Batch ada di queue station aktif  
+**Exit condition:** Batch masuk mode inspeksi
+
+**App behavior:**
+- Saat operator membuka batch, tampilkan foto supplier sebagai referensi awal
+- Jika batch sudah sedang dibuka operator lain, tampilkan lock state / warning
+- Jika supplier datang tanpa QR, operator tetap bisa cari manual via batch ID atau nama supplier
+
+**State transitions:**
+```
+[transit] -> [pending_validation]
+```
+
+---
+
+### Stage 4 - Physical Inspection
+
+**Goal:** Operator memastikan isi batch sesuai klaim supplier sebelum divalidasi.
+
+| Check Area | Tindakan operator | Hasil yang disimpan |
 |---|---|---|
-| 1 | Scan batch atau pilih dari queue | Match dengan batch ID |
-| 2 | Input berat aktual | Harus diisi |
-| 3 | Foto kondisi material (opsional) | Bukti tambahan |
-| 4 | Catatan tambahan | Bila ada anomali |
-| 5 | Tap "Validate" | Konfirmasi sebelum kirim |
+| Material match | Cocokkan jenis plastik dengan submission | `conditionChecks.materialMatches` |
+| Weight | Timbang batch aktual | `actualWeightKg` |
+| Contamination | Cek kebersihan / campuran material | `conditionChecks.noContamination` |
+| Grade | Tentukan grade final | `finalGrade` |
+| Evidence | Tambah foto kondisi bila perlu | URL / upload key foto inspeksi |
+| Notes | Tulis anomali atau alasan reject | `notes` |
 
-### Stage 4 - Co-sign & Complete
+**Validation rules:**
+- `actualWeightKg` wajib diisi dan harus > 0
+- `finalGrade` wajib diisi saat batch lolos inspeksi
+- `notes` wajib bila ada mismatch, contamination, atau reject
+- Foto inspeksi optional, tapi strongly recommended untuk kasus dispute
 
-**Goal:** Operator mengunci data batch dan trigger processing berikutnya.
+**Decision branches:**
+
+| Kondisi | Keputusan operator | Next status |
+|---|---|---|
+| Data sesuai, material layak | Lanjut approve | `verified` |
+| Ada selisih kecil tapi masih bisa diterima | Koreksi berat/grade + approve | `verified` |
+| Material tidak sesuai / terlalu terkontaminasi | Reject dengan alasan | `rejected` |
+| Butuh klarifikasi manual | Simpan note, tahan sementara di `pending_validation` | `pending_validation` |
+
+**Pain points to avoid:**
+- Jangan paksa operator mengetik terlalu banyak; checklist harus dominan, notes hanya saat perlu
+- Form harus bisa dipakai cepat dengan satu tangan di lapangan
+- Jika koneksi buruk, hasil inspeksi harus bisa retry tanpa input ulang
+
+---
+
+### Stage 5 - Validation Review
+
+**Goal:** Operator meninjau ulang hasil inspeksi sebelum keputusan final dikirim.
+
+| Section | Isi |
+|---|---|
+| Submitted vs actual | Perbandingan estimasi supplier dan hasil aktual |
+| Risk flags | Weight mismatch, contamination, wrong material |
+| Decision summary | Approve / reject |
+| Required confirmation | Checklist bahwa operator sudah cek fisik barang |
+
+**Entry condition:** Semua field inspeksi minimum sudah lengkap  
+**Exit condition:** Operator memilih approve atau reject
+
+**Approve path:**
+- Tombol utama: `Validate Batch`
+- App kirim `POST /batches/:id/validate`
+- Jika sukses, batch pindah ke status `verified`
+
+**Reject path:**
+- Tombol sekunder: `Reject Batch`
+- App wajib kirim alasan reject yang jelas dan machine-readable
+- Supplier nantinya melihat status `rejected` beserta alasan
+
+---
+
+### Stage 6 - Co-sign & Complete
+
+**Goal:** Operator mengunci hasil validasi dan meneruskan batch ke proses backend berikutnya.
 
 | Action | Result |
 |---|---|
-| Tap "Co-sign & Submit" | Batch status -> `verified` |
-| Worker job mengambil alih | Status -> `minting` -> `minted` |
-| Operator melihat success screen | Konfirmasi batch selesai diproses |
+| Operator lihat summary final | Data final siap dikonfirmasi |
+| Tap `Co-sign & Submit` | App kirim `POST /batches/:id/cosign` |
+| Response sukses | Batch status -> `minting` |
+| Worker job mengambil alih | Status lanjut -> `minted` |
+| Success screen | Operator kembali ke queue atau buka batch berikutnya |
+
+**Entry condition:** Batch sudah `verified`  
+**Exit condition:** Batch sukses di-co-sign dan keluar dari queue aktif
+
+**State transitions:**
+```
+[pending_validation] -> [verified] -> [minting] -> [minted]
+                     \-> [rejected]
+```
+
+**Success state yang perlu ada:**
+- Badge bahwa validation sukses
+- Ringkasan batch final: ID, supplier, berat aktual, grade final
+- CTA: `Back to Queue`
+- CTA sekunder: `Open Next Batch`
+
+**Failure handling:**
+- Jika validate sukses tapi cosign gagal, batch tetap `verified` dan muncul di group `Needs Resolution`
+- Jika request timeout, tampilkan state retry tanpa menghapus data input operator
+- Semua error harus mengacu ke error code backend, bukan pesan generik saja
+
+---
+
+### PVP Daily Flow Summary
+
+| Phase | Tujuan operasional | KPI / indikator |
+|---|---|---|
+| Start shift | Login dan set station context | Ready time per shift |
+| Intake | Batch diterima dan masuk inspeksi | Arrival-to-check time |
+| Inspection | Data aktual tercatat dengan benar | Validation accuracy |
+| Finalization | Batch dikirim ke processing berikutnya | Queue completion rate |
+
+### PVP Notifications / System Events
+
+| Event | Dampak di UI operator |
+|---|---|
+| Batch baru menuju station | Muncul di queue `Arriving` |
+| Supplier tiba / check-in | Naik prioritas ke `Ready to Inspect` |
+| Validation sukses | Batch hilang dari queue aktif |
+| Cosign gagal | Batch muncul di `Needs Resolution` |
+| Batch rejected | Pindah ke riwayat rejected hari ini |
 
 ---
 

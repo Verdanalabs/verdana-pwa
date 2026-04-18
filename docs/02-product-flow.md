@@ -2,7 +2,13 @@
 
 ## Flow Summary
 
-Brief ini menggantikan flow lama yang diasumsikan untuk PWA menjadi flow React Native berbasis `expo-router`.
+Brief ini mendefinisikan flow produk untuk satu codebase `Expo + expo-router` yang dideliver sebagai mobile-only PWA untuk role Supplier dan PVP.
+
+Constraint platform yang berlaku untuk seluruh flow:
+
+- flow operasional hanya didukung di browser mobile dan installed PWA
+- desktop browser harus dialihkan ke halaman blocker khusus
+- semua keputusan UI, routing, dan capability harus mobile-first
 
 ## App Surfaces
 
@@ -18,10 +24,11 @@ Route groups yang disarankan:
 
 ### PVP app
 
-Opsi fase awal:
+Pendekatan fase awal:
 
 - tetap dalam satu codebase Expo dengan route group terpisah
 - role-based access setelah login
+- delivery channel sama dengan Supplier: mobile-only PWA
 
 ## Supplier Primary Flow
 
@@ -39,11 +46,11 @@ User actions:
 - wallet dibuat di background
 - isi nama, area operasional, tipe material utama
 
-React Native adjustment:
+Platform adjustment:
 
-- jangan pakai asumsi `localStorage`
-- simpan session di secure/local device storage abstraction
-- gunakan native loading state dan deep link safe redirect
+- jangan pakai asumsi desktop web flow
+- simpan session di storage abstraction yang aman untuk mobile web/PWA
+- gunakan loading state, redirect, dan deep link yang aman untuk browser mobile/PWA
 
 ### 2. Supplier home
 
@@ -71,10 +78,10 @@ Screen sequence:
 3. `/batch/new/location`
 4. `/batch/new/review`
 
-Native adjustments:
+Device-oriented adjustments:
 
-- kamera menggunakan modul Expo, bukan browser camera API
-- GPS menggunakan modul location native
+- kamera menggunakan modul Expo, bukan browser camera API langsung
+- GPS menggunakan modul location native atau abstraction yang setara
 - draft form perlu bisa disimpan lokal bila user keluar app
 - upload foto harus mendukung retry ketika jaringan kembali normal
 
@@ -122,6 +129,11 @@ Screen:
 
 - `/(auth)/pvp-login`
 
+Platform notes:
+
+- hanya untuk mobile browser / installed PWA
+- bila diakses dari desktop, arahkan ke blocker page yang sama dengan Supplier
+
 ### 2. Queue dashboard
 
 Screen:
@@ -156,7 +168,7 @@ Screen:
 6. Co-sign event locks batch data
 7. Mint job enters queue
 8. Worker uploads metadata and mints cNFT
-9. Mobile app receives updated status from API / polling / push event
+9. Mobile PWA receives updated status from API / polling / push event
 
 ## State Machine
 
@@ -176,7 +188,9 @@ Batch states minimum:
 ## Key Stack Adjustments From Old Docs
 
 - `Next.js route` diubah menjadi `expo-router` path
-- browser API diubah menjadi native Expo module
-- `localStorage` diubah menjadi storage abstraction mobile
-- map, camera, permission, dan upload flow harus dianggap native-first
-- push notification dapat masuk roadmap karena lebih relevan di app native
+- delivery target ditetapkan sebagai mobile-only PWA, bukan desktop web app
+- desktop access harus diblok dengan dedicated page
+- browser API yang dipakai harus aman untuk mobile web/PWA dan dibungkus via abstraction
+- storage diubah menjadi storage abstraction yang tidak mengunci kita ke satu platform
+- map, camera, permission, dan upload flow harus dianggap mobile-first
+- push notification tetap relevan untuk roadmap PWA/app

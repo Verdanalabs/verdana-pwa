@@ -22,6 +22,20 @@ export interface SupplierProfile extends User {
   totalKg: number;
 }
 
+export interface PvpStation {
+  id: string;
+  name: string;
+  area: string;
+}
+
+export interface PvpOperatorProfile extends User {
+  role: 'pvp_operator';
+  stationId: string;
+  stationName: string;
+  lat: number;
+  lng: number;
+}
+
 export interface DashboardSummary {
   totalKg: number;
   batchCount: number;

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { Stack } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
@@ -13,6 +13,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/store/auth-context';
 import { BatchDraftProvider } from '@/store/batch-draft-context';
 import { ThemeProvider, useTheme } from '@/store/theme-context';
+import { PvpAuthProvider } from '@/store/pvp-auth-context';
+import { useOperationalPlatformAccess } from '@/components/platform/OperationalPlatformGate';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,6 +24,20 @@ export const unstable_settings = {
 
 function AppShell() {
   const { isDark } = useTheme();
+  const pathname = usePathname();
+  const platformAccess = useOperationalPlatformAccess();
+
+  if (platformAccess === 'checking') {
+    return null;
+  }
+
+  if (platformAccess === 'blocked' && pathname !== '/desktop-blocked') {
+    return <Redirect href="/desktop-blocked" />;
+  }
+
+  if (platformAccess === 'allowed' && pathname === '/desktop-blocked') {
+    return <Redirect href="/" />;
+  }
 
   return (
     <>
@@ -29,7 +45,10 @@ function AppShell() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(supplier-tabs)" />
+        <Stack.Screen name="(pvp-tabs)" />
         <Stack.Screen name="batch" />
+        <Stack.Screen name="desktop-blocked" />
+        <Stack.Screen name="pvp" />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -60,9 +79,11 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BatchDraftProvider>
-          <AppShell />
-        </BatchDraftProvider>
+        <PvpAuthProvider>
+          <BatchDraftProvider>
+            <AppShell />
+          </BatchDraftProvider>
+        </PvpAuthProvider>
       </AuthProvider>
     </ThemeProvider>
   );

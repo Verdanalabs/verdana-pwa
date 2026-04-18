@@ -2,30 +2,25 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { PlatformPressable } from '@react-navigation/elements';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Font, FontSize } from '@/constants/typography';
-import { useTheme, useThemeColors } from '@/store/theme-context';
+import { useThemeColors } from '@/store/theme-context';
 
-const FAB_GRADIENT_DARK:  [string, string, string] = ['#e8ff7a', '#b5f23d', '#5a9e10'];
-const FAB_GRADIENT_LIGHT: [string, string, string] = ['#d4f06a', '#96cc2e', '#3d7010'];
-
-const LEFT_TABS  = [
-  { name: 'home', path: '/(supplier-tabs)/home', label: 'Home', icon: 'home-outline' as const, active: 'home' as const },
-  { name: 'history', path: '/(supplier-tabs)/history', label: 'History', icon: 'time-outline' as const, active: 'time' as const },
+const LEFT_TABS = [
+  { name: 'dashboard', path: '/(pvp-tabs)/dashboard', label: 'Dashboard', icon: 'grid-outline'   as const, active: 'grid'     as const },
+  { name: 'log', path: '/(pvp-tabs)/log', label: 'Log', icon: 'list-outline' as const, active: 'list' as const },
 ];
 const RIGHT_TABS = [
-  { name: 'wallet', path: '/(supplier-tabs)/wallet', label: 'Wallet', icon: 'wallet-outline' as const, active: 'wallet' as const },
-  { name: 'profile', path: '/(supplier-tabs)/profile', label: 'Profile', icon: 'person-outline' as const, active: 'person' as const },
+  { name: 'pending', path: '/(pvp-tabs)/pending', label: 'Pending', icon: 'time-outline' as const, active: 'time' as const },
+  { name: 'facility', path: '/(pvp-tabs)/facility', label: 'Facility', icon: 'business-outline' as const, active: 'business' as const },
 ];
 
-export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
-  const insets    = useSafeAreaInsets();
-  const router    = useRouter();
-  const c         = useThemeColors();
-  const { isDark } = useTheme();
-  const routes  = state.routes.map((r) => r.name);
+export function PvpCustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const c      = useThemeColors();
+  const routes = state.routes.map((r) => r.name);
 
   const focused = (name: string) => routes[state.index] === name;
 
@@ -92,23 +87,16 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         </PlatformPressable>
       ))}
 
-      {/* FAB */}
+      {/* FAB — QR Scan */}
       <View style={styles.fabWrap}>
         <TouchableOpacity
-          style={[styles.fab, { shadowColor: c.accent }]}
-          onPress={() => router.push('/batch/new/photo' as never)}
+          style={[styles.fab, { backgroundColor: c.accent, shadowColor: c.accent }]}
+          onPress={() => router.push('/pvp/qr-scan' as never)}
           activeOpacity={0.85}
         >
-          <LinearGradient
-            colors={isDark ? FAB_GRADIENT_DARK : FAB_GRADIENT_LIGHT}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.fabGradient}
-          >
-            <Ionicons name="add" size={28} color={c.accentContrast} />
-          </LinearGradient>
+          <Ionicons name="qr-code-outline" size={26} color={c.accentContrast} />
         </TouchableOpacity>
-        <Text style={[styles.fabLabel, { color: c.textFaint }]}>Register</Text>
+        <Text style={[styles.fabLabel, { color: c.textFaint }]}>Scan</Text>
       </View>
 
       {RIGHT_TABS.map((tab) => (
@@ -179,13 +167,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 6 },
     elevation: 14,
-  },
-  fabGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   fabLabel: {
     fontSize: FontSize.xs,

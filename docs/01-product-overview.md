@@ -2,22 +2,31 @@
 
 ## Purpose
 
-Dokumen ini merangkum arah produk Verdana setelah stack frontend supplier digeser dari Mobile PWA menjadi React Native berbasis Expo.
+Dokumen ini merangkum arah produk Verdana untuk aplikasi operasional lapangan yang dibangun dalam satu codebase Expo dan dideliver sebagai mobile-only PWA untuk dua role utama: Supplier dan PVP.
 
 ## Product Scope
 
 Verdana memiliki tiga permukaan produk utama:
 
 1. `Beta Supplier App`
-   Aplikasi mobile utama untuk pengepul plastik. Stack target: React Native + Expo.
+   Aplikasi operasional untuk pengepul plastik. Target delivery: mobile-only PWA berbasis Expo.
 2. `Beta PVP App`
-   Aplikasi untuk processor/validator di titik PVP. Untuk fase brief ini diasumsikan tetap mobile-friendly dan bisa dibuat di stack yang sama agar reuse logic lebih tinggi.
+   Aplikasi operasional untuk processor/validator di titik PVP. Target delivery: mobile-only PWA di codebase yang sama agar reuse logic tinggi.
 3. `Dashboards`
    Panel web untuk admin, enterprise, dan ESG buyer. Belum menjadi fokus dokumen ini.
 
-## Why React Native
+## Platform Decision
 
-Perubahan dari PWA ke React Native layak dilakukan karena flow supplier sangat bergantung pada kapabilitas device:
+Verdana memakai Expo + React Native karena flow Supplier dan PVP sama-sama bergantung pada kapabilitas device, tetapi untuk fase ini delivery channel yang dipilih adalah web installable dengan perilaku mobile-first.
+
+Prinsip delivery yang berlaku:
+
+- aplikasi operasional Supplier dan PVP dibuka dari browser mobile atau installed PWA
+- akses desktop/laptop tidak menjadi pengalaman operasional yang didukung
+- jika dibuka dari desktop, aplikasi harus menampilkan halaman khusus yang menjelaskan bahwa app hanya tersedia di mobile
+- dashboard admin, enterprise, dan buyer tetap menjadi permukaan web desktop yang terpisah
+
+Alasan utama keputusan ini:
 
 - kamera untuk foto batch
 - lokasi GPS
@@ -26,7 +35,7 @@ Perubahan dari PWA ke React Native layak dilakukan karena flow supplier sangat b
 - navigasi mobile yang lebih natural
 - penyimpanan lokal untuk draft dan retry sync
 
-Repo aktif juga sudah memakai `Expo`, `React Native`, dan `expo-router`, jadi brief baru sebaiknya mengikuti kondisi implementasi saat ini.
+Repo aktif sudah memakai `Expo`, `React Native`, `expo-router`, dan bisa diexport ke web statis. Karena itu arah produk diset sebagai `mobile-only PWA` alih-alih desktop web app.
 
 ## Primary Users
 
@@ -87,15 +96,24 @@ Fokus MVP tetap pada alur inti:
 - lending production-grade
 - smart contract detail
 - analitik BI lanjutan
+- pengalaman operasional desktop untuk Supplier dan PVP
 
 ## Stack Direction
 
-### Mobile app
+### Operational app
 
 - React Native
 - Expo
 - expo-router
 - TypeScript
+- Web export untuk mobile-only PWA
+
+### Delivery constraints
+
+- target utama: browser mobile dan installed PWA
+- role yang mengikuti constraint ini: `supplier` dan `pvp_operator`
+- desktop browser bukan target operasional
+- desktop harus diarahkan ke blocker page, bukan tetap diberi akses penuh
 
 ### Backend and platform
 
@@ -109,7 +127,7 @@ Fokus MVP tetap pada alur inti:
 
 ## Product Principles
 
-- Mobile-first, bukan web yang dipaksa kecil
+- Mobile-first, bukan desktop web yang dikecilkan
 - Satu tugas utama per layar
 - Tetap usable saat koneksi buruk
 - Bahasa sederhana dan operasional
