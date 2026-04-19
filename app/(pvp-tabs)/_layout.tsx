@@ -1,6 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
-import { PvpCustomTabBar } from '@/components/pvp/PvpCustomTabBar';
-import { usePvpAuth } from '@/store/pvp-auth-context';
+import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
+import { PvpCustomTabBar } from '@/src/shared/navigation/PvpTabBar';
 
 export default function PvpTabsLayout() {
   const { state } = usePvpAuth();

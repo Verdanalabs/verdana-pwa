@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
-import { useAuth } from '@/store/auth-context';
-import { usePvpAuth } from '@/store/pvp-auth-context';
+import { useAuth } from '@/src/features/auth/state/auth-context';
+import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
 export default function IndexRoute() {
   const { isAuthenticated } = useAuth();

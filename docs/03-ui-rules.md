@@ -33,12 +33,12 @@ UI Verdana harus terasa operasional, terpercaya, dan cepat dipahami oleh user la
 
 - Font utama: **Space Grotesk** (via `@expo-google-fonts/space-grotesk`)
 - Scale: `xs(11)` `sm(12)` `base(14)` `md(15)` `lg(16)` `xl(18)` `2xl(22)` `3xl(28)` `4xl(36)`
-- Import selalu dari `@/constants/typography` — jangan hardcode fontFamily
+- Import baru selalu dari `@/src/shared/theme/typography` — jangan hardcode fontFamily
 - Heading harus ringkas
 - Data penting seperti `kg`, status, dan batch ID harus punya penekanan visual lebih tinggi
 
 ```ts
-// @/constants/typography
+// @/src/shared/theme/typography
 Font.regular   = 'SpaceGrotesk_400Regular'
 Font.medium    = 'SpaceGrotesk_500Medium'
 Font.semiBold  = 'SpaceGrotesk_600SemiBold'
@@ -47,7 +47,7 @@ Font.bold      = 'SpaceGrotesk_700Bold'
 
 ### Color System — Dark / Light Mode
 
-Warna dikelola via **ThemeContext** (`@/store/theme-context`). Default: **dark mode**.
+Warna dikelola via **ThemeContext** (`@/src/shared/theme/theme-context`). Default: **dark mode**.
 
 Jangan pernah hardcode warna langsung di komponen — selalu gunakan `useThemeColors()`.
 
@@ -103,7 +103,7 @@ Hero card memakai animasi shimmer `Animated.loop` diagonal yang subtle — janga
 
 ### Color — Status System
 
-Minimal warna status per mode dikelola di `@/constants/themes.ts`:
+Minimal warna status per mode dikelola di `@/src/shared/theme/tokens.ts`:
 
 | Status | Dark bg | Dark text | Light bg | Light text |
 |---|---|---|---|---|
@@ -206,9 +206,9 @@ Komponen inti yang harus konsisten:
 
 | Komponen | Path |
 |---|---|
-| `StatusBadge` | `@/components/ui/StatusBadge` |
-| `MaterialBadge` | `@/components/ui/MaterialBadge` |
-| `BatchCard` | `@/components/ui/BatchCard` |
-| `QuickActionCard` | `@/components/ui/QuickActionCard` |
-| `PrimaryButton` | `@/components/ui/PrimaryButton` |
-| `CustomTabBar` | `@/components/ui/CustomTabBar` |
+| `StatusBadge` | `@/src/shared/ui/StatusBadge` |
+| `MaterialBadge` | `@/src/shared/ui/MaterialBadge` |
+| `BatchCard` | `@/src/shared/ui/BatchCard` |
+| `PrimaryButton` | `@/src/shared/ui/PrimaryButton` |
+| `SupplierTabBar` | `@/src/shared/navigation/SupplierTabBar` |
+| `PvpTabBar` | `@/src/shared/navigation/PvpTabBar` |

@@ -1,5 +1,10 @@
 import { Stack } from 'expo-router';
+import { BatchDraftProvider } from '@/src/features/batch/state/batch-draft-context';
 
 export default function BatchLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <BatchDraftProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </BatchDraftProvider>
+  );
 }

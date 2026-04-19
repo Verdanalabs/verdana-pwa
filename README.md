@@ -1,50 +1,68 @@
-# Welcome to your Expo app 👋
+# Verdana PWA
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo Router app for Verdana supplier and PVP operational flows.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Commands
 
 ```bash
-npm run reset-project
+npm install
+npm run start
+npm run lint
+npm run web
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Structure
 
-## Learn more
+```text
+app/
+  _layout.tsx
+  index.tsx
+  (auth)/
+  (supplier-tabs)/
+  (pvp-tabs)/
+  batch/
+  pvp/
 
-To learn more about developing your project with Expo, look at the following resources:
+src/
+  providers/
+  shared/
+    navigation/
+    platform/
+    theme/
+    ui/
+  features/
+    app/
+    auth/
+    batch/
+    history/
+    profile/
+    pvp/
+    supplier-home/
+    wallet/
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Architecture Rules
 
-## Join the community
+- `app/` is routing only.
+- Screen implementations live under `src/features`.
+- Shared UI, theme, navigation, and platform helpers live under `src/shared`.
+- App-wide providers are composed in `src/providers/AppProviders.tsx`.
+- Batch draft state is scoped to `app/batch/_layout.tsx`, not the app root.
+- Legacy top-level `store`, `constants`, and shared component files are compatibility re-exports where still needed.
 
-Join our community of developers creating universal apps.
+## Feature Map
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `src/features/auth`: supplier auth and onboarding screens
+- `src/features/supplier-home`: supplier dashboard home
+- `src/features/history`: supplier batch history
+- `src/features/wallet`: wallet list and asset detail
+- `src/features/profile`: supplier profile
+- `src/features/batch`: batch registration flow and batch detail
+- `src/features/pvp`: PVP auth, onboarding, dashboard, queue, facility, and QR flow
+- `src/features/app`: app-level supporting screens like modal and desktop-blocked
+
+## Notes
+
+- Route paths and current UI behavior are preserved during the refactor.
+- `expo-location` is required for the PVP onboarding location capture flow.
+- Lint is the current verification command for this repo.
