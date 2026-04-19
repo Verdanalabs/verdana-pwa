@@ -1,5 +1,1 @@
-import { SupplierHomeScreen } from '@/features/supplier-home';
-
-export default function HomeRoute() {
-  return <SupplierHomeScreen />;
-}
+export { SupplierHomeScreen as default } from '@/src/features/supplier-home';

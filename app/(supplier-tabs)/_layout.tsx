@@ -1,6 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
-import { CustomTabBar } from '@/components/ui/CustomTabBar';
-import { useAuth } from '@/store/auth-context';
+import { useAuth } from '@/src/features/auth/state/auth-context';
+import { CustomTabBar } from '@/src/shared/navigation/SupplierTabBar';
 
 export default function SupplierTabsLayout() {
   const { isAuthenticated } = useAuth();

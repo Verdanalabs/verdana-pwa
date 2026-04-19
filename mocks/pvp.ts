@@ -14,6 +14,7 @@ export const MOCK_PVP_OPERATOR: PvpOperatorProfile = {
   walletAddress: '7xKf2mk9...4nR8mQ',
   stationId: 'PVP-001',
   stationName: 'Makassar Selatan',
-  area: 'Makassar',
+  lat: -5.1477,
+  lng: 119.4327,
   createdAt: '2026-04-17T08:00:00Z',
 };

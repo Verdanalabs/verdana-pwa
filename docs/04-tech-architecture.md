@@ -26,41 +26,44 @@ Target platform:
 
 ```
 verdana-apps/
-|-- app/                          # expo-router pages
-|   |-- _layout.tsx               # Root layout: font loading + ThemeProvider
+|-- app/                          # expo-router routes, layouts, redirects only
+|   |-- _layout.tsx               # Root shell: fonts, platform gate, global stack
+|   |-- index.tsx                 # root redirect
+|   |-- (auth)/
+|   |-- (supplier-tabs)/
+|   |-- (pvp-tabs)/
+|   |-- batch/                    # batch flow layout + thin route wrappers
+|   |-- pvp/                      # pvp flow layout + thin route wrappers
 |   |-- modal.tsx
-|   `-- (supplier-tabs)/          # Bottom tab group (Supplier)
-|       |-- _layout.tsx           # CustomTabBar dengan FAB center
-|       |-- home.tsx              # mount SupplierHomeScreen
-|       |-- history.tsx           # placeholder
-|       |-- wallet.tsx            # placeholder
-|       `-- profile.tsx           # placeholder
+|   `-- desktop-blocked.tsx
 |
-|-- features/                     # Domain-based feature modules
-|   `-- supplier-home/
-|       |-- index.tsx             # SupplierHomeScreen
-|       `-- components/
-|           |-- HeroCard.tsx
-|           |-- DashboardMetrics.tsx
-|           |-- QuickActions.tsx
-|           `-- LatestBatches.tsx
+|-- src/
+|   |-- providers/
+|   |   `-- AppProviders.tsx      # Theme + supplier auth + PVP auth
+|   |-- shared/
+|   |   |-- navigation/
+|   |   |-- platform/
+|   |   |-- theme/
+|   |   `-- ui/
+|   `-- features/
+|       |-- app/
+|       |-- auth/
+|       |-- batch/
+|       |-- history/
+|       |-- profile/
+|       |-- pvp/
+|       |-- supplier-home/
+|       `-- wallet/
 |
-|-- components/
-|   `-- ui/                       # Shared reusable UI components
-|       |-- StatusBadge.tsx
-|       |-- MaterialBadge.tsx
-|       |-- BatchCard.tsx
-|       |-- QuickActionCard.tsx
-|       |-- PrimaryButton.tsx
-|       `-- CustomTabBar.tsx
-|
-|-- constants/
-|   |-- colors.ts                 # Legacy, gunakan themes.ts untuk warna baru
-|   |-- themes.ts                 # Dark + light palette
-|   |-- typography.ts             # Font family + font size tokens
+|-- constants/                    # compatibility re-exports where still needed
+|   |-- themes.ts
+|   |-- typography.ts
 |   `-- batch-status.ts
 |
-|-- store/
+|-- store/                        # compatibility re-exports where still needed
+|   |-- auth-context.tsx
+|   |-- batch-draft-context.tsx
+|   |-- pvp-auth-context.tsx
 |   `-- theme-context.tsx
 |
 |-- types/
@@ -102,7 +105,7 @@ Space Grotesk di-load di `app/_layout.tsx` via `useFonts()` sebelum SplashScreen
 
 ## Theme System
 
-Theme dikelola via React Context di `@/store/theme-context.tsx`.
+Theme dikelola via React Context di `@/src/shared/theme/theme-context.tsx`.
 
 ```ts
 const c = useThemeColors();
@@ -111,8 +114,9 @@ const { isDark, toggle } = useTheme();
 
 File sumber:
 
-- `constants/themes.ts` - `DarkColors` dan `LightColors`
-- `store/theme-context.tsx` - `ThemeProvider`, `useTheme`, `useThemeColors`
+- `src/shared/theme/tokens.ts` - `DarkColors` dan `LightColors`
+- `src/shared/theme/theme-context.tsx` - `ThemeProvider`, `useTheme`, `useThemeColors`
+- `src/shared/theme/typography.ts` - `Font` dan `FontSize`
 
 Aturan warna:
 
@@ -147,18 +151,20 @@ Pemisahan state aktual:
 
 | Layer | Solusi saat ini |
 |---|---|
-| Theme | `ThemeContext` di `store/theme-context.tsx` |
+| Theme | `ThemeContext` di `src/shared/theme/theme-context.tsx` |
 | Mock data | Konstanta di `mocks/` |
 | Server state | Belum, akan pakai API layer saat integrasi backend |
 | Persisted draft | Belum, akan pakai `expo-secure-store` atau `AsyncStorage` |
 
-Domain store yang direncanakan:
+Domain state yang aktif / direncanakan:
 
 - `auth`
-- `supplier`
+- `supplier-home`
+- `history`
 - `pvp`
 - `batch-draft`
 - `wallet`
+- `profile`
 
 ## Backend Architecture
 
@@ -177,28 +183,36 @@ Komponen backend tetap mengikuti arah awal:
 Struktur `expo-router` aktual:
 
 ```
-app/(supplier-tabs)/home
-app/(supplier-tabs)/history
-app/(supplier-tabs)/wallet
-app/(supplier-tabs)/profile
-```
-
-Route yang direncanakan:
-
-```
 app/(auth)/welcome
 app/(auth)/login
 app/(auth)/onboarding-profile
 app/(auth)/pvp-login
+app/(supplier-tabs)/home
+app/(supplier-tabs)/history
+app/(supplier-tabs)/wallet
+app/(supplier-tabs)/profile
+app/(pvp-tabs)/dashboard
+app/(pvp-tabs)/log
+app/(pvp-tabs)/pending
+app/(pvp-tabs)/facility
 app/batch/new/photo
 app/batch/new/details
 app/batch/new/location
 app/batch/new/review
 app/batch/[id]
-app/pvp/dashboard
-app/pvp/validate/[batchId]
-app/pvp/cosign/[batchId]/success
-app/pvp/history
+app/pvp/pending-approval
+app/pvp/onboarding
+app/pvp/qr-scan
+```
+
+Route penting yang sudah dijaga perilakunya:
+
+```
+app/_layout.tsx                 # global stack + platform blocker
+app/batch/_layout.tsx           # BatchDraftProvider scope
+app/(supplier-tabs)/_layout.tsx # supplier auth guard + SupplierTabBar
+app/(pvp-tabs)/_layout.tsx      # pvp active-state guard + PvpTabBar
+app/pvp/_layout.tsx             # pending/onboarding/qr flow stack
 ```
 
 ## Data Flow

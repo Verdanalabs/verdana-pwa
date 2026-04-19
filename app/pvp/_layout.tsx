@@ -1,5 +1,5 @@
 import { Redirect, Stack, usePathname } from 'expo-router';
-import { usePvpAuth } from '@/store/pvp-auth-context';
+import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
 export default function PvpLayout() {
   const { state } = usePvpAuth();

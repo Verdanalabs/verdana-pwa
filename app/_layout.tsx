@@ -10,11 +10,9 @@ import {
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '@/store/auth-context';
-import { BatchDraftProvider } from '@/store/batch-draft-context';
-import { ThemeProvider, useTheme } from '@/store/theme-context';
-import { PvpAuthProvider } from '@/store/pvp-auth-context';
-import { useOperationalPlatformAccess } from '@/components/platform/OperationalPlatformGate';
+import { AppProviders } from '@/src/providers/AppProviders';
+import { useTheme } from '@/src/shared/theme/theme-context';
+import { useOperationalPlatformAccess } from '@/src/shared/platform/useOperationalPlatformAccess';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -77,14 +75,8 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <PvpAuthProvider>
-          <BatchDraftProvider>
-            <AppShell />
-          </BatchDraftProvider>
-        </PvpAuthProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AppProviders>
+      <AppShell />
+    </AppProviders>
   );
 }
