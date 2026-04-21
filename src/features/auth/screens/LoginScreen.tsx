@@ -3,11 +3,10 @@ import { useAuth } from "@/src/features/auth/state/auth-context";
 import { useThemeColors } from "@/src/shared/theme/theme-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect } from "react";
 import {
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -33,13 +32,22 @@ const LOGIN_OPTIONS = [
 
 export default function LoginRoute() {
   const c = useThemeColors();
-  const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { loginWithGoogle, loginWithEmail, loginWithSms, isAuthenticated, needsOnboarding } = useAuth();
+
+  // After Privy login + sync, redirect based on onboarding status
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (needsOnboarding) {
+      router.replace("/(auth)/onboarding-profile");
+    } else {
+      router.replace("/(supplier-tabs)/home");
+    }
+  }, [isAuthenticated, needsOnboarding]);
 
   function handleLogin(provider: "google" | "whatsapp" | "email") {
-    login(provider);
-    router.replace("/(supplier-tabs)/home");
+    if (provider === "google") loginWithGoogle();
+    else if (provider === "whatsapp") loginWithSms();
+    else loginWithEmail();
   }
 
   return (
@@ -51,66 +59,6 @@ export default function LoginRoute() {
             <Text style={[styles.subtitle, { color: c.textSecondary }]}>
               Sign in with the method that works best for your daily work.
             </Text>
-          </View>
-
-          <View style={styles.form}>
-            <View
-              style={[
-                styles.inputWrap,
-                { backgroundColor: c.surface, borderColor: c.border },
-              ]}
-            >
-              <Ionicons name="mail-outline" size={18} color={c.textMuted} />
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
-                placeholderTextColor={c.textFaint}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={[styles.input, { color: c.foreground }]}
-              />
-            </View>
-
-            <View
-              style={[
-                styles.inputWrap,
-                { backgroundColor: c.surface, borderColor: c.border },
-              ]}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color={c.textMuted}
-              />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Password"
-                placeholderTextColor={c.textFaint}
-                secureTextEntry
-                style={[styles.input, { color: c.foreground }]}
-              />
-              <Ionicons name="eye-off-outline" size={18} color={c.textFaint} />
-            </View>
-
-            <TouchableOpacity style={styles.forgotWrap} activeOpacity={0.7}>
-              <Text style={[styles.forgotText, { color: c.textSecondary }]}>
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.primaryCta, { backgroundColor: c.accent }]}
-              onPress={() => handleLogin("email")}
-              activeOpacity={0.85}
-            >
-              <Text
-                style={[styles.primaryCtaText, { color: c.accentContrast }]}
-              >
-                Login
-              </Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.optionList}>
