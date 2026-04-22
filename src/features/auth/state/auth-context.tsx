@@ -10,6 +10,7 @@ import {
 } from "react";
 import { usePrivy, useLogout } from "@privy-io/react-auth";
 import { syncUser, type VerdanaUser } from "@/src/features/auth/services/auth-api";
+import { ApiError } from "@/src/shared/services/api";
 
 interface OnboardingInput {
   name: string;
@@ -82,9 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(verdanaUser);
         setNeedsOnboarding(verdanaUser.is_new);
-      } catch {
-        // Network error or invalid token — allow retry on next render
-        syncedRef.current = false;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          logout();
+        } else {
+          // Network error — allow retry on next render
+          syncedRef.current = false;
+        }
       }
     }
 

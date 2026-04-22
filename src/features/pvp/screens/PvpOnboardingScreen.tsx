@@ -7,8 +7,7 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Location = require('expo-location');
+import * as Location from 'expo-location';
 
 type LocationState =
   | { status: 'idle' }
@@ -20,14 +19,12 @@ export default function PvpOnboardingRoute() {
   const c = useThemeColors();
   const { completeOnboarding } = usePvpAuth();
 
-  const [name, setName] = useState('');
   const [stationName, setStationName] = useState('');
   const [location, setLocation] = useState<LocationState>({ status: 'idle' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const canSubmit =
-    name.trim().length > 0 &&
-    stationName.trim().length > 0 &&
-    location.status === 'granted';
+  const canSubmit = stationName.trim().length > 0 && location.status === 'granted' && !isSubmitting;
 
   async function handleGetLocation() {
     setLocation({ status: 'loading' });
@@ -40,15 +37,22 @@ export default function PvpOnboardingRoute() {
     setLocation({ status: 'granted', lat: pos.coords.latitude, lng: pos.coords.longitude });
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!canSubmit || location.status !== 'granted') return;
-    completeOnboarding({
-      name: name.trim(),
-      stationName: stationName.trim(),
-      lat: location.lat,
-      lng: location.lng,
-    });
-    router.replace('/(pvp-tabs)/dashboard' as never);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await completeOnboarding({
+        stationName: stationName.trim(),
+        lat: location.lat,
+        lng: location.lng,
+      });
+      router.replace('/(pvp-tabs)/dashboard' as never);
+    } catch {
+      setSubmitError('Failed to register station. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -69,23 +73,6 @@ export default function PvpOnboardingRoute() {
         </View>
 
         <View style={styles.form}>
-          {/* Nama Operator */}
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: c.textSecondary }]}>Your name</Text>
-            <View style={[styles.inputWrap, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Ionicons name="person-outline" size={18} color={c.textMuted} />
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Full name"
-                placeholderTextColor={c.textFaint}
-                style={[styles.input, { color: c.foreground }]}
-                autoCapitalize="words"
-              />
-            </View>
-          </View>
-
-          {/* Nama Titik PVP */}
           <View style={styles.field}>
             <Text style={[styles.label, { color: c.textSecondary }]}>Station name</Text>
             <View style={[styles.inputWrap, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -101,7 +88,6 @@ export default function PvpOnboardingRoute() {
             </View>
           </View>
 
-          {/* Lokasi GPS */}
           <View style={styles.field}>
             <Text style={[styles.label, { color: c.textSecondary }]}>Station location</Text>
 
@@ -165,16 +151,25 @@ export default function PvpOnboardingRoute() {
           </View>
         </View>
 
+        {submitError && (
+          <Text style={[styles.submitError, { color: c.error }]}>{submitError}</Text>
+        )}
+
         <TouchableOpacity
           style={[styles.submitBtn, { backgroundColor: canSubmit ? c.accent : c.surface }]}
           onPress={handleSubmit}
           activeOpacity={0.85}
           disabled={!canSubmit}
         >
-          <Text style={[styles.submitBtnText, { color: canSubmit ? c.accentContrast : c.textMuted }]}>
-            Start operating
-          </Text>
-          <Ionicons name="arrow-forward" size={18} color={canSubmit ? c.accentContrast : c.textMuted} />
+          {isSubmitting
+            ? <ActivityIndicator color={c.accentContrast} />
+            : <>
+                <Text style={[styles.submitBtnText, { color: canSubmit ? c.accentContrast : c.textMuted }]}>
+                  Start operating
+                </Text>
+                <Ionicons name="arrow-forward" size={18} color={canSubmit ? c.accentContrast : c.textMuted} />
+              </>
+          }
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -183,111 +178,26 @@ export default function PvpOnboardingRoute() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 32,
-    gap: 32,
-  },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 48, paddingBottom: 32, gap: 32 },
   header: { gap: 12 },
-  iconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  title: {
-    fontFamily: Font.bold,
-    fontSize: FontSize['3xl'],
-    lineHeight: 36,
-  },
-  subtitle: {
-    fontFamily: Font.regular,
-    fontSize: FontSize.md,
-    lineHeight: 24,
-  },
+  iconWrap: { width: 64, height: 64, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start', marginBottom: 4 },
+  title: { fontFamily: Font.bold, fontSize: FontSize['3xl'], lineHeight: 36 },
+  subtitle: { fontFamily: Font.regular, fontSize: FontSize.md, lineHeight: 24 },
   form: { gap: 20 },
   field: { gap: 8 },
-  label: {
-    fontFamily: Font.medium,
-    fontSize: FontSize.sm,
-  },
-  inputWrap: {
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    fontFamily: Font.regular,
-    fontSize: FontSize.md,
-  },
-  locationBtn: {
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  locationBtnText: {
-    fontFamily: Font.medium,
-    fontSize: FontSize.md,
-  },
-  locationResult: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    gap: 6,
-  },
-  locationResultTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  locationResultLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  locationResultLabel: {
-    fontFamily: Font.medium,
-    fontSize: FontSize.sm,
-  },
-  locationCoords: {
-    fontFamily: Font.regular,
-    fontSize: FontSize.sm,
-    letterSpacing: 0.2,
-  },
-  locationHint: {
-    fontFamily: Font.regular,
-    fontSize: FontSize.sm,
-    lineHeight: 18,
-  },
-  locationRefresh: {
-    fontFamily: Font.semiBold,
-    fontSize: FontSize.sm,
-  },
-  submitBtn: {
-    height: 54,
-    borderRadius: 999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  submitBtnText: {
-    fontFamily: Font.semiBold,
-    fontSize: FontSize.lg,
-  },
+  label: { fontFamily: Font.medium, fontSize: FontSize.sm },
+  inputWrap: { height: 54, borderRadius: 14, borderWidth: 1, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  input: { flex: 1, fontFamily: Font.regular, fontSize: FontSize.md },
+  locationBtn: { height: 54, borderRadius: 14, borderWidth: 1, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  locationBtnText: { fontFamily: Font.medium, fontSize: FontSize.md },
+  locationResult: { borderRadius: 14, borderWidth: 1, padding: 14, gap: 6 },
+  locationResultTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  locationResultLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  locationResultLabel: { fontFamily: Font.medium, fontSize: FontSize.sm },
+  locationCoords: { fontFamily: Font.regular, fontSize: FontSize.sm, letterSpacing: 0.2 },
+  locationHint: { fontFamily: Font.regular, fontSize: FontSize.sm, lineHeight: 18 },
+  locationRefresh: { fontFamily: Font.semiBold, fontSize: FontSize.sm },
+  submitError: { fontFamily: Font.regular, fontSize: FontSize.sm, textAlign: 'center' },
+  submitBtn: { height: 54, borderRadius: 999, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  submitBtnText: { fontFamily: Font.semiBold, fontSize: FontSize.lg },
 });

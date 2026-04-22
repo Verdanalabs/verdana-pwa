@@ -8,6 +8,11 @@ interface BatchDraft {
   estimatedWeightKg: string;
   grade: BatchGrade | null;
   dropOffPoint: string | null;
+  pvpSiteId: string | null;
+  // User's actual GPS at time of location step (used as batch origin)
+  originLat: number | null;
+  originLng: number | null;
+  // Selected PVP site coordinates (for display/distance)
   gpsLat: number | null;
   gpsLng: number | null;
   distanceKm: number | null;
@@ -17,7 +22,7 @@ interface BatchDraftContextValue {
   draft: BatchDraft;
   setPhoto: (payload: { photoUri: string; capturedAt: string }) => void;
   setDetails: (payload: { materialType: MaterialType; estimatedWeightKg: string; grade: BatchGrade }) => void;
-  setLocation: (payload: { dropOffPoint: string; gpsLat: number; gpsLng: number; distanceKm: number }) => void;
+  setLocation: (payload: { dropOffPoint: string; pvpSiteId: string; originLat: number; originLng: number; gpsLat: number; gpsLng: number; distanceKm: number }) => void;
   resetDraft: () => void;
 }
 
@@ -28,6 +33,9 @@ const INITIAL_DRAFT: BatchDraft = {
   estimatedWeightKg: '',
   grade: null,
   dropOffPoint: null,
+  pvpSiteId: null,
+  originLat: null,
+  originLng: null,
   gpsLat: null,
   gpsLng: null,
   distanceKm: null,
@@ -52,8 +60,8 @@ export function BatchDraftProvider({ children }: { children: ReactNode }) {
     setDetails: ({ materialType, estimatedWeightKg, grade }) => {
       setDraft((prev) => ({ ...prev, materialType, estimatedWeightKg, grade }));
     },
-    setLocation: ({ dropOffPoint, gpsLat, gpsLng, distanceKm }) => {
-      setDraft((prev) => ({ ...prev, dropOffPoint, gpsLat, gpsLng, distanceKm }));
+    setLocation: ({ dropOffPoint, pvpSiteId, originLat, originLng, gpsLat, gpsLng, distanceKm }) => {
+      setDraft((prev) => ({ ...prev, dropOffPoint, pvpSiteId, originLat, originLng, gpsLat, gpsLng, distanceKm }));
     },
     resetDraft: () => setDraft(INITIAL_DRAFT),
   }), [draft]);

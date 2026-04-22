@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { DashboardSummary } from '@/types';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
@@ -86,29 +85,13 @@ export function HeroCard({ data, supplierName }: HeroCardProps) {
         {/* ── Content ── */}
         <View style={styles.content}>
           {/* Header row */}
-          <View style={styles.topRow}>
-            <View style={styles.topLeft}>
-              <Text style={[styles.greeting, { color: HERO_TEXT }]}>
-                Good morning, {firstName} 👋
-              </Text>
-              <Text style={[styles.subtext, { color: HERO_TEXT_MUTED }]}> 
-                Here&apos;s your collection overview
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.trendBadge,
-                {
-                  backgroundColor: `${c.heroAccentNumber}15`,
-                  borderColor: `${c.heroAccentNumber}30`,
-                  borderWidth: 1,
-                },
-              ]}
-            >
-              <Ionicons name="trending-up" size={12} color={c.heroAccentNumber} />
-              <Text style={[styles.trendText, { color: c.heroAccentNumber }]}>+12%</Text>
-            </View>
+          <View style={styles.topLeft}>
+            <Text style={[styles.greeting, { color: HERO_TEXT }]}>
+              Hi, {firstName}
+            </Text>
+            <Text style={[styles.subtext, { color: HERO_TEXT_MUTED }]}>
+              Here's your collection overview
+            </Text>
           </View>
 
           {/* Big number */}
@@ -188,15 +171,8 @@ const styles = StyleSheet.create({
     padding: 22,
     gap: 16,
   },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
   topLeft: {
-    flex: 1,
     gap: 4,
-    paddingRight: 8,
   },
   greeting: {
     fontSize: FontSize.lg,
@@ -205,18 +181,6 @@ const styles = StyleSheet.create({
   subtext: {
     fontSize: FontSize.sm,
     fontFamily: Font.regular,
-  },
-  trendBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 99,
-  },
-  trendText: {
-    fontSize: FontSize.xs,
-    fontFamily: Font.semiBold,
   },
   metricRow: {
     flexDirection: 'row',

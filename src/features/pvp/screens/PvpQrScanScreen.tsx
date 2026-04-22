@@ -160,6 +160,8 @@ export default function PvpQrScanRoute() {
           setScanResult(nextCode);
           setManualCode(nextCode);
           stopScannerLoop();
+          stopCamera();
+          router.replace(`/pvp/cosign?id=${nextCode.trim()}` as never);
           return;
         }
       } catch {
@@ -272,6 +274,11 @@ export default function PvpQrScanRoute() {
             style={[styles.manualSubmit, { backgroundColor: canUseCode ? c.foreground : c.background }]}
             activeOpacity={0.85}
             disabled={!canUseCode}
+            onPress={() => {
+              if (!canUseCode) return;
+              stopCamera();
+              router.replace(`/pvp/cosign?id=${manualCode.trim()}` as never);
+            }}
           >
             <Text style={[styles.manualSubmitText, { color: canUseCode ? c.background : c.textMuted }]}>
               Use this code

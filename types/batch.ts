@@ -1,14 +1,11 @@
 export type BatchStatus =
-  | 'draft'
-  | 'submitted'
-  | 'transit'
-  | 'pending_validation'
-  | 'verified'
-  | 'minting'
-  | 'minted'
-  | 'listed'
-  | 'collateral'
-  | 'rejected';
+  | 'pending'
+  | 'accepted'
+  | 'cosigning'
+  | 'cosigned'
+  | 'mint_pending'
+  | 'mint_failed'
+  | 'minted';
 
 export type MaterialType = 'PET' | 'HDPE' | 'LDPE' | 'PP' | 'PS' | 'PVC' | 'OTHER';
 

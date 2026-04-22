@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -8,191 +8,7 @@ import { PrimaryButton } from '@/src/shared/ui/PrimaryButton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
-
-// ─── Camera Overlay (web-native) ─────────────────────────────────────────────
-
-interface CameraOverlayProps {
-  onCapture: (uri: string) => void;
-  onClose: () => void;
-}
-
-function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-          setReady(true);
-        }
-      } catch {
-        setError('Camera access denied. Please allow camera permission in your browser.');
-      }
-    }
-
-    startCamera();
-
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
-  }, []);
-
-  function capture() {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d')?.drawImage(video, 0, 0);
-
-    const uri = canvas.toDataURL('image/jpeg', 0.85);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    onCapture(uri);
-  }
-
-  return (
-    <div style={webStyles.overlay}>
-      {error ? (
-        <div style={webStyles.errorBox}>
-          <p style={webStyles.errorText}>{error}</p>
-          <button style={webStyles.closeBtn} onClick={onClose}>Close</button>
-        </div>
-      ) : (
-        <>
-          <video
-            ref={videoRef}
-            style={webStyles.video}
-            playsInline
-            muted
-            autoPlay
-          />
-          <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-          {/* Top bar */}
-          <div style={webStyles.topBar}>
-            <button style={webStyles.iconBtn} onClick={onClose}>
-              <span style={webStyles.iconText}>✕</span>
-            </button>
-          </div>
-
-          {/* Capture button */}
-          <div style={webStyles.bottomBar}>
-            <button
-              style={{ ...webStyles.captureBtn, opacity: ready ? 1 : 0.5 }}
-              onClick={capture}
-              disabled={!ready}
-            >
-              <div style={webStyles.captureBtnInner} />
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-const webStyles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: '#000',
-    zIndex: 9999,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  video: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    position: 'absolute',
-    top: 0, left: 0,
-  },
-  topBar: {
-    position: 'absolute',
-    top: 20, left: 20,
-    zIndex: 10,
-  },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    border: '1.5px solid rgba(255,255,255,0.3)',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconText: {
-    color: '#fff',
-    fontSize: 18,
-    lineHeight: '1',
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 48,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  captureBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    border: '3px solid #fff',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'transform 0.1s',
-  },
-  captureBtnInner: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#fff',
-  },
-  errorBox: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 16,
-    padding: 24,
-  },
-  errorText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 16,
-    maxWidth: 280,
-  },
-  closeBtn: {
-    padding: '10px 24px',
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-};
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+import { CameraOverlay } from '@/src/shared/ui/CameraOverlay';
 
 function StepHeader({ step, title, body }: { step: string; title: string; body: string }) {
   const c = useThemeColors();
@@ -209,6 +25,13 @@ export default function BatchPhotoRoute() {
   const c = useThemeColors();
   const { draft, setPhoto, resetDraft } = useBatchDraft();
   const [showCamera, setShowCamera] = useState(false);
+
+  // Auto-open camera on first mount if no photo yet
+  useEffect(() => {
+    if (!draft.photoUri) {
+      setShowCamera(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCapture = useCallback((uri: string) => {
     setShowCamera(false);
@@ -295,8 +118,8 @@ export default function BatchPhotoRoute() {
               </TouchableOpacity>
             )}
 
-            <View style={styles.actionRow}>
-              {hasPhoto ? (
+            {hasPhoto && (
+              <View style={styles.actionRow}>
                 <TouchableOpacity
                   style={[styles.actionButtonOutline, { backgroundColor: c.surface, borderColor: c.border }]}
                   onPress={() => setShowCamera(true)}
@@ -305,17 +128,8 @@ export default function BatchPhotoRoute() {
                   <Ionicons name="camera-outline" size={18} color={c.foreground} />
                   <Text style={[styles.actionButtonOutlineLabel, { color: c.foreground }]}>Retake</Text>
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: c.accent }]}
-                  onPress={() => setShowCamera(true)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="camera-outline" size={18} color={c.accentContrast} />
-                  <Text style={[styles.actionButtonLabel, { color: c.accentContrast }]}>Open Camera</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+              </View>
+            )}
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
@@ -378,7 +192,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: FontSize.lg, fontFamily: Font.semiBold },
   emptyHint: { fontSize: FontSize.sm, fontFamily: Font.regular },
-  actionRow: { paddingHorizontal: 20, paddingBottom: 14 },
+  actionRow: { paddingHorizontal: 20, paddingBottom: 14, flexDirection: 'row', gap: 10 },
   actionButton: {
     height: 50, borderRadius: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

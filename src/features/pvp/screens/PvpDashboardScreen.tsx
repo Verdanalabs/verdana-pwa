@@ -24,7 +24,7 @@ function timeAgo(iso: string): string {
 
 export default function PvpDashboardTab() {
   const c = useThemeColors();
-  const { operator } = usePvpAuth();
+  const { operator, activeSite } = usePvpAuth();
   const batches = getMockBatches();
 
   const arriving = batches.filter((b) => b.status === 'transit');
@@ -47,7 +47,7 @@ export default function PvpDashboardTab() {
           <View style={styles.headerTop}>
             <View style={styles.headerLeft}>
               <Text style={[styles.stationName, { color: c.foreground }]}>
-                {operator?.stationName?.toUpperCase()}
+                {activeSite?.name?.toUpperCase() ?? '—'}
               </Text>
               <View style={[styles.openBadge, { backgroundColor: '#16a34a20', borderColor: '#16a34a40' }]}>
                 <View style={[styles.openDot, { backgroundColor: '#16a34a' }]} />
@@ -56,7 +56,7 @@ export default function PvpDashboardTab() {
             </View>
           </View>
           <Text style={[styles.headerSub, { color: c.textSecondary }]}>
-            {operator?.stationId} · Operator: {operator?.name}
+            {activeSite?.id.slice(0, 8).toUpperCase() ?? '—'} · Operator: {operator?.display_name ?? '—'}
           </Text>
           <Text style={[styles.headerDate, { color: c.textMuted }]}>{today}</Text>
         </View>

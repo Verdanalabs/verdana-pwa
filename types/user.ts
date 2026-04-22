@@ -1,6 +1,8 @@
 export type UserRole = 'supplier' | 'pvp_operator';
 
 export type SupplierTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+export type ReputationTier = 'starter' | 'active' | 'reliable' | 'top_collector';
+export type ReputationState = 'unavailable' | 'available';
 
 export interface User {
   id: string;
@@ -41,6 +43,8 @@ export interface DashboardSummary {
   batchCount: number;
   cnftCount: number;
   usdcBalance: number;
-  reputationScore: number;
+  reputationScore?: number | null;
+  reputationTier?: ReputationTier | null;
+  reputationState: ReputationState;
   pendingTransitCount: number;
 }

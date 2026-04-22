@@ -9,7 +9,7 @@ export default function PvpLayout() {
     return <Redirect href="/(auth)/pvp-login" />;
   }
 
-  if (state === 'active' && pathname !== '/pvp/qr-scan') {
+  if (state === 'active' && pathname !== '/pvp/qr-scan' && pathname !== '/pvp/cosign') {
     return <Redirect href="/(pvp-tabs)/dashboard" />;
   }
 
@@ -20,6 +20,7 @@ export default function PvpLayout() {
       <Stack.Screen name="pending-approval" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="qr-scan" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="cosign" />
     </Stack>
   );
 }

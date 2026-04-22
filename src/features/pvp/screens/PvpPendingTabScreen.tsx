@@ -1,159 +1,231 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { getMockCosignBatch } from '@/src/shared/services/mock/batch-data';
+import { acceptBatch, getPvpBatches, type PvpBatchListItem } from '@/src/features/batch/services/batch-api';
 
-function timeLabel(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function materialLabel(m: string) {
+  return m.toUpperCase();
+}
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function statusColor(status: string): string {
+  switch (status) {
+    case 'pending': return '#f59e0b';
+    case 'accepted': return '#3b82f6';
+    case 'cosigning': return '#8b5cf6';
+    default: return '#6b7280';
+  }
+}
+
+function BatchCard({
+  item,
+  token,
+  onAccepted,
+}: {
+  item: PvpBatchListItem;
+  token: string;
+  onAccepted: () => void;
+}) {
+  const c = useThemeColors();
+  const [accepting, setAccepting] = useState(false);
+
+  async function handleAccept() {
+    setAccepting(true);
+    try {
+      await acceptBatch(token, item.id);
+      onAccepted();
+    } catch {
+      // ignore — list will refresh on next focus
+    } finally {
+      setAccepting(false);
+    }
+  }
+
+  const estKg = item.estimated_weight_grams != null
+    ? (item.estimated_weight_grams / 1000).toFixed(1)
+    : '—';
+
+  return (
+    <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+      <View style={styles.cardHeader}>
+        <View style={styles.cardMeta}>
+          <View style={[styles.statusDot, { backgroundColor: statusColor(item.status) }]} />
+          <Text style={[styles.statusText, { color: c.textSecondary }]}>{item.status.toUpperCase()}</Text>
+        </View>
+        <Text style={[styles.timeText, { color: c.textMuted }]}>{timeAgo(item.created_at)}</Text>
+      </View>
+
+      <View style={styles.cardBody}>
+        <View style={styles.cardRow}>
+          <Text style={[styles.cardLabel, { color: c.textMuted }]}>MATERIAL</Text>
+          <Text style={[styles.cardValue, { color: c.foreground }]}>{materialLabel(item.material)}</Text>
+        </View>
+        <View style={styles.cardRow}>
+          <Text style={[styles.cardLabel, { color: c.textMuted }]}>EST. WEIGHT</Text>
+          <Text style={[styles.cardValue, { color: c.foreground }]}>{estKg} kg</Text>
+        </View>
+        <View style={styles.cardRow}>
+          <Text style={[styles.cardLabel, { color: c.textMuted }]}>BATCH ID</Text>
+          <Text style={[styles.cardValue, { color: c.foreground }]}>{item.id.slice(0, 8).toUpperCase()}</Text>
+        </View>
+      </View>
+
+      <View style={styles.cardActions}>
+        {item.status === 'pending' && (
+          <TouchableOpacity
+            style={[styles.acceptBtn, { backgroundColor: c.accent }]}
+            onPress={handleAccept}
+            activeOpacity={0.85}
+            disabled={accepting}
+          >
+            {accepting
+              ? <ActivityIndicator size="small" color={c.accentContrast} />
+              : <Text style={[styles.acceptBtnText, { color: c.accentContrast }]}>Accept</Text>
+            }
+          </TouchableOpacity>
+        )}
+        {item.status === 'accepted' && (
+          <TouchableOpacity
+            style={[styles.scanBtn, { borderColor: c.accent }]}
+            onPress={() => router.push(`/pvp/cosign?id=${item.id}` as never)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="qr-code-outline" size={16} color={c.accent} />
+            <Text style={[styles.scanBtnText, { color: c.accent }]}>Scan QR & Weigh</Text>
+          </TouchableOpacity>
+        )}
+        {item.status === 'cosigning' && (
+          <View style={[styles.waitingPill, { backgroundColor: '#8b5cf620', borderColor: '#8b5cf640' }]}>
+            <Ionicons name="hourglass-outline" size={14} color="#8b5cf6" />
+            <Text style={[styles.waitingText, { color: '#8b5cf6' }]}>Waiting for supplier</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function PendingSkeleton() {
+  const c = useThemeColors();
+
+  return (
+    <View style={styles.list}>
+      {[0, 1, 2].map((item) => (
+        <View key={item} style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+          <View style={styles.cardHeader}>
+            <SkeletonBox width="28%" height={12} radius={6} />
+            <SkeletonBox width="18%" height={10} radius={5} />
+          </View>
+          <View style={styles.cardBody}>
+            {[0, 1, 2].map((row) => (
+              <View key={row} style={styles.cardRow}>
+                <SkeletonBox width="26%" height={10} radius={5} />
+                <SkeletonBox width="30%" height={12} radius={6} />
+              </View>
+            ))}
+          </View>
+          <SkeletonBox width="100%" height={44} radius={12} />
+        </View>
+      ))}
+    </View>
+  );
 }
 
 export default function PvpPendingTab() {
   const c = useThemeColors();
-  const { operator } = usePvpAuth();
-  const [confirmed, setConfirmed] = useState(false);
-  const [cancelled, setCancelled] = useState(false);
-  const cosignBatch = getMockCosignBatch();
+  const { token } = usePvpAuth();
+  const [batches, setBatches] = useState<PvpBatchListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!cosignBatch) {
-    return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
-        <View style={styles.centerState}>
-          <Ionicons name="time-outline" size={48} color={c.textMuted} />
-          <Text style={[styles.stateTitle, { color: c.foreground }]}>No pending co-sign</Text>
-          <Text style={[styles.stateSub, { color: c.textMuted }]}>There is no active co-sign session right now.</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getPvpBatches(token);
+      setBatches(data);
+    } catch {
+      setError('Failed to load batches');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
-  if (cancelled) {
-    return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
-        <View style={styles.centerState}>
-          <Ionicons name="close-circle-outline" size={48} color={c.textMuted} />
-          <Text style={[styles.stateTitle, { color: c.foreground }]}>Session cancelled</Text>
-          <Text style={[styles.stateSub, { color: c.textMuted }]}>
-            The co-sign session for {cosignBatch.id} was cancelled.
-          </Text>
-          <TouchableOpacity
-            style={[styles.resetBtn, { borderColor: c.border }]}
-            onPress={() => setCancelled(false)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.resetBtnText, { color: c.textSecondary }]}>Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  if (confirmed) {
-    return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
-        <View style={styles.centerState}>
-          <View style={[styles.successCircle, { borderColor: '#10b981' }]}>
-            <Ionicons name="checkmark" size={40} color="#10b981" />
-          </View>
-          <Text style={[styles.stateTitle, { color: c.foreground }]}>Co-sign confirmed</Text>
-          <Text style={[styles.stateSub, { color: c.textMuted }]}>
-            Batch {cosignBatch.id} has been co-signed. Minting job queued.
-          </Text>
-          <TouchableOpacity
-            style={[styles.resetBtn, { borderColor: c.border }]}
-            onPress={() => setConfirmed(false)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.resetBtnText, { color: c.textSecondary }]}>Reset demo</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const active = batches.filter(b => ['pending', 'accepted', 'cosigning'].includes(b.status));
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={[styles.pageTitle, { color: c.foreground }]}>PENDING</Text>
+        <Text style={[styles.pageSub, { color: c.textMuted }]}>
+          {active.length} active batch{active.length !== 1 ? 'es' : ''}
+        </Text>
+      </View>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.pageTitle, { color: c.foreground }]}>AWAITING CO-SIGN</Text>
-          <Text style={[styles.pageSub, { color: c.textSecondary }]}>
-            {cosignBatch.id} · Supplier notified
+      {loading && (
+        <PendingSkeleton />
+      )}
+
+      {!loading && error && (
+        <View style={styles.centerState}>
+          <Ionicons name="alert-circle-outline" size={40} color={c.textMuted} />
+          <Text style={[styles.stateText, { color: c.textMuted }]}>{error}</Text>
+          <TouchableOpacity onPress={load} activeOpacity={0.7}>
+            <Text style={[styles.retryText, { color: c.accent }]}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!loading && !error && active.length === 0 && (
+        <View style={styles.centerState}>
+          <Ionicons name="time-outline" size={48} color={c.textMuted} />
+          <Text style={[styles.stateTitle, { color: c.foreground }]}>No active batches</Text>
+          <Text style={[styles.stateText, { color: c.textMuted }]}>
+            Pending supplier requests will appear here.
           </Text>
         </View>
+      )}
 
-        {/* Wait indicator */}
-        <View style={styles.waitSection}>
-          <View style={[styles.waitOuter, { borderColor: c.accent + '30' }]}>
-            <View style={[styles.waitMiddle, { borderColor: c.accent + '60' }]}>
-              <View style={[styles.waitInner, { borderColor: c.accent, backgroundColor: c.surface }]}>
-                <Text style={[styles.waitLabel, { color: c.accent }]}>WAIT</Text>
-              </View>
-            </View>
-          </View>
-          <Text style={[styles.waitTitle, { color: c.foreground }]}>WAITING FOR CONFIRMATION</Text>
-          <Text style={[styles.waitSub, { color: c.textSecondary }]}>
-            Notification sent to supplier.{'\n'}Waiting for their digital signature.
-          </Text>
-        </View>
-
-        {/* Detail card */}
-        <View style={[styles.detailCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          {[
-            { label: 'SUPPLIER', value: `Supplier #${cosignBatch.id}` },
-            { label: 'BATCH', value: cosignBatch.id },
-            { label: 'ACTUAL WEIGHT', value: `${cosignBatch.actualWeightKg ?? cosignBatch.estimatedWeightKg} Kg` },
-            { label: 'MATERIAL', value: `${cosignBatch.materialType} plastic` },
-            { label: 'PVP ID', value: operator?.stationId ?? '—' },
-            { label: 'SENT AT', value: timeLabel(cosignBatch.submittedAt ?? '') },
-          ].map((row, i, arr) => (
-            <View
-              key={row.label}
-              style={[styles.detailRow, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: c.border }]}
-            >
-              <Text style={[styles.detailLabel, { color: c.textMuted }]}>{row.label}</Text>
-              <Text style={[styles.detailValue, { color: c.foreground }]}>{row.value}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Dev simulate button */}
-        <TouchableOpacity
-          style={[styles.confirmBtn, { backgroundColor: c.accent }]}
-          onPress={() => setConfirmed(true)}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.confirmBtnText, { color: c.accentContrast }]}>
-            DEMO: SUPPLIER CONFIRMED
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.cancelBtn, { borderColor: c.border }]}
-          onPress={() => setCancelled(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.cancelBtnText, { color: c.textSecondary }]}>Cancel session</Text>
-        </TouchableOpacity>
-
-      </ScrollView>
+      {!loading && !error && active.length > 0 && (
+        <FlatList
+          data={active}
+          keyExtractor={(b) => b.id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <BatchCard item={item} token={token!} onAccepted={load} />
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  scroll: {
+  header: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 32,
-    gap: 24,
+    paddingBottom: 12,
+    gap: 2,
   },
-  header: { gap: 4 },
   pageTitle: {
     fontFamily: Font.bold,
     fontSize: FontSize.xl,
@@ -163,129 +235,116 @@ const styles = StyleSheet.create({
     fontFamily: Font.regular,
     fontSize: FontSize.sm,
   },
-  waitSection: {
-    alignItems: 'center',
-    gap: 16,
-    paddingVertical: 8,
-  },
-  waitOuter: {
-    width: 140,
-    height: 140,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  waitMiddle: {
-    width: 112,
-    height: 112,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  waitInner: {
-    width: 84,
-    height: 84,
-    borderRadius: 999,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  waitLabel: {
-    fontFamily: Font.bold,
-    fontSize: FontSize.md,
-    letterSpacing: 1,
-  },
-  waitTitle: {
-    fontFamily: Font.bold,
-    fontSize: FontSize.xl,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-  },
-  waitSub: {
-    fontFamily: Font.regular,
-    fontSize: FontSize.md,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  detailCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  detailLabel: {
-    fontFamily: Font.medium,
-    fontSize: FontSize.xs,
-    letterSpacing: 0.5,
-  },
-  detailValue: {
-    fontFamily: Font.semiBold,
-    fontSize: FontSize.sm,
-  },
-  confirmBtn: {
-    height: 54,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmBtnText: {
-    fontFamily: Font.bold,
-    fontSize: FontSize.md,
-    letterSpacing: 0.5,
-  },
-  cancelBtn: {
-    height: 50,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnText: {
-    fontFamily: Font.medium,
-    fontSize: FontSize.md,
-  },
   centerState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    gap: 16,
-  },
-  successCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 999,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 12,
   },
   stateTitle: {
     fontFamily: Font.bold,
     fontSize: FontSize['2xl'],
     textAlign: 'center',
   },
-  stateSub: {
+  stateText: {
     fontFamily: Font.regular,
     fontSize: FontSize.md,
     textAlign: 'center',
     lineHeight: 22,
   },
-  resetBtn: {
-    marginTop: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
+  retryText: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.md,
   },
-  resetBtnText: {
+  list: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    gap: 14,
+  },
+  card: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    gap: 14,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontFamily: Font.medium,
+    fontSize: FontSize.xs,
+    letterSpacing: 0.5,
+  },
+  timeText: {
+    fontFamily: Font.regular,
+    fontSize: FontSize.xs,
+  },
+  cardBody: {
+    gap: 8,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardLabel: {
+    fontFamily: Font.medium,
+    fontSize: FontSize.xs,
+    letterSpacing: 0.4,
+  },
+  cardValue: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.sm,
+  },
+  cardActions: {
+    paddingTop: 4,
+  },
+  acceptBtn: {
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  acceptBtnText: {
+    fontFamily: Font.bold,
+    fontSize: FontSize.md,
+  },
+  scanBtn: {
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  scanBtnText: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.md,
+  },
+  waitingPill: {
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  waitingText: {
     fontFamily: Font.medium,
     fontSize: FontSize.sm,
   },

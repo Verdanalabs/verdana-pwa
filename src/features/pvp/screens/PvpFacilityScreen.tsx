@@ -30,20 +30,16 @@ function InfoRow({
 
 export default function PvpFacilityTab() {
   const c = useThemeColors();
-  const { operator, walletAddress, signOut } = usePvpAuth();
+  const { operator, activeSite, signOut } = usePvpAuth();
   const batches = getMockBatches();
 
   const totalKg = batches.reduce((s, b) => s + (b.actualWeightKg ?? b.estimatedWeightKg), 0);
-  const initials = operator?.name
+  const initials = operator?.display_name
     ?.split(' ')
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .slice(0, 2)
     .join('')
     .toUpperCase() ?? 'OP';
-
-  const shortWallet = walletAddress
-    ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`
-    : '—';
 
   function handleSignOut() {
     signOut();
@@ -69,7 +65,7 @@ export default function PvpFacilityTab() {
             </View>
           </View>
           <Text style={[styles.facilityName, { color: c.foreground }]}>
-            {operator?.stationName?.toUpperCase()}
+            {activeSite?.name?.toUpperCase() ?? '—'}
           </Text>
           <Text style={[styles.facilityType, { color: c.textMuted }]}>
             PHYSICAL VALIDATION POINT
@@ -77,7 +73,7 @@ export default function PvpFacilityTab() {
           <View style={[styles.stationPill, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={[styles.pillDot, { backgroundColor: '#10b981' }]} />
             <Text style={[styles.pillText, { color: c.textSecondary }]}>
-              {operator?.stationId} · {operator?.lat?.toFixed(4)}, {operator?.lng?.toFixed(4)}
+              {activeSite?.id.slice(0, 8).toUpperCase() ?? '—'} · {activeSite?.latitude?.toFixed(4) ?? '—'}, {activeSite?.longitude?.toFixed(4) ?? '—'}
             </Text>
           </View>
         </View>
@@ -108,8 +104,8 @@ export default function PvpFacilityTab() {
               <View style={[styles.infoIconWrap, { backgroundColor: c.background }]}>
                 <Text style={[styles.infoIconLabel, { color: c.textMuted }]}>OP</Text>
               </View>
-              <Text style={[styles.infoLabel, { color: c.foreground }]}>{operator?.name?.toUpperCase()}</Text>
-              <Text style={[styles.infoValue, { color: c.textSecondary }]}>{shortWallet}</Text>
+              <Text style={[styles.infoLabel, { color: c.foreground }]}>{operator?.display_name?.toUpperCase() ?? '—'}</Text>
+              <Text style={[styles.infoValue, { color: c.textSecondary }]}>{operator?.email ?? '—'}</Text>
               <Ionicons name="chevron-forward" size={14} color={c.textMuted} />
             </TouchableOpacity>
           </View>

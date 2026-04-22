@@ -6,6 +6,11 @@ export interface VerdanaUser {
   display_name: string | null;
   email: string | null;
   wallet_address: string | null;
+  reputation?: {
+    score?: number | null;
+    tier?: string | null;
+    state: string;
+  } | null;
   created_at: string;
   is_new: boolean;
 }
