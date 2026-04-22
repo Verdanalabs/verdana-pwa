@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useTheme, useThemeColors } from '@/src/shared/theme/theme-context';
+import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
+import { CameraOverlay } from '@/src/shared/ui/CameraOverlay';
 
 const FAB_GRADIENT_DARK:  [string, string, string] = ['#e8ff7a', '#b5f23d', '#5a9e10'];
 const FAB_GRADIENT_LIGHT: [string, string, string] = ['#d4f06a', '#96cc2e', '#3d7010'];
@@ -22,13 +25,21 @@ const RIGHT_TABS = [
 ];
 
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
-  const insets    = useSafeAreaInsets();
-  const router    = useRouter();
-  const c         = useThemeColors();
+  const insets     = useSafeAreaInsets();
+  const router     = useRouter();
+  const c          = useThemeColors();
   const { isDark } = useTheme();
-  const routes  = state.routes.map((r) => r.name);
+  const { setPhoto } = useBatchDraft();
+  const [showCamera, setShowCamera] = useState(false);
+  const routes = state.routes.map((r) => r.name);
 
   const focused = (name: string) => routes[state.index] === name;
+
+  function handleCapture(uri: string) {
+    setShowCamera(false);
+    setPhoto({ photoUri: uri, capturedAt: new Date().toISOString() });
+    router.push('/batch/new/details' as never);
+  }
 
   function go(name: string, path: string) {
     const idx = routes.indexOf(name);
@@ -59,6 +70,13 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   }
 
   return (
+    <>
+      {showCamera && (
+        <CameraOverlay
+          onCapture={handleCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     <View
       style={[
         styles.bar,
@@ -100,7 +118,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       <View style={styles.fabWrap}>
         <TouchableOpacity
           style={[styles.fab, { shadowColor: c.accent }]}
-          onPress={() => router.push('/batch/new/photo' as never)}
+          onPress={() => setShowCamera(true)}
           activeOpacity={0.85}
         >
           <LinearGradient
@@ -141,6 +159,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         </PlatformPressable>
       ))}
     </View>
+    </>
   );
 }
 

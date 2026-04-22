@@ -12,7 +12,7 @@ export interface VerdanaUser {
 
 interface SyncPayload {
   role?: string;
-  wallet_address?: string;
+  wallet_address?: string | null;
   display_name?: string;
 }
 
@@ -22,4 +22,8 @@ export function syncUser(token: string, payload: SyncPayload): Promise<VerdanaUs
     token,
     body: JSON.stringify(payload),
   });
+}
+
+export function getMe(token: string): Promise<VerdanaUser> {
+  return apiRequest<VerdanaUser>('/v1/users/me', { token });
 }

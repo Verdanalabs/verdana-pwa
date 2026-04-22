@@ -7,9 +7,23 @@ import { BatchCard } from '@/src/shared/ui/BatchCard';
 
 interface LatestBatchesProps {
   batches: readonly BatchSummary[];
+  isLoading?: boolean;
 }
 
-export function LatestBatches({ batches }: LatestBatchesProps) {
+function BatchSkeleton() {
+  const c = useThemeColors();
+  return (
+    <View style={[styles.skeletonCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+      <View style={[styles.skeletonBadge, { backgroundColor: c.border }]} />
+      <View style={styles.skeletonRight}>
+        <View style={[styles.skeletonLine, { backgroundColor: c.border, width: '40%' }]} />
+        <View style={[styles.skeletonLine, { backgroundColor: c.border, width: '70%', height: 10 }]} />
+      </View>
+    </View>
+  );
+}
+
+export function LatestBatches({ batches, isLoading = false }: LatestBatchesProps) {
   const router  = useRouter();
   const c       = useThemeColors();
   const visible = batches.slice(0, 3);
@@ -18,19 +32,27 @@ export function LatestBatches({ batches }: LatestBatchesProps) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={[styles.sectionTitle, { color: c.foreground }]}>Recent Batches</Text>
-        <TouchableOpacity
-          style={[styles.seeAllBtn, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}30`, borderWidth: 1 }]}
-          onPress={() => router.push('/(supplier-tabs)/history')}
-        >
-          <Text style={[styles.seeAllText, { color: c.accent }]}>See all</Text>
-        </TouchableOpacity>
+        {!isLoading && (
+          <TouchableOpacity
+            style={[styles.seeAllBtn, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}30`, borderWidth: 1 }]}
+            onPress={() => router.push('/(supplier-tabs)/history')}
+          >
+            <Text style={[styles.seeAllText, { color: c.accent }]}>See all</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {visible.length === 0 ? (
+      {isLoading ? (
+        <>
+          <BatchSkeleton />
+          <BatchSkeleton />
+          <BatchSkeleton />
+        </>
+      ) : visible.length === 0 ? (
         <View style={[styles.empty, { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1 }]}>
           <Text style={styles.emptyEmoji}>📦</Text>
           <Text style={[styles.emptyTitle, { color: c.foreground }]}>No batches yet</Text>
-          <Text style={[styles.emptyHint, { color: c.textMuted }]}> 
+          <Text style={[styles.emptyHint, { color: c.textMuted }]}>
             Tap &quot;Register&quot; to get started.
           </Text>
         </View>
@@ -87,5 +109,27 @@ const styles = StyleSheet.create({
   emptyHint: {
     fontSize: FontSize.sm,
     fontFamily: Font.regular,
+  },
+  skeletonCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 8,
+  },
+  skeletonBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+  },
+  skeletonRight: {
+    flex: 1,
+    gap: 8,
+  },
+  skeletonLine: {
+    height: 13,
+    borderRadius: 6,
   },
 });

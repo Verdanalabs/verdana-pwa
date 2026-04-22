@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,34 +9,34 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useAuth } from '@/src/features/auth/state/auth-context';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 
-const MATERIAL_OPTIONS = ['PET', 'HDPE', 'PP', 'Mixed Plastic'];
-
 export default function OnboardingProfileRoute() {
   const c = useThemeColors();
-  const { provider, completeOnboarding, signOut } = useAuth();
+  const { completeOnboarding, signOut } = useAuth();
   const [name, setName] = useState('');
-  const [operationalArea, setOperationalArea] = useState('');
-  const [primaryMaterial, setPrimaryMaterial] = useState('PET');
   const [touched, setTouched] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const errors = useMemo(() => ({
     name: name.trim().length < 3 ? 'Enter your full name.' : '',
-    operationalArea: operationalArea.trim().length < 3 ? 'Enter your operating area.' : '',
-  }), [name, operationalArea]);
+  }), [name]);
 
-  const isValid = !errors.name && !errors.operationalArea;
+  const isValid = !errors.name;
 
-  function handleSubmit() {
+  async function handleSubmit() {
     setTouched(true);
     if (!isValid) return;
 
-    completeOnboarding({
-      name: name.trim(),
-      operationalArea: operationalArea.trim(),
-      primaryMaterial,
-    });
-
-    router.replace('/(supplier-tabs)/home');
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await completeOnboarding({ name: name.trim() });
+      router.replace('/(supplier-tabs)/home');
+    } catch {
+      setSubmitError('Failed to save your name. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -45,13 +46,6 @@ export default function OnboardingProfileRoute() {
           <Text style={[styles.title, { color: c.foreground }]}>Set up your supplier profile.</Text>
           <Text style={[styles.body, { color: c.textSecondary }]}>
             Add the key details we need so your batch records stay clear from the start.
-          </Text>
-        </View>
-
-        <View style={[styles.providerCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Ionicons name="checkmark-circle" size={18} color={c.accent} />
-          <Text style={[styles.providerText, { color: c.textSecondary }]}>
-            Signed in with {provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'mock account'}
           </Text>
         </View>
 
@@ -74,59 +68,6 @@ export default function OnboardingProfileRoute() {
             />
             {!!(touched && errors.name) && <Text style={[styles.error, { color: c.error }]}>{errors.name}</Text>}
           </View>
-
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: c.foreground }]}>Operating Area</Text>
-            <TextInput
-              value={operationalArea}
-              onChangeText={setOperationalArea}
-              placeholder="Bekasi, West Java"
-              placeholderTextColor={c.textFaint}
-              style={[
-                styles.input,
-                {
-                  backgroundColor: c.surface,
-                  borderColor: touched && errors.operationalArea ? c.error : c.border,
-                  color: c.foreground,
-                },
-              ]}
-            />
-            {!!(touched && errors.operationalArea) && (
-              <Text style={[styles.error, { color: c.error }]}>{errors.operationalArea}</Text>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: c.foreground }]}>Main Material</Text>
-            <View style={styles.chips}>
-              {MATERIAL_OPTIONS.map((option) => {
-                const selected = primaryMaterial === option;
-                return (
-                  <TouchableOpacity
-                    key={option}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: selected ? c.accent : c.surface,
-                        borderColor: selected ? c.accent : c.border,
-                      },
-                    ]}
-                    onPress={() => setPrimaryMaterial(option)}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        { color: selected ? c.accentContrast : c.textSecondary },
-                      ]}
-                    >
-                      {option}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
         </View>
 
         <View style={[styles.noteCard, { backgroundColor: c.backgroundSoft, borderColor: c.border }]}>
@@ -138,7 +79,14 @@ export default function OnboardingProfileRoute() {
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: c.background, borderTopColor: c.border }]}>
-        <PrimaryButton label="Continue to Home" onPress={handleSubmit} />
+        {!!submitError && (
+          <Text style={[styles.submitError, { color: c.error }]}>{submitError}</Text>
+        )}
+        <PrimaryButton
+          label={isSubmitting ? 'Saving...' : 'Continue to Home'}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        />
         <TouchableOpacity
           style={styles.secondaryAction}
           onPress={() => {
@@ -253,5 +201,10 @@ const styles = StyleSheet.create({
   secondaryText: {
     fontSize: FontSize.sm,
     fontFamily: Font.medium,
+  },
+  submitError: {
+    fontSize: FontSize.sm,
+    fontFamily: Font.regular,
+    textAlign: 'center',
   },
 });

@@ -22,11 +22,19 @@ export async function apiRequest<T>(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
+  console.log(`[API] ${options.method ?? 'GET'} ${path}`, rest.body ?? '');
+
   const res = await fetch(`${BASE_URL}${path}`, { ...rest, headers });
   const json = await res.json();
 
+  console.log(`[API] ${res.status} ${path}`, JSON.stringify(json));
+
   if (json.error) {
     throw new ApiError(json.error.code, json.error.message);
+  }
+
+  if (!res.ok) {
+    throw new ApiError('HTTP_ERROR', `Request failed with status ${res.status}`);
   }
 
   return json.data as T;

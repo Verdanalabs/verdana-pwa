@@ -13,8 +13,6 @@ import { syncUser, type VerdanaUser } from "@/src/features/auth/services/auth-ap
 
 interface OnboardingInput {
   name: string;
-  operationalArea: string;
-  primaryMaterial: string;
 }
 
 interface AuthContextValue {
@@ -98,11 +96,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = await getAccessToken();
       if (!token) return;
 
-      const updated = await syncUser(token, { display_name: input.name });
+      const updated = await syncUser(token, {
+        role: 'collector',
+        wallet_address: user?.wallet_address ?? undefined,
+        display_name: input.name,
+      });
       setUser(updated);
       setNeedsOnboarding(false);
     },
-    [getAccessToken],
+    [getAccessToken, user],
   );
 
   const value = useMemo<AuthContextValue>(
