@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -114,6 +114,10 @@ export default function WalletRoute() {
   const c = useThemeColors();
   const { wallet, user, isLoading, isRefreshing, error, reload } = useWallet();
   const [copied, setCopied] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    void reload();
+  }, [reload]));
 
   async function handleCopyWalletAddress() {
     if (wallet?.address === '-' || !wallet?.address) return;

@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 
+
 const CAROUSEL_SLIDES = [
   {
     image: require('@/assets/carousle/02-image.jpg'),
@@ -35,8 +36,7 @@ const CAROUSEL_SLIDES = [
 ];
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const FRAME_WIDTH = SCREEN_WIDTH;
-const FRAME_HEIGHT = Dimensions.get('window').height;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function WelcomeRoute() {
   const c = useThemeColors();
@@ -49,14 +49,14 @@ export default function WelcomeRoute() {
       const nextIndex = (activeIndexRef.current + 1) % CAROUSEL_SLIDES.length;
       activeIndexRef.current = nextIndex;
       setActiveIndex(nextIndex);
-      scrollRef.current?.scrollTo({ x: nextIndex * FRAME_WIDTH, animated: true });
+      scrollRef.current?.scrollTo({ x: nextIndex * SCREEN_WIDTH, animated: true });
     }, 3800);
 
     return () => clearInterval(interval);
   }, []);
 
   function handleMomentumScrollEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / FRAME_WIDTH);
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
     activeIndexRef.current = nextIndex;
     setActiveIndex(nextIndex);
   }
@@ -64,65 +64,73 @@ export default function WelcomeRoute() {
   const activeSlide = CAROUSEL_SLIDES[activeIndex];
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
-      <View style={styles.screen}>
-        <View style={styles.heroFrame}>
-          <ScrollView
-            ref={scrollRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            onMomentumScrollEnd={handleMomentumScrollEnd}
-            contentContainerStyle={styles.carouselContent}
-          >
-            {CAROUSEL_SLIDES.map((slide) => (
-              <Image
-                key={slide.title}
-                source={slide.image}
-                style={styles.slideImage}
-                contentFit="cover"
-              />
-            ))}
-          </ScrollView>
+    <SafeAreaView style={styles.safe}>
+      {/* Full-screen carousel */}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        scrollEventThrottle={16}
+        style={StyleSheet.absoluteFill}
+        contentContainerStyle={styles.carouselContent}
+      >
+        {CAROUSEL_SLIDES.map((slide) => (
+          <Image
+            key={slide.title}
+            source={slide.image}
+            style={styles.slideImage}
+            contentFit="cover"
+          />
+        ))}
+      </ScrollView>
 
-          <LinearGradient
-            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.24)', 'rgba(0,0,0,0.82)', '#040804']}
-            locations={[0.3, 0.56, 0.82, 1]}
-            style={styles.overlay}
-          >
-            <View style={styles.copyBlock}>
-              <Text style={styles.title}>{activeSlide.title}</Text>
-              <Text style={styles.caption}>{activeSlide.caption}</Text>
-            </View>
+      {/* Full gradient overlay */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.72)', 'rgba(0,0,0,0.96)']}
+        locations={[0, 0.35, 0.68, 1]}
+        style={StyleSheet.absoluteFill}
+      />
 
-            <View style={styles.progressRow}>
-              {CAROUSEL_SLIDES.map((slide, index) => (
-                <View
-                  key={slide.title}
-                  style={[
-                    styles.progressDot,
-                    index === activeIndex ? styles.progressDotActive : styles.progressDotIdle,
-                  ]}
-                />
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.ctaButton, { backgroundColor: c.accent }]}
-              onPress={() => router.push('/(auth)/login')}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.ctaLabel, { color: c.accentContrast }]}>Get started</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => router.push('/(auth)/login')} activeOpacity={0.7}>
-              <Text style={styles.footerTextOverlay}>
-                Already have access? <Text style={styles.footerLinkOverlay}>Log in</Text>
-              </Text>
-            </TouchableOpacity>
-          </LinearGradient>
+      {/* Bottom content */}
+      <View style={styles.bottom}>
+        {/* Copy */}
+        <View style={styles.copyBlock}>
+          <Text style={styles.title}>{activeSlide.title}</Text>
+          <Text style={styles.caption}>{activeSlide.caption}</Text>
         </View>
+
+        {/* Progress dots */}
+        <View style={styles.progressRow}>
+          {CAROUSEL_SLIDES.map((slide, index) => (
+            <View
+              key={slide.title}
+              style={[
+                styles.progressDot,
+                index === activeIndex ? styles.progressDotActive : styles.progressDotIdle,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* CTA */}
+        <TouchableOpacity
+          style={[styles.ctaButton, { backgroundColor: c.accent }]}
+          onPress={() => router.push('/(auth)/login')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.ctaLabel}>Get started</Text>
+        </TouchableOpacity>
+
+        {/* Footer */}
+        <TouchableOpacity onPress={() => router.push('/(auth)/login')} activeOpacity={0.7}>
+          <Text style={styles.footerText}>
+            Already have access?{' '}
+            <Text style={styles.footerLink}>Log in</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -131,88 +139,101 @@ export default function WelcomeRoute() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-  },
-  screen: {
-    flex: 1,
-    backgroundColor: '#040804',
-  },
-  heroFrame: {
-    width: FRAME_WIDTH,
-    height: FRAME_HEIGHT,
-    overflow: 'hidden',
     backgroundColor: '#050805',
   },
   carouselContent: {
     alignItems: 'stretch',
   },
   slideImage: {
-    width: FRAME_WIDTH,
-    height: FRAME_HEIGHT,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
-  overlay: {
+  topBar: {
     position: 'absolute',
-    inset: 0,
-    justifyContent: 'flex-end',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  brandName: {
+    fontFamily: Font.bold,
+    fontSize: FontSize.xl,
+    color: '#ffffff',
+    letterSpacing: -0.4,
+  },
+  bottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 26,
-    paddingBottom: 34,
+    paddingBottom: 40,
+    gap: 0,
   },
   copyBlock: {
-    gap: 8,
-    marginBottom: 14,
+    gap: 10,
+    marginBottom: 20,
   },
   title: {
     color: '#ffffff',
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 34,
+    lineHeight: 40,
     fontFamily: Font.bold,
-    letterSpacing: -0.4,
-    maxWidth: '72%',
+    letterSpacing: -0.6,
   },
   caption: {
-    color: 'rgba(255,255,255,0.82)',
-    fontSize: 11,
-    lineHeight: 15,
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: FontSize.md,
+    lineHeight: 22,
     fontFamily: Font.regular,
-    maxWidth: '80%',
+    maxWidth: '85%',
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 14,
+    marginBottom: 20,
   },
   progressDot: {
     borderRadius: 999,
   },
   progressDotActive: {
-    width: 18,
+    width: 22,
     height: 5,
     backgroundColor: '#ffffff',
   },
   progressDotIdle: {
     width: 5,
     height: 5,
-    backgroundColor: 'rgba(255,255,255,0.36)',
+    backgroundColor: 'rgba(255,255,255,0.32)',
   },
   ctaButton: {
-    height: 46,
-    borderRadius: 12,
+    height: 54,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   ctaLabel: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.semiBold,
+    fontSize: FontSize.xl,
+    fontFamily: Font.bold,
+    color: '#ffffff',
+    letterSpacing: 0.2,
   },
-  footerTextOverlay: {
-    fontSize: 13,
+  footerText: {
+    fontSize: FontSize.sm,
     fontFamily: Font.regular,
     textAlign: 'center',
-    color: 'rgba(255,255,255,0.68)',
+    color: 'rgba(255,255,255,0.55)',
   },
-  footerLinkOverlay: {
+  footerLink: {
     fontFamily: Font.semiBold,
-    color: '#ffffff',
+    color: 'rgba(255,255,255,0.9)',
   },
 });

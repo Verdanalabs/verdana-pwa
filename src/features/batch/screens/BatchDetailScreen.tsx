@@ -210,6 +210,7 @@ export default function BatchDetailRoute() {
     : '-';
   const shortId = batch.id.slice(0, 8).toUpperCase();
   const timeline = deriveTimeline(batch);
+  const isAwaitingSupplierApproval = batch.status === 'cosigning';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
@@ -249,6 +250,26 @@ export default function BatchDetailRoute() {
             Review the batch record, material details, and every status update in one place.
           </Text>
         </View>
+
+        {isAwaitingSupplierApproval && (
+          <View style={[styles.approvalCard, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf640' }]}>
+            <View style={styles.approvalCardHeader}>
+              <Ionicons name="hourglass-outline" size={18} color="#8b5cf6" />
+              <Text style={[styles.approvalCardTitle, { color: '#8b5cf6' }]}>Supplier approval required</Text>
+            </View>
+            <Text style={[styles.approvalCardBody, { color: c.textSecondary }]}>
+              PVP has already weighed this batch. Review the measured weight and continue to the approval screen to co-sign.
+            </Text>
+            <TouchableOpacity
+              style={[styles.approvalCardButton, { backgroundColor: '#8b5cf6' }]}
+              onPress={() => router.push(`/batch/approve-cosign?id=${batch.id}` as never)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+              <Text style={styles.approvalCardButtonLabel}>Approve Co-sign</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={[styles.photoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
           {photoUri ? (
@@ -369,6 +390,19 @@ export default function BatchDetailRoute() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {isAwaitingSupplierApproval && (
+        <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
+          <TouchableOpacity
+            style={[styles.footerButton, { backgroundColor: '#8b5cf6' }]}
+            onPress={() => router.push(`/batch/approve-cosign?id=${batch.id}` as never)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+            <Text style={styles.footerButtonLabel}>Approve Co-sign</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -399,6 +433,15 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: FontSize.lg, fontFamily: Font.semiBold, lineHeight: 26 },
   detailCard: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 14 },
   sectionTitle: { fontSize: FontSize.lg, fontFamily: Font.bold },
+  approvalCard: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 12 },
+  approvalCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  approvalCardTitle: { fontSize: FontSize.md, fontFamily: Font.semiBold },
+  approvalCardBody: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 20 },
+  approvalCardButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    height: 46, borderRadius: 14, gap: 8,
+  },
+  approvalCardButtonLabel: { fontSize: FontSize.sm, fontFamily: Font.semiBold, color: '#fff' },
   detailRow: { gap: 4 },
   detailLabel: { fontSize: FontSize.sm, fontFamily: Font.regular },
   detailValue: { fontSize: FontSize.sm, fontFamily: Font.medium, lineHeight: 20 },
@@ -422,4 +465,10 @@ const styles = StyleSheet.create({
   actionTitle: { fontSize: FontSize.lg, fontFamily: Font.bold, marginBottom: 4 },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   actionLabel: { fontSize: FontSize.md, fontFamily: Font.medium },
+  footer: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 20, borderTopWidth: 1 },
+  footerButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    height: 54, borderRadius: 16, gap: 10,
+  },
+  footerButtonLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold, color: '#fff' },
 });

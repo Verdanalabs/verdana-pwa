@@ -8,10 +8,8 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useAuth } from '@/src/features/auth/state/auth-context';
 import { useTheme, useThemeColors } from '@/src/shared/theme/theme-context';
 
-function dicebearUrl(name: string, bgColor?: string) {
-  const seed = encodeURIComponent(name);
-  const bg = (bgColor ?? '#0d160d').replace('#', '');
-  return `https://api.dicebear.com/9.x/avataaars/png?seed=${seed}&backgroundColor=${bg}&backgroundType=solid`;
+function dicebearUrl(name: string) {
+  return `https://api.dicebear.com/9.x/avataaars-neutral/png?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 }
 
 function shortAddress(address: string) {
@@ -96,11 +94,7 @@ export default function ProfileRoute() {
 
           <View style={styles.heroTop}>
             <View style={[styles.avatarWrap, { borderColor: 'rgba(255,255,255,0.10)' }]}>
-              <Image
-                source={{ uri: dicebearUrl(displayName, c.surface) }}
-                style={styles.avatar}
-                contentFit="cover"
-              />
+              <Image source={{ uri: dicebearUrl(displayName) }} style={styles.avatar} contentFit="cover" />
             </View>
 
             <View style={styles.heroCopy}>

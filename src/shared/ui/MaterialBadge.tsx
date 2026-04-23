@@ -11,6 +11,7 @@ const DARK: Record<MaterialType, { bg: string; text: string }> = {
   PS:    { bg: '#1c2a0a', text: '#a3e635' },
   PVC:   { bg: '#1a280a', text: '#84cc16' },
   OTHER: { bg: '#1a2a1a', text: '#6b9e70' },
+  MIX:   { bg: '#1a1a2e', text: '#a78bfa' },
 };
 
 const LIGHT: Record<MaterialType, { bg: string; text: string }> = {
@@ -21,6 +22,7 @@ const LIGHT: Record<MaterialType, { bg: string; text: string }> = {
   PS:    { bg: '#f7fee7', text: '#3a5c12' },
   PVC:   { bg: '#ecfccb', text: '#4d7c0f' },
   OTHER: { bg: '#f0fdf4', text: '#4b7a4b' },
+  MIX:   { bg: '#ede9fe', text: '#5b21b6' },
 };
 
 interface MaterialBadgeProps {

@@ -127,12 +127,8 @@ export function createBatch(token: string, payload: CreateBatchPayload): Promise
 }
 
 export interface CosignPayload {
-  actual_weight_grams: number;
-  processor_user_id: string;
-  pvp_site_id: string;
   latitude: number;
   longitude: number;
-  weighed_at: string;
   schema_version?: number;
   collector_signature?: string;
   processor_signature?: string;

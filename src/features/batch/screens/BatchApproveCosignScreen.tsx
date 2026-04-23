@@ -99,12 +99,8 @@ export default function BatchApproveCosignScreen() {
       if (!token) throw new Error('Not authenticated');
 
       await cosignBatch(token, batch.id, {
-        actual_weight_grams: batch.actual_weight_grams!,
-        processor_user_id: batch.processor_user_id ?? '',
-        pvp_site_id: batch.pvp_site_id ?? '',
         latitude: 0,
         longitude: 0,
-        weighed_at: batch.weighed_at ?? new Date().toISOString(),
       });
 
       setDone(true);

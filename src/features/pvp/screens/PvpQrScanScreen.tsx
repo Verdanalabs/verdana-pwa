@@ -5,8 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
+import { getBatch } from '@/src/features/batch/services/batch-api';
+import { ApiError } from '@/src/shared/services/api';
 
 type CameraState = 'idle' | 'requesting' | 'live' | 'error' | 'unsupported';
+type VerificationState = 'idle' | 'verifying' | 'success' | 'error';
 
 type BarcodeDetectorResult = {
   rawValue?: string;
@@ -22,8 +26,29 @@ declare global {
   }
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function extractBatchId(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (UUID_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as { batch_id?: string; type?: string };
+    if (parsed?.batch_id && UUID_PATTERN.test(parsed.batch_id)) {
+      return parsed.batch_id;
+    }
+  } catch {
+    // Ignore malformed JSON payloads and fall back to invalid QR handling.
+  }
+
+  return null;
+}
+
 export default function PvpQrScanRoute() {
   const c = useThemeColors();
+  const { token } = usePvpAuth();
   const isWeb = Platform.OS === 'web';
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -34,6 +59,9 @@ export default function PvpQrScanRoute() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const [verificationState, setVerificationState] = useState<VerificationState>('idle');
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [verificationHint, setVerificationHint] = useState<string | null>(null);
 
   const stopScannerLoop = useCallback(() => {
     if (scanTimerRef.current !== null && typeof window !== 'undefined') {
@@ -55,6 +83,72 @@ export default function PvpQrScanRoute() {
     }
   }, [stopScannerLoop]);
 
+  const resetVerification = useCallback(() => {
+    setVerificationState('idle');
+    setVerificationError(null);
+    setVerificationHint(null);
+    setScanResult(null);
+  }, []);
+
+  const verifyBatchAndNavigate = useCallback(async (rawPayload: string) => {
+    const batchId = extractBatchId(rawPayload);
+
+    if (!batchId) {
+      setVerificationState('error');
+      setVerificationError('QR payload is invalid. Scan a valid Verdana batch QR or paste a UUID.');
+      return;
+    }
+
+    if (!token) {
+      setVerificationState('error');
+      setVerificationError('PVP session is missing. Please log in again.');
+      return;
+    }
+
+    setVerificationState('verifying');
+    setVerificationError(null);
+    setVerificationHint('Verifying batch with backend...');
+    setScanResult(batchId);
+
+    try {
+      const batch = await getBatch(token, batchId);
+
+      if (batch.status !== 'accepted') {
+        setVerificationState('error');
+        setVerificationError(
+          batch.status === 'pending'
+            ? 'Batch is still pending. Accept it from the queue before doing physical handoff.'
+            : batch.status === 'cosigning'
+              ? 'Batch has already been weighed and is waiting for supplier approval.'
+              : `Batch is not ready for weigh-in. Current status: ${batch.status}.`
+        );
+        return;
+      }
+
+      setVerificationState('success');
+      setVerificationHint('Batch verified. Opening weigh screen...');
+      stopCamera();
+      router.replace(`/pvp/cosign?id=${batchId}` as never);
+    } catch (error) {
+      setVerificationState('error');
+
+      if (error instanceof ApiError) {
+        if (error.code === 'BATCH_NOT_FOUND') {
+          setVerificationError('Batch not found. Check the QR code and try again.');
+          return;
+        }
+        if (error.code === 'FORBIDDEN') {
+          setVerificationError('This batch does not belong to your PVP site.');
+          return;
+        }
+        setVerificationError(error.message);
+        return;
+      }
+
+      setVerificationError(error instanceof Error ? error.message : 'Failed to verify batch.');
+    }
+  }, [stopCamera, token]);
+
   async function startCamera() {
     if (!isWeb) {
       setCameraState('unsupported');
@@ -69,9 +163,9 @@ export default function PvpQrScanRoute() {
     }
 
     stopCamera();
+    resetVerification();
     setCameraState('requesting');
     setCameraError(null);
-    setScanResult(null);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -127,11 +221,11 @@ export default function PvpQrScanRoute() {
       }
     };
 
-    playVideo();
+    void playVideo();
   }, [cameraState, isWeb]);
 
   useEffect(() => {
-    if (!isWeb || cameraState !== 'live' || scanResult || !videoRef.current) {
+    if (!isWeb || cameraState !== 'live' || verificationState === 'verifying' || verificationState === 'success' || !videoRef.current) {
       stopScannerLoop();
       return;
     }
@@ -157,11 +251,9 @@ export default function PvpQrScanRoute() {
         const nextCode = results.find((item) => item.rawValue?.trim())?.rawValue?.trim();
 
         if (nextCode) {
-          setScanResult(nextCode);
           setManualCode(nextCode);
           stopScannerLoop();
-          stopCamera();
-          router.replace(`/pvp/cosign?id=${nextCode.trim()}` as never);
+          await verifyBatchAndNavigate(nextCode);
           return;
         }
       } catch {
@@ -171,12 +263,12 @@ export default function PvpQrScanRoute() {
       scanTimerRef.current = window.setTimeout(detect, 350);
     };
 
-    detect();
+    void detect();
 
     return () => {
       stopScannerLoop();
     };
-  }, [cameraState, isWeb, scanResult, stopScannerLoop]);
+  }, [cameraState, isWeb, stopScannerLoop, verificationState, verifyBatchAndNavigate]);
 
   const primaryLabel =
     cameraState === 'requesting'
@@ -186,15 +278,19 @@ export default function PvpQrScanRoute() {
         : 'Open camera for QR scan';
 
   const statusLabel =
-    scanResult
-      ? `Scanned code: ${scanResult}`
-      : cameraError
-        ? cameraError
-        : cameraState === 'live'
-          ? 'Point the QR code inside the frame.'
-          : 'Use the live camera or enter the code manually.';
+    verificationState === 'verifying'
+      ? verificationHint ?? 'Verifying batch with backend...'
+      : verificationState === 'error'
+        ? verificationError ?? 'Batch verification failed.'
+        : scanResult
+          ? `Scanned code: ${scanResult}`
+          : cameraError
+            ? cameraError
+            : cameraState === 'live'
+              ? 'Point the QR code inside the frame.'
+              : 'Use the live camera or enter the code manually.';
 
-  const canUseCode = manualCode.trim().length > 0;
+  const canUseCode = manualCode.trim().length > 0 && verificationState !== 'verifying';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
@@ -234,10 +330,16 @@ export default function PvpQrScanRoute() {
           <View style={[styles.scanLine, { backgroundColor: c.accent }]} />
 
           <View style={styles.centerHint}>
-            {cameraState !== 'live' && (
+            {verificationState === 'verifying' ? (
+              <Ionicons name="sync-outline" size={42} color={c.accent} />
+            ) : cameraState !== 'live' ? (
               <Ionicons name="qr-code-outline" size={42} color={c.textMuted} />
-            )}
-            <Text style={[styles.scanHint, { color: c.textMuted }]}>
+            ) : null}
+
+            <Text style={[
+              styles.scanHint,
+              { color: verificationState === 'error' ? c.error : verificationState === 'verifying' ? c.accent : c.textMuted },
+            ]}>
               {statusLabel}
             </Text>
           </View>
@@ -248,7 +350,8 @@ export default function PvpQrScanRoute() {
         <TouchableOpacity
           style={[styles.actionBtn, styles.actionBtnPrimary, { backgroundColor: c.accent }]}
           activeOpacity={0.85}
-          onPress={startCamera}
+          onPress={() => { void startCamera(); }}
+          disabled={verificationState === 'verifying'}
         >
           <View style={[styles.actionBtnIcon, { backgroundColor: c.accentContrast + '20' }]}>
             <Ionicons name="camera-outline" size={16} color={c.accentContrast} />
@@ -263,7 +366,12 @@ export default function PvpQrScanRoute() {
           <Text style={[styles.manualLabel, { color: c.textSecondary }]}>Manual code</Text>
           <TextInput
             value={manualCode}
-            onChangeText={setManualCode}
+            onChangeText={(value) => {
+              setManualCode(value);
+              if (verificationState !== 'idle') {
+                resetVerification();
+              }
+            }}
             placeholder="Paste or type supplier QR payload"
             placeholderTextColor={c.textFaint}
             style={[styles.manualInput, { color: c.foreground, borderColor: c.border, backgroundColor: c.background }]}
@@ -277,11 +385,11 @@ export default function PvpQrScanRoute() {
             onPress={() => {
               if (!canUseCode) return;
               stopCamera();
-              router.replace(`/pvp/cosign?id=${manualCode.trim()}` as never);
+              void verifyBatchAndNavigate(manualCode.trim());
             }}
           >
             <Text style={[styles.manualSubmitText, { color: canUseCode ? c.background : c.textMuted }]}>
-              Use this code
+              Verify this code
             </Text>
           </TouchableOpacity>
         </View>

@@ -1,45 +1,64 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
-import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { useTheme, useThemeColors } from '@/src/shared/theme/theme-context';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { getMockBatches } from '@/src/shared/services/mock/batch-data';
+import { usePvpBatchFeed } from '@/src/features/pvp/hooks/usePvpBatchFeed';
+
+function dicebearUrl(name: string) {
+  return `https://api.dicebear.com/9.x/avataaars-neutral/png?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+}
+
+function shortId(value?: string | null) {
+  if (!value) return 'NO SITE';
+  return value.slice(0, 8).toUpperCase();
+}
 
 function InfoRow({
-  label, value,
-}: { label: string; value: string }) {
+  icon,
+  label,
+  value,
+  isLast = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  isLast?: boolean;
+}) {
   const c = useThemeColors();
+
   return (
-    <TouchableOpacity
-      style={[styles.infoRow, { borderBottomColor: c.border }]}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.infoIconWrap, { backgroundColor: c.background }]}>
-        <Text style={[styles.infoIconLabel, { color: c.textMuted }]}>
-          {label.slice(0, 2).toUpperCase()}
-        </Text>
+    <View style={[styles.infoRow, { borderBottomColor: isLast ? 'transparent' : c.border }]}>
+      <View style={[styles.infoIconWrap, { backgroundColor: c.backgroundSoft }]}>
+        <Ionicons name={icon} size={16} color={c.textMuted} />
       </View>
-      <Text style={[styles.infoLabel, { color: c.foreground }]}>{label}</Text>
-      <Text style={[styles.infoValue, { color: c.textSecondary }]}>{value}</Text>
-      <Ionicons name="chevron-forward" size={14} color={c.textMuted} />
-    </TouchableOpacity>
+      <View style={styles.infoCopy}>
+        <Text style={[styles.infoLabel, { color: c.textMuted }]}>{label}</Text>
+        <Text style={[styles.infoValue, { color: c.foreground }]}>{value}</Text>
+      </View>
+    </View>
   );
 }
 
 export default function PvpFacilityTab() {
   const c = useThemeColors();
+  const { isDark, toggle } = useTheme();
   const { operator, activeSite, signOut } = usePvpAuth();
-  const batches = getMockBatches();
+  const { batches } = usePvpBatchFeed();
 
-  const totalKg = batches.reduce((s, b) => s + (b.actualWeightKg ?? b.estimatedWeightKg), 0);
-  const initials = operator?.display_name
-    ?.split(' ')
-    .map((w: string) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() ?? 'OP';
+  const operatorName = operator?.display_name ?? 'PVP Operator';
+  const operatorEmail = operator?.email ?? 'No email available';
+  const avatarUri = dicebearUrl(operatorName);
+
+  const totalKg = batches.reduce((sum, batch) => {
+    const grams = batch.actual_weight_grams ?? batch.estimated_weight_grams ?? 0;
+    return sum + grams / 1000;
+  }, 0);
+
+  const awaitingSign = batches.filter((batch) => batch.status === 'cosigning').length;
 
   function handleSignOut() {
     signOut();
@@ -49,96 +68,120 @@ export default function PvpFacilityTab() {
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: c.background }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.pageTitle, { color: c.foreground }]}>FACILITY</Text>
-          <Text style={[styles.pageSub, { color: c.textMuted }]}>Profile and settings</Text>
+          <Text style={[styles.eyebrow, { color: c.accent }]}>FACILITY</Text>
+          <Text style={[styles.pageTitle, { color: c.foreground }]}>Station Settings</Text>
+          <Text style={[styles.pageSub, { color: c.textMuted }]}>
+            Review operator identity, site details, and local operating preferences.
+          </Text>
         </View>
 
-        {/* Profile avatar + name */}
-        <View style={styles.profileSection}>
-          <View style={[styles.avatar, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
-            <Text style={[styles.avatarText, { color: c.accent }]}>{initials}</Text>
-            <View style={[styles.avatarBadge, { backgroundColor: c.accent }]}>
-              <Text style={[styles.avatarBadgeText, { color: c.accentContrast }]}>OP</Text>
+        <View style={[styles.heroCard, { borderColor: c.border }]}>
+          <View style={[styles.heroGlow, { backgroundColor: c.heroGlowColor }]} />
+
+          <View style={styles.heroTop}>
+            <View style={[styles.avatarWrap, { borderColor: 'rgba(255,255,255,0.10)' }]}>
+              <Image source={{ uri: avatarUri }} style={styles.avatar} contentFit="cover" />
+            </View>
+
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroName}>{operatorName}</Text>
+              <Text style={styles.heroMeta}>Physical Validation Point Operator</Text>
+              <Text style={styles.heroHint}>{operatorEmail}</Text>
             </View>
           </View>
-          <Text style={[styles.facilityName, { color: c.foreground }]}>
-            {activeSite?.name?.toUpperCase() ?? '—'}
-          </Text>
-          <Text style={[styles.facilityType, { color: c.textMuted }]}>
-            PHYSICAL VALIDATION POINT
-          </Text>
-          <View style={[styles.stationPill, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <View style={[styles.pillDot, { backgroundColor: '#10b981' }]} />
-            <Text style={[styles.pillText, { color: c.textSecondary }]}>
-              {activeSite?.id.slice(0, 8).toUpperCase() ?? '—'} · {activeSite?.latitude?.toFixed(4) ?? '—'}, {activeSite?.longitude?.toFixed(4) ?? '—'}
-            </Text>
+
+          <View style={styles.heroSiteRow}>
+            <View>
+              <Text style={styles.heroSiteLabel}>ACTIVE STATION</Text>
+              <Text style={styles.heroSiteValue}>{activeSite?.name ?? 'No active station'}</Text>
+            </View>
+
+            <View style={styles.heroBadge}>
+              <View style={styles.heroBadgeDot} />
+              <Text style={styles.heroBadgeText}>ONLINE</Text>
+            </View>
           </View>
         </View>
 
-        {/* Stats */}
-        <View style={[styles.statsRow, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: c.accent }]}>{batches.length}</Text>
-            <Text style={[styles.statLabel, { color: c.textMuted }]}>TOTAL BATCHES</Text>
+        <View style={[styles.metricsRow, { backgroundColor: c.surface, borderColor: c.border }]}>
+          <View style={styles.metricItem}>
+            <Text style={[styles.metricValue, { color: c.accent }]}>{batches.length}</Text>
+            <Text style={[styles.metricLabel, { color: c.textMuted }]}>Tracked batches</Text>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: c.border }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: c.accent }]}>98.2%</Text>
-            <Text style={[styles.statLabel, { color: c.textMuted }]}>ACCURACY</Text>
+          <View style={[styles.metricDivider, { backgroundColor: c.border }]} />
+          <View style={styles.metricItem}>
+            <Text style={[styles.metricValue, { color: c.accent }]}>{totalKg.toFixed(1)}</Text>
+            <Text style={[styles.metricLabel, { color: c.textMuted }]}>Total kg</Text>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: c.border }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: c.accent }]}>{totalKg}T</Text>
-            <Text style={[styles.statLabel, { color: c.textMuted }]}>TOTAL KG</Text>
+          <View style={[styles.metricDivider, { backgroundColor: c.border }]} />
+          <View style={styles.metricItem}>
+            <Text style={[styles.metricValue, { color: c.accent }]}>{awaitingSign}</Text>
+            <Text style={[styles.metricLabel, { color: c.textMuted }]}>Awaiting sign</Text>
           </View>
         </View>
 
-        {/* Active operator */}
-        <View style={styles.group}>
-          <Text style={[styles.groupLabel, { color: c.textMuted }]}>ACTIVE OPERATOR</Text>
-          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <TouchableOpacity style={[styles.infoRow, { borderBottomColor: 'transparent' }]} activeOpacity={0.7}>
-              <View style={[styles.infoIconWrap, { backgroundColor: c.background }]}>
-                <Text style={[styles.infoIconLabel, { color: c.textMuted }]}>OP</Text>
+        <View style={styles.section}>
+          <Text style={[styles.sectionCaption, { color: c.textFaint }]}>OPERATOR</Text>
+          <View style={[styles.sectionCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <InfoRow icon="person-outline" label="Display name" value={operatorName} />
+            <InfoRow icon="mail-outline" label="Email" value={operatorEmail} isLast />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionCaption, { color: c.textFaint }]}>SITE DETAILS</Text>
+          <View style={[styles.sectionCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <InfoRow icon="business-outline" label="Station ID" value={shortId(activeSite?.id)} />
+            <InfoRow icon="location-outline" label="Address" value={activeSite?.address ?? 'Address not available'} />
+            <InfoRow
+              icon="navigate-outline"
+              label="Coordinates"
+              value={activeSite ? `${activeSite.latitude.toFixed(5)}, ${activeSite.longitude.toFixed(5)}` : 'Coordinates unavailable'}
+            />
+            <InfoRow
+              icon="radio-outline"
+              label="Geofence radius"
+              value={activeSite ? `${activeSite.radius_meters} m` : 'No geofence configured'}
+              isLast
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionCaption, { color: c.textFaint }]}>APPEARANCE</Text>
+          <View style={[styles.preferenceCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <View style={styles.preferenceLeft}>
+              <View style={[styles.infoIconWrap, { backgroundColor: c.backgroundSoft }]}>
+                <Ionicons name={isDark ? 'moon-outline' : 'sunny-outline'} size={16} color={c.textMuted} />
               </View>
-              <Text style={[styles.infoLabel, { color: c.foreground }]}>{operator?.display_name?.toUpperCase() ?? '—'}</Text>
-              <Text style={[styles.infoValue, { color: c.textSecondary }]}>{operator?.email ?? '—'}</Text>
-              <Ionicons name="chevron-forward" size={14} color={c.textMuted} />
-            </TouchableOpacity>
+              <View style={styles.infoCopy}>
+                <Text style={[styles.preferenceTitle, { color: c.foreground }]}>
+                  {isDark ? 'Dark mode' : 'Light mode'}
+                </Text>
+                <Text style={[styles.preferenceText, { color: c.textMuted }]}>
+                  Switch the operating interface appearance.
+                </Text>
+              </View>
+            </View>
+
+            <Switch
+              value={isDark}
+              onValueChange={toggle}
+              trackColor={{ false: c.border, true: `${c.accent}80` }}
+              thumbColor={isDark ? c.accent : c.textMuted}
+            />
           </View>
         </View>
 
-        {/* Facility info */}
-        <View style={styles.group}>
-          <Text style={[styles.groupLabel, { color: c.textMuted }]}>FACILITY</Text>
-          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <InfoRow label="WAREHOUSE CAPACITY" value="50 ton/day" />
-            <InfoRow label="MATERIALS ACCEPTED" value="PET HDPE PP" />
-            <InfoRow label="DIGITAL SCALE" value="Calibrated" />
-          </View>
-        </View>
-
-        {/* Configuration */}
-        <View style={styles.group}>
-          <Text style={[styles.groupLabel, { color: c.textMuted }]}>CONFIGURATION</Text>
-          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <InfoRow label="WEIGHT TOLERANCE" value="±5%" />
-          </View>
-        </View>
-
-        {/* Sign out */}
         <TouchableOpacity
-          style={[styles.signOutBtn, { borderColor: '#ef444440', backgroundColor: '#ef444410' }]}
+          style={[styles.signOutBtn, { borderColor: `${c.error}24`, backgroundColor: `${c.error}10` }]}
           onPress={handleSignOut}
-          activeOpacity={0.8}
+          activeOpacity={0.82}
         >
-          <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-          <Text style={[styles.signOutText, { color: '#ef4444' }]}>Sign out</Text>
+          <Ionicons name="log-out-outline" size={18} color={c.error} />
+          <Text style={[styles.signOutText, { color: c.error }]}>Sign out</Text>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -150,143 +193,205 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 40,
-    gap: 24,
+    gap: 18,
   },
-  header: { gap: 2 },
+  header: { gap: 6 },
+  eyebrow: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.xs,
+    letterSpacing: 0.6,
+  },
   pageTitle: {
     fontFamily: Font.bold,
-    fontSize: FontSize.xl,
-    letterSpacing: 0.8,
+    fontSize: FontSize['2xl'],
   },
   pageSub: {
     fontFamily: Font.regular,
     fontSize: FontSize.sm,
+    lineHeight: 20,
+    maxWidth: '94%',
   },
-  profileSection: {
+  heroCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 18,
+    backgroundColor: '#0b160d',
+    gap: 18,
+  },
+  heroGlow: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    top: -120,
+    right: -90,
+  },
+  heroTop: {
+    flexDirection: 'row',
+    gap: 14,
     alignItems: 'center',
-    gap: 8,
+  },
+  avatarWrap: {
+    width: 74,
+    height: 74,
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
+    width: 74,
+    height: 74,
   },
-  avatarText: {
-    fontFamily: Font.bold,
-    fontSize: FontSize['2xl'],
+  heroCopy: {
+    flex: 1,
+    gap: 4,
   },
-  avatarBadge: {
-    position: 'absolute',
-    bottom: -6,
-    right: -6,
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  avatarBadgeText: {
-    fontFamily: Font.bold,
-    fontSize: FontSize.xs,
-  },
-  facilityName: {
-    fontFamily: Font.bold,
+  heroName: {
+    color: '#ffffff',
     fontSize: FontSize.xl,
-    letterSpacing: 0.5,
-    textAlign: 'center',
+    fontFamily: Font.bold,
   },
-  facilityType: {
+  heroMeta: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: FontSize.sm,
     fontFamily: Font.medium,
-    fontSize: FontSize.xs,
-    letterSpacing: 1,
-    textAlign: 'center',
   },
-  stationPill: {
+  heroHint: {
+    color: 'rgba(255,255,255,0.50)',
+    fontSize: FontSize.sm,
+    fontFamily: Font.regular,
+  },
+  heroSiteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  heroSiteLabel: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: FontSize.xs,
+    fontFamily: Font.medium,
+    letterSpacing: 0.6,
+  },
+  heroSiteValue: {
+    color: '#ffffff',
+    fontSize: FontSize.lg,
+    fontFamily: Font.semiBold,
+    marginTop: 4,
+  },
+  heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    marginTop: 4,
+    backgroundColor: 'rgba(22,163,74,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(22,163,74,0.24)',
   },
-  pillDot: {
+  heroBadgeDot: {
     width: 6,
     height: 6,
     borderRadius: 999,
+    backgroundColor: '#16a34a',
   },
-  pillText: {
-    fontFamily: Font.medium,
+  heroBadgeText: {
+    color: '#8ff3b2',
+    fontFamily: Font.semiBold,
     fontSize: FontSize.xs,
   },
-  statsRow: {
+  metricsRow: {
     flexDirection: 'row',
     borderRadius: 18,
     borderWidth: 1,
     overflow: 'hidden',
   },
-  statItem: {
+  metricItem: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 16,
     gap: 4,
   },
-  statDivider: {
+  metricDivider: {
     width: 1,
     marginVertical: 12,
   },
-  statValue: {
+  metricValue: {
     fontFamily: Font.bold,
     fontSize: FontSize['2xl'],
   },
-  statLabel: {
+  metricLabel: {
     fontFamily: Font.medium,
     fontSize: FontSize.xs,
-    letterSpacing: 0.5,
     textAlign: 'center',
   },
-  group: { gap: 8 },
-  groupLabel: {
-    fontFamily: Font.medium,
+  section: {
+    gap: 8,
+  },
+  sectionCaption: {
     fontSize: FontSize.xs,
+    fontFamily: Font.semiBold,
     letterSpacing: 0.8,
   },
-  groupCard: {
-    borderRadius: 16,
+  sectionCard: {
+    borderRadius: 18,
     borderWidth: 1,
     overflow: 'hidden',
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 12,
     paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 10,
+    paddingVertical: 14,
     borderBottomWidth: 1,
   },
   infoIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  infoIconLabel: {
-    fontFamily: Font.bold,
-    fontSize: FontSize.xs,
+  infoCopy: {
+    flex: 1,
+    gap: 2,
   },
   infoLabel: {
-    flex: 1,
-    fontFamily: Font.semiBold,
-    fontSize: FontSize.sm,
-    letterSpacing: 0.3,
+    fontFamily: Font.regular,
+    fontSize: FontSize.xs,
   },
   infoValue: {
+    fontFamily: Font.medium,
+    fontSize: FontSize.sm,
+    lineHeight: 20,
+  },
+  preferenceCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  preferenceLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  preferenceTitle: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.sm,
+  },
+  preferenceText: {
     fontFamily: Font.regular,
     fontSize: FontSize.sm,
+    lineHeight: 18,
+    marginTop: 1,
   },
   signOutBtn: {
     height: 50,
@@ -296,6 +401,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    marginTop: 4,
   },
   signOutText: {
     fontFamily: Font.semiBold,

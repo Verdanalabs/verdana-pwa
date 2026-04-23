@@ -2,6 +2,8 @@ import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
@@ -39,15 +41,17 @@ function HomeLoadingSkeleton() {
   );
 }
 
-function dicebearUrl(name: string, bgColor?: string) {
-  const seed = encodeURIComponent(name);
-  const bg = (bgColor ?? '#0d160d').replace('#', '');
-  return `https://api.dicebear.com/9.x/avataaars/png?seed=${seed}&backgroundColor=${bg}&backgroundType=solid`;
+function dicebearUrl(name: string) {
+  return `https://api.dicebear.com/9.x/avataaars-neutral/png?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 }
 
 export function SupplierHomeScreen() {
   const c = useThemeColors();
   const { isLoading, isRefreshing, user, batches, dashboard, refresh } = useSupplierHome();
+
+  useFocusEffect(useCallback(() => {
+    void refresh();
+  }, [refresh]));
 
   const displayName = user?.display_name ?? 'Supplier';
   const activeDashboard = dashboard ?? {
@@ -76,11 +80,7 @@ export function SupplierHomeScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.avatar, { borderColor: c.border }]}>
-            <Image
-              source={{ uri: dicebearUrl(displayName, c.surface) }}
-              style={styles.avatarImg}
-              contentFit="cover"
-            />
+            <Image source={{ uri: dicebearUrl(displayName) }} style={styles.avatarImg} contentFit="cover" />
           </TouchableOpacity>
         </View>
       </View>

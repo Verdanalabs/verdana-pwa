@@ -251,6 +251,47 @@ export default function SupplierAnalyticsScreen() {
     );
   }
 
+  if (!error && batches.length === 0) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={[styles.backButton, { backgroundColor: c.surface, borderColor: c.border }]}
+              onPress={() => router.back()}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="arrow-back" size={18} color={c.foreground} />
+            </TouchableOpacity>
+            <View style={styles.headerCopy}>
+              <Text style={[styles.title, { color: c.foreground }]}>Analytics</Text>
+              <Text style={[styles.subtitle, { color: c.textSecondary }]}>Operational trends from your real batch activity.</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.emptyWrap}>
+          <View style={[styles.emptyIconWrap, { backgroundColor: c.accent + '15', borderColor: c.accent + '25' }]}>
+            <Ionicons name="stats-chart-outline" size={30} color={c.accent} />
+          </View>
+          <View style={styles.emptyCopy}>
+            <Text style={[styles.emptyHeading, { color: c.foreground }]}>No data yet</Text>
+            <Text style={[styles.emptySubtext, { color: c.textMuted }]}>
+              Analytics will appear here once you start submitting batches. Your collection trends, material mix, and reputation score will all be tracked automatically.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.emptyBtn, { backgroundColor: c.foreground }]}
+            onPress={() => router.push('/batch/new/photo' as never)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add" size={16} color={c.background} />
+            <Text style={[styles.emptyBtnLabel, { color: c.background }]}>Register First Batch</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (error) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
@@ -437,7 +478,10 @@ export default function SupplierAnalyticsScreen() {
                 <Text style={[styles.breakdownCount, { color: c.textSecondary }]}>{entry.count}</Text>
               </View>
             )) : (
-              <Text style={[styles.emptyText, { color: c.textMuted }]}>No material data yet.</Text>
+              <View style={[styles.inlineEmpty, { backgroundColor: c.backgroundSoft, borderColor: c.border }]}>
+                <Ionicons name="cube-outline" size={16} color={c.textFaint} />
+                <Text style={[styles.inlineEmptyText, { color: c.textMuted }]}>Material breakdown will appear once batches are submitted.</Text>
+              </View>
             )}
           </View>
         </View>
@@ -477,7 +521,10 @@ export default function SupplierAnalyticsScreen() {
                 </View>
               </View>
             )) : (
-              <Text style={[styles.emptyText, { color: c.textMuted }]}>No batch activity yet.</Text>
+              <View style={[styles.inlineEmpty, { backgroundColor: c.backgroundSoft, borderColor: c.border }]}>
+                <Ionicons name="time-outline" size={16} color={c.textFaint} />
+                <Text style={[styles.inlineEmptyText, { color: c.textMuted }]}>Your recent batch submissions will show up here.</Text>
+              </View>
             )}
           </View>
         </View>
@@ -708,6 +755,61 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSize.sm,
     fontFamily: Font.regular,
+    lineHeight: 20,
+  },
+  emptyWrap: {
+    flex: 1,
+    paddingHorizontal: 28,
+    justifyContent: 'center',
+    gap: 20,
+    marginTop: -40,
+  },
+  emptyIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCopy: {
+    gap: 8,
+  },
+  emptyHeading: {
+    fontFamily: Font.bold,
+    fontSize: FontSize['2xl'],
+    letterSpacing: -0.3,
+  },
+  emptySubtext: {
+    fontFamily: Font.regular,
+    fontSize: FontSize.md,
+    lineHeight: 22,
+  },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyBtnLabel: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.md,
+  },
+  inlineEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+  },
+  inlineEmptyText: {
+    flex: 1,
+    fontFamily: Font.regular,
+    fontSize: FontSize.sm,
     lineHeight: 20,
   },
   errorWrap: {

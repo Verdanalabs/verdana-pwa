@@ -1,10 +1,7 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { PrimaryButton } from '@/src/shared/ui/PrimaryButton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useAuth } from '@/src/features/auth/state/auth-context';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
@@ -12,28 +9,25 @@ import { useThemeColors } from '@/src/shared/theme/theme-context';
 export default function OnboardingProfileRoute() {
   const c = useThemeColors();
   const { completeOnboarding, signOut } = useAuth();
+
   const [name, setName] = useState('');
   const [touched, setTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const errors = useMemo(() => ({
-    name: name.trim().length < 3 ? 'Enter your full name.' : '',
-  }), [name]);
-
-  const isValid = !errors.name;
+  const nameError = useMemo(() => name.trim().length < 3 ? 'Enter at least 3 characters.' : '', [name]);
+  const canSubmit = !nameError && !isSubmitting;
 
   async function handleSubmit() {
     setTouched(true);
-    if (!isValid) return;
-
+    if (!canSubmit) return;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
       await completeOnboarding({ name: name.trim() });
       router.replace('/(supplier-tabs)/home');
     } catch {
-      setSubmitError('Failed to save your name. Please try again.');
+      setSubmitError('Failed to save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -41,170 +35,165 @@ export default function OnboardingProfileRoute() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: c.foreground }]}>Set up your supplier profile.</Text>
-          <Text style={[styles.body, { color: c.textSecondary }]}>
-            Add the key details we need so your batch records stay clear from the start.
-          </Text>
-        </View>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.root}>
 
-        <View style={styles.form}>
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: c.foreground }]}>Full Name</Text>
+          {/* Step tag */}
+          <View style={[styles.stepTag, { backgroundColor: c.accent + '18', borderColor: c.accent + '30' }]}>
+            <Text style={[styles.stepText, { color: c.accent }]}>SETUP · STEP 1 OF 1</Text>
+          </View>
+
+          {/* Heading */}
+          <View style={styles.headingBlock}>
+            <Text style={[styles.heading, { color: c.foreground }]}>
+              What should{'\n'}we call you?
+            </Text>
+            <Text style={[styles.sub, { color: c.textMuted }]}>
+              Your name will appear on batch records and co-sign documents.
+            </Text>
+          </View>
+
+          {/* Input */}
+          <View style={styles.inputBlock}>
             <TextInput
               value={name}
-              onChangeText={setName}
-              placeholder="Tio Rahardian"
+              onChangeText={(v) => { setName(v); setTouched(false); setSubmitError(null); }}
+              placeholder="Your full name"
               placeholderTextColor={c.textFaint}
               style={[
                 styles.input,
                 {
-                  backgroundColor: c.surface,
-                  borderColor: touched && errors.name ? c.error : c.border,
+                  borderColor: touched && nameError ? c.error + '70' : name.length > 0 ? c.accent : c.border,
                   color: c.foreground,
+                  backgroundColor: c.surface,
                 },
               ]}
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={handleSubmit}
             />
-            {!!(touched && errors.name) && <Text style={[styles.error, { color: c.error }]}>{errors.name}</Text>}
+            {touched && nameError
+              ? <Text style={[styles.hint, { color: c.error }]}>{nameError}</Text>
+              : name.trim().length >= 3
+                ? <Text style={[styles.hint, { color: c.accent }]}>Looks good!</Text>
+                : <Text style={[styles.hint, { color: c.textFaint }]}>First and last name preferred.</Text>
+            }
           </View>
-        </View>
 
-        <View style={[styles.noteCard, { backgroundColor: c.backgroundSoft, borderColor: c.border }]}>
-          <Ionicons name="information-circle-outline" size={18} color={c.accent} />
-          <Text style={[styles.noteText, { color: c.textSecondary }]}>
-            You can update these details later when the profile screen is expanded.
-          </Text>
-        </View>
-      </ScrollView>
+          {/* Spacer */}
+          <View style={styles.spacer} />
 
-      <View style={[styles.footer, { backgroundColor: c.background, borderTopColor: c.border }]}>
-        {!!submitError && (
-          <Text style={[styles.submitError, { color: c.error }]}>{submitError}</Text>
-        )}
-        <PrimaryButton
-          label={isSubmitting ? 'Saving...' : 'Continue to Home'}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        />
-        <TouchableOpacity
-          style={styles.secondaryAction}
-          onPress={() => {
-            signOut();
-            router.replace('/(auth)/welcome');
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.secondaryText, { color: c.textMuted }]}>Start over</Text>
-        </TouchableOpacity>
-      </View>
+          {/* Error */}
+          {submitError
+            ? <Text style={[styles.submitError, { color: c.error }]}>{submitError}</Text>
+            : null
+          }
+
+          {/* CTA */}
+          <TouchableOpacity
+            style={[
+              styles.btn,
+              { backgroundColor: name.trim().length >= 3 ? c.foreground : c.border },
+            ]}
+            onPress={handleSubmit}
+            activeOpacity={0.85}
+            disabled={!canSubmit}
+          >
+            <Text style={[styles.btnLabel, { color: name.trim().length >= 3 ? c.background : c.textMuted }]}>
+              {isSubmitting ? 'Saving...' : 'Continue →'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Footer */}
+          <TouchableOpacity
+            onPress={() => { signOut(); router.replace('/(auth)/welcome'); }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.footer, { color: c.textFaint }]}>← Start over</Text>
+          </TouchableOpacity>
+
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-    gap: 18,
+  flex: { flex: 1 },
+  root: {
+    flex: 1,
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 36,
+    gap: 24,
   },
-  header: {
-    gap: 8,
-    marginBottom: 2,
-  },
-  title: {
-    fontSize: FontSize['2xl'],
-    fontFamily: Font.bold,
-    lineHeight: 28,
-  },
-  body: {
-    fontSize: FontSize.md,
-    fontFamily: Font.regular,
-    lineHeight: 22,
-  },
-  providerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  stepTag: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
-  providerText: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.medium,
-  },
-  form: {
-    gap: 16,
-  },
-  field: {
-    gap: 8,
-  },
-  label: {
-    fontSize: FontSize.sm,
+  stepText: {
     fontFamily: Font.semiBold,
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  headingBlock: {
+    gap: 10,
+  },
+  heading: {
+    fontFamily: Font.bold,
+    fontSize: 36,
+    lineHeight: 42,
+    letterSpacing: -0.8,
+  },
+  sub: {
+    fontFamily: Font.regular,
+    fontSize: FontSize.md,
+    lineHeight: 22,
+    maxWidth: 300,
+  },
+  inputBlock: {
+    gap: 8,
   },
   input: {
-    height: 52,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    fontSize: FontSize.md,
-    fontFamily: Font.regular,
-  },
-  error: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.regular,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  chip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  chipText: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.semiBold,
-  },
-  noteCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    borderWidth: 1,
+    height: 58,
+    borderWidth: 1.5,
     borderRadius: 16,
-    padding: 14,
-  },
-  noteText: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    fontFamily: Font.regular,
-    lineHeight: 20,
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 20,
-    borderTopWidth: 1,
-    gap: 10,
-  },
-  secondaryAction: {
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  secondaryText: {
-    fontSize: FontSize.sm,
+    paddingHorizontal: 18,
+    fontSize: FontSize.lg,
     fontFamily: Font.medium,
   },
-  submitError: {
-    fontSize: FontSize.sm,
+  hint: {
     fontFamily: Font.regular,
+    fontSize: FontSize.sm,
+    paddingHorizontal: 4,
+  },
+  spacer: { flex: 1 },
+  submitError: {
+    fontFamily: Font.regular,
+    fontSize: FontSize.sm,
     textAlign: 'center',
+  },
+  btn: {
+    height: 54,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnLabel: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.md,
+  },
+  footer: {
+    textAlign: 'center',
+    fontFamily: Font.regular,
+    fontSize: FontSize.sm,
   },
 });
