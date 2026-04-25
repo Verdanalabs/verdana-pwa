@@ -43,7 +43,33 @@ function normalizeVariant(value: string | undefined): AppVariant {
   return value?.trim().toLowerCase() === 'pvp' ? 'pvp' : 'collector';
 }
 
-export const appVariant = normalizeVariant(runtimeConfig.appVariant);
+function detectVariantFromHostname(): AppVariant | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const host = window.location.hostname.toLowerCase();
+
+  if (
+    host === 'pvp.verdanaprotocol.com' ||
+    host === 'pvp-staging.verdanaprotocol.com' ||
+    host.includes('verdana-pwa-pvp')
+  ) {
+    return 'pvp';
+  }
+
+  if (
+    host === 'app.verdanaprotocol.com' ||
+    host === 'app-staging.verdanaprotocol.com' ||
+    host.includes('verdana-pwa-app')
+  ) {
+    return 'collector';
+  }
+
+  return null;
+}
+
+export const appVariant = detectVariantFromHostname() ?? normalizeVariant(runtimeConfig.appVariant);
 export const appVariantConfig = APP_VARIANT_CONFIG[appVariant];
 
 export function isCollectorApp() {

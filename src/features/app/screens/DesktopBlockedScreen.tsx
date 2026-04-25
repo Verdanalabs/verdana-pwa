@@ -1,15 +1,24 @@
 import { StyleSheet, Text, View, Image } from 'react-native';
+import { appVariant } from '@/src/shared/config/app-variant';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 
-const STEPS = [
+const COLLECTOR_STEPS = [
   { num: '1', text: 'Open this link on your phone using Chrome or Safari.' },
   { num: '2', text: 'Tap "Add to Home Screen" so it works like a regular app.' },
   { num: '3', text: 'Sign in and start registering your batches.' },
 ];
 
+const PVP_STEPS = [
+  { num: '1', text: 'Open this link on your phone using Chrome or Safari.' },
+  { num: '2', text: 'Add it to your Home Screen for faster operator access.' },
+  { num: '3', text: 'Sign in and continue with your PVP dashboard and scan flow.' },
+];
+
 export default function DesktopBlockedScreen() {
   const c = useThemeColors();
+  const isPvp = appVariant === 'pvp';
+  const steps = isPvp ? PVP_STEPS : COLLECTOR_STEPS;
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]}>
@@ -45,7 +54,7 @@ export default function DesktopBlockedScreen() {
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
             <Text style={[styles.cardHeading, { color: c.foreground }]}>Here's what to do</Text>
             <View style={[styles.divider, { backgroundColor: c.border }]} />
-            {STEPS.map((step) => (
+            {steps.map((step) => (
               <View key={step.num} style={styles.stepRow}>
                 <View style={[styles.stepNum, { backgroundColor: `${c.accent}15`, borderColor: `${c.accent}25` }]}>
                   <Text style={[styles.stepNumText, { color: c.accent }]}>{step.num}</Text>
@@ -69,7 +78,9 @@ export default function DesktopBlockedScreen() {
           </View>
           <View style={[styles.mockupLabel, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={[styles.mockupDot, { backgroundColor: c.accent }]} />
-            <Text style={[styles.mockupLabelText, { color: c.textMuted }]}>Supplier home screen</Text>
+            <Text style={[styles.mockupLabelText, { color: c.textMuted }]}>
+              {isPvp ? 'PVP operator app' : 'Supplier home screen'}
+            </Text>
           </View>
         </View>
 
