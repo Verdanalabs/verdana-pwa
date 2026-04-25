@@ -1,9 +1,14 @@
 import { Redirect, Tabs } from 'expo-router';
 import { useAuth } from '@/src/features/auth/state/auth-context';
+import { appVariant } from '@/src/shared/config/app-variant';
 import { CustomTabBar } from '@/src/shared/navigation/SupplierTabBar';
 
 export default function SupplierTabsLayout() {
   const { isAuthenticated } = useAuth();
+
+  if (appVariant !== 'collector') {
+    return <Redirect href="/" />;
+  }
 
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/welcome" />;

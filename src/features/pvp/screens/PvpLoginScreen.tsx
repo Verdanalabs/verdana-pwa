@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getCounterpartAppUrl } from '@/src/shared/config/app-variant';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
@@ -139,10 +140,10 @@ export default function PvpLoginRoute() {
             </View>
           </TouchableOpacity>
 
-        </View>
+      </View>
 
-        {/* Footer */}
-        <TouchableOpacity onPress={() => router.replace('/(auth)/login')} activeOpacity={0.7}>
+      {/* Footer */}
+        <TouchableOpacity onPress={() => Linking.openURL(getCounterpartAppUrl())} activeOpacity={0.7}>
           <Text style={[styles.footer, { color: c.textFaint }]}>
             Are you a supplier?{' '}
             <Text style={[styles.footerLink, { color: c.textSecondary }]}>Login here</Text>
