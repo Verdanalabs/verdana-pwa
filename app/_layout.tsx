@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { Redirect, Stack, usePathname, useSegments } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
@@ -11,10 +11,13 @@ import {
 } from '@expo-google-fonts/space-grotesk';
 import * as SplashScreen from 'expo-splash-screen';
 import { AppProviders } from '@/src/providers/AppProviders';
+import { useAuth } from '@/src/features/auth/state/auth-context';
+import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import {
   appVariant,
+  getAuthenticatedHref,
   getGuestEntryHref,
-  getRouteSurface,
+  getPathSurface,
 } from '@/src/shared/config/app-variant';
 import { useTheme } from '@/src/shared/theme/theme-context';
 import { useOperationalPlatformAccess } from '@/src/shared/platform/useOperationalPlatformAccess';
@@ -25,12 +28,43 @@ export const unstable_settings = {
   anchor: 'index',
 };
 
+function CollectorSurfaceRedirect() {
+  const { isReady, isAuthenticated, needsOnboarding } = useAuth();
+
+  if (!isReady) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href={getGuestEntryHref('collector')} />;
+  }
+
+  if (needsOnboarding) {
+    return <Redirect href="/(auth)/onboarding-profile" />;
+  }
+
+  return <Redirect href={getAuthenticatedHref('collector')} />;
+}
+
+function PvpSurfaceRedirect() {
+  const { state } = usePvpAuth();
+
+  if (state === 'active') {
+    return <Redirect href={getAuthenticatedHref('pvp')} />;
+  }
+
+  if (state === 'authenticated') {
+    return <Redirect href="/pvp/onboarding" />;
+  }
+
+  return <Redirect href={getGuestEntryHref('pvp')} />;
+}
+
 function AppShell() {
   const { isDark } = useTheme();
   const pathname = usePathname();
-  const segments = useSegments();
   const platformAccess = useOperationalPlatformAccess();
-  const routeSurface = getRouteSurface(segments);
+  const routeSurface = getPathSurface(pathname);
 
   if (platformAccess === 'checking') {
     return null;
@@ -45,7 +79,7 @@ function AppShell() {
   }
 
   if (routeSurface !== 'shared' && routeSurface !== appVariant) {
-    return <Redirect href={getGuestEntryHref(appVariant)} />;
+    return appVariant === 'collector' ? <CollectorSurfaceRedirect /> : <PvpSurfaceRedirect />;
   }
 
   return (

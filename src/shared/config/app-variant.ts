@@ -100,23 +100,42 @@ export function getAuthenticatedHref(variant: AppVariant) {
   return variant === 'collector' ? '/(supplier-tabs)/home' : '/(pvp-tabs)/dashboard';
 }
 
-export function getRouteSurface(segments: string[] | undefined): RouteSurface {
-  const [group, leaf] = segments ?? [];
-
-  if (!group || group === 'index' || group === 'desktop-blocked' || group === 'modal') {
+export function getPathSurface(pathname: string | undefined): RouteSurface {
+  if (!pathname || pathname === '/' || pathname === '/desktop-blocked' || pathname === '/modal') {
     return 'shared';
   }
 
-  if (group === '(supplier-tabs)' || group === 'batch' || group === 'wallet') {
+  if (
+    pathname === '/login' ||
+    pathname === '/welcome' ||
+    pathname === '/onboarding-profile' ||
+    pathname === '/home' ||
+    pathname === '/analytics' ||
+    pathname === '/history' ||
+    pathname === '/wallet' ||
+    pathname === '/profile' ||
+    pathname.startsWith('/batch/') ||
+    pathname.startsWith('/batch') ||
+    pathname.startsWith('/wallet/') ||
+    pathname.startsWith('/(supplier-tabs)') ||
+    pathname === '/(auth)/login' ||
+    pathname === '/(auth)/welcome' ||
+    pathname === '/(auth)/onboarding-profile'
+  ) {
     return 'collector';
   }
 
-  if (group === '(pvp-tabs)' || group === 'pvp') {
+  if (
+    pathname === '/pvp-login' ||
+    pathname === '/dashboard' ||
+    pathname === '/pending' ||
+    pathname === '/log' ||
+    pathname === '/facility' ||
+    pathname.startsWith('/pvp') ||
+    pathname.startsWith('/(pvp-tabs)') ||
+    pathname === '/(auth)/pvp-login'
+  ) {
     return 'pvp';
-  }
-
-  if (group === '(auth)') {
-    return leaf === 'pvp-login' ? 'pvp' : 'collector';
   }
 
   return 'shared';
