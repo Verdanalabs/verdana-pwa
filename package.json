@@ -10,9 +10,15 @@
     "web": "expo start --web",
     "test": "jest",
     "lint": "expo lint",
-    "build:web": "expo export --platform web",
-    "deploy:staging": "bash deploy.sh",
-    "deploy:prod": "bash deploy.sh --prod"
+    "build:web": "node ./scripts/build-web-variant.mjs collector",
+    "build:web:app": "node ./scripts/build-web-variant.mjs collector",
+    "build:web:pvp": "node ./scripts/build-web-variant.mjs pvp",
+    "deploy:staging": "bash ./deploy-app.sh",
+    "deploy:prod": "bash ./deploy-app.sh --prod",
+    "deploy:app": "bash ./deploy-app.sh",
+    "deploy:app:prod": "bash ./deploy-app.sh --prod",
+    "deploy:pvp": "bash ./deploy-pvp.sh",
+    "deploy:pvp:prod": "bash ./deploy-pvp.sh --prod"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

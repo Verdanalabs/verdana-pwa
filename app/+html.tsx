@@ -1,5 +1,6 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
+import { appVariantConfig } from '@/src/shared/config/app-variant';
 
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -8,10 +9,13 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="theme-color" content="#070e07" />
+        <title>{appVariantConfig.appName}</title>
+        <meta name="application-name" content={appVariantConfig.appName} />
+        <meta name="description" content={appVariantConfig.description} />
+        <meta name="theme-color" content={appVariantConfig.themeColor} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Verdana" />
+        <meta name="apple-mobile-web-app-title" content={appVariantConfig.appleMobileWebAppTitle} />
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="/icon-512.svg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -25,22 +29,7 @@ export default function Root({ children }: PropsWithChildren) {
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
-                  navigator.serviceWorker.getRegistrations().then(function (registrations) {
-                    return Promise.all(
-                      registrations.map(function (registration) {
-                        return registration.unregister();
-                      })
-                    );
-                  }).catch(function () {});
-                  if ('caches' in window) {
-                    caches.keys().then(function (keys) {
-                      return Promise.all(
-                        keys.map(function (key) {
-                          return caches.delete(key);
-                        })
-                      );
-                    }).catch(function () {});
-                  }
+                  navigator.serviceWorker.register('/service-worker.js').catch(function () {});
                 });
               }
             `,

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { Redirect, Stack, usePathname } from 'expo-router';
+import { Redirect, Stack, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
@@ -11,6 +11,11 @@ import {
 } from '@expo-google-fonts/space-grotesk';
 import * as SplashScreen from 'expo-splash-screen';
 import { AppProviders } from '@/src/providers/AppProviders';
+import {
+  appVariant,
+  getGuestEntryHref,
+  getRouteSurface,
+} from '@/src/shared/config/app-variant';
 import { useTheme } from '@/src/shared/theme/theme-context';
 import { useOperationalPlatformAccess } from '@/src/shared/platform/useOperationalPlatformAccess';
 
@@ -23,7 +28,9 @@ export const unstable_settings = {
 function AppShell() {
   const { isDark } = useTheme();
   const pathname = usePathname();
+  const segments = useSegments();
   const platformAccess = useOperationalPlatformAccess();
+  const routeSurface = getRouteSurface(segments);
 
   if (platformAccess === 'checking') {
     return null;
@@ -35,6 +42,10 @@ function AppShell() {
 
   if (platformAccess === 'allowed' && pathname === '/desktop-blocked') {
     return <Redirect href="/" />;
+  }
+
+  if (routeSurface !== 'shared' && routeSurface !== appVariant) {
+    return <Redirect href={getGuestEntryHref(appVariant)} />;
   }
 
   return (

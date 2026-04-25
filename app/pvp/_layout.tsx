@@ -1,9 +1,14 @@
 import { Redirect, Stack, usePathname } from 'expo-router';
+import { appVariant } from '@/src/shared/config/app-variant';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
 export default function PvpLayout() {
   const { state } = usePvpAuth();
   const pathname = usePathname();
+
+  if (appVariant !== 'pvp') {
+    return <Redirect href="/" />;
+  }
 
   if (state === 'idle') {
     return <Redirect href="/(auth)/pvp-login" />;
