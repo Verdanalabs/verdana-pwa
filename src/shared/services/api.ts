@@ -1,4 +1,6 @@
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+import { runtimeConfig } from '@/src/shared/config/runtime-config';
+
+const BASE_URL = runtimeConfig.apiBaseUrl;
 
 export class ApiError extends Error {
   constructor(

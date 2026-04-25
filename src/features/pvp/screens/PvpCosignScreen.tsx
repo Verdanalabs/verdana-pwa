@@ -9,7 +9,9 @@ import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { getBatch, pvpWeighBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
+import { runtimeConfig } from '@/src/shared/config/runtime-config';
+
+const API_BASE = runtimeConfig.apiBaseUrl;
 
 function mediaUrl(key: string) {
   return `${API_BASE}/v1/media/${key}`;

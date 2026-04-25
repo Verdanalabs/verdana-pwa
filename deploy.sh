@@ -56,9 +56,9 @@ case "$VARIANT" in
 esac
 
 APP_DOMAIN_PRODUCTION="https://app.verdanaprotocol.com"
-APP_DOMAIN_STAGING="https://staging-app.verdanaprotocol.com"
+APP_DOMAIN_STAGING="https://app-staging.verdanaprotocol.com"
 PVP_DOMAIN_PRODUCTION="https://pvp.verdanaprotocol.com"
-PVP_DOMAIN_STAGING="https://staging-pvp.verdanaprotocol.com"
+PVP_DOMAIN_STAGING="https://pvp-staging.verdanaprotocol.com"
 
 if [ "$VARIANT" = "collector" ]; then
   BUILD_SCRIPT="build:web:app"
@@ -128,7 +128,7 @@ echo ""
 
 if [ "$SKIP_BUILD" = false ]; then
   log "[1/2] Building web export via ${BUILD_SCRIPT}..."
-  npm run "$BUILD_SCRIPT"
+  VERDANA_EXPO_ENV_FILE="$ENV_FILE" npm run "$BUILD_SCRIPT"
   ok "Build complete → dist/"
 else
   warn "Skipping build (--skip-build)"

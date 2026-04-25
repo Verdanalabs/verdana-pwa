@@ -1,3 +1,5 @@
+import { runtimeConfig } from '@/src/shared/config/runtime-config';
+
 export type AppVariant = 'collector' | 'pvp';
 export type RouteSurface = AppVariant | 'shared';
 
@@ -41,7 +43,7 @@ function normalizeVariant(value: string | undefined): AppVariant {
   return value?.trim().toLowerCase() === 'pvp' ? 'pvp' : 'collector';
 }
 
-export const appVariant = normalizeVariant(process.env.EXPO_PUBLIC_APP_VARIANT);
+export const appVariant = normalizeVariant(runtimeConfig.appVariant);
 export const appVariantConfig = APP_VARIANT_CONFIG[appVariant];
 
 export function isCollectorApp() {
@@ -54,10 +56,10 @@ export function isPvpApp() {
 
 export function getPublicAppUrl(variant: AppVariant) {
   if (variant === 'collector') {
-    return process.env.EXPO_PUBLIC_COLLECTOR_APP_URL || DEFAULT_PUBLIC_URLS.collector;
+    return runtimeConfig.collectorAppUrl || DEFAULT_PUBLIC_URLS.collector;
   }
 
-  return process.env.EXPO_PUBLIC_PVP_APP_URL || DEFAULT_PUBLIC_URLS.pvp;
+  return runtimeConfig.pvpAppUrl || DEFAULT_PUBLIC_URLS.pvp;
 }
 
 export function getCounterpartAppUrl() {

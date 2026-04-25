@@ -21,7 +21,9 @@ import { getMe, type VerdanaUser } from '@/src/features/auth/services/auth-api';
 import { getBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
 import type { CNFTStatus, MaterialType } from '@/types';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
+import { runtimeConfig } from '@/src/shared/config/runtime-config';
+
+const API_BASE = runtimeConfig.apiBaseUrl;
 
 function mediaUrl(storageKey: string) {
   return `${API_BASE}/v1/media/${storageKey}`;

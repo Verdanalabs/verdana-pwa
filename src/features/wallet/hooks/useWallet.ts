@@ -8,7 +8,9 @@ import {
 } from '@/src/features/batch/services/batch-api';
 import type { CNFT, MaterialType, WalletSummary } from '@/types';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
+import { runtimeConfig } from '@/src/shared/config/runtime-config';
+
+const API_BASE = runtimeConfig.apiBaseUrl;
 
 function mediaUrl(storageKey: string) {
   return `${API_BASE}/v1/media/${storageKey}`;
