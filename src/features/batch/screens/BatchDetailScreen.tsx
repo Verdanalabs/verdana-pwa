@@ -1,88 +1,191 @@
-import { useState } from 'react';
-import { Image } from 'expo-image';
+import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { usePrivy } from '@privy-io/react-auth';
+import QRCode from 'react-native-qrcode-svg';
 import { MaterialBadge } from '@/src/shared/ui/MaterialBadge';
+import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { StatusBadge } from '@/src/shared/ui/StatusBadge';
-import { BATCH_STATUS_LABEL } from '@/src/shared/lib/batch-status';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
-import { getMockBatchById } from '@/src/shared/services/mock/batch-data';
-import { getMockWalletAssetByBatchId } from '@/src/shared/services/mock/wallet-data';
+import { getBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
 import type { BatchStatus } from '@/types';
 
-const BATCH_PHOTO_FALLBACKS: Record<string, number> = {
-  'B-0047': require('@/assets/carousle/01-image.jpg'),
-  'B-0046': require('@/assets/carousle/02-image.jpg'),
-  'B-0045': require('@/assets/carousle/03-image.jpg'),
-  'B-0044': require('@/assets/carousle/01-image.jpg'),
-};
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
-function formatDateTime(iso?: string) {
+function mediaUrl(storageKey: string) {
+  return `${API_BASE}/v1/media/${storageKey}`;
+}
+
+function statusToUi(status: string): BatchStatus {
+  switch (status) {
+    case 'pending':      return 'pending';
+    case 'accepted':     return 'accepted';
+    case 'cosigning':    return 'cosigning';
+    case 'cosigned':     return 'cosigned';
+    case 'mint_pending': return 'mint_pending';
+    case 'mint_failed':  return 'mint_failed';
+    case 'minted':       return 'minted';
+    default:             return 'pending';
+  }
+}
+
+function formatDateTime(iso?: string | null) {
   if (!iso) return '-';
   return new Date(iso).toLocaleString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: 'numeric', minute: '2-digit',
   });
 }
 
-function formatDropOffName(name: string) {
-  return name.replace(/\s+Drop-off$/i, '').trim();
+function DetailRow({ label, value }: { label: string; value: string }) {
+  const c = useThemeColors();
+  return (
+    <View style={styles.detailRow}>
+      <Text style={[styles.detailLabel, { color: c.textMuted }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: c.foreground }]}>{value}</Text>
+    </View>
+  );
 }
 
-function TimelineItem({
-  status,
-  timestamp,
-  note,
-  isLast,
-}: {
-  status: BatchStatus;
-  timestamp: string;
-  note?: string;
-  isLast: boolean;
-}) {
-  const c = useThemeColors();
+interface TimelineEntry { label: string; timestamp?: string; }
 
+function deriveTimeline(batch: ApiBatchDetail): TimelineEntry[] {
+  const entries: TimelineEntry[] = [
+    { label: 'Batch Registered', timestamp: batch.created_at },
+  ];
+  if (batch.weighed_at) {
+    entries.push({ label: 'Co-signed at Drop-off', timestamp: batch.weighed_at });
+  }
+  if (batch.cnft_record?.minted_at) {
+    entries.push({ label: 'cNFT Asset Minted', timestamp: batch.cnft_record.minted_at });
+  }
+  return entries;
+}
+
+function TimelineItem({ label, timestamp, isLast }: { label: string; timestamp?: string; isLast: boolean }) {
+  const c = useThemeColors();
   return (
     <View style={styles.timelineRow}>
       <View style={styles.timelineRail}>
         <View style={[styles.timelineDot, { backgroundColor: c.accent }]} />
         {!isLast && <View style={[styles.timelineLine, { backgroundColor: c.border }]} />}
       </View>
-
       <View style={styles.timelineCopy}>
-        <Text style={[styles.timelineTitle, { color: c.foreground }]}>{BATCH_STATUS_LABEL[status]}</Text>
+        <Text style={[styles.timelineTitle, { color: c.foreground }]}>{label}</Text>
         <Text style={[styles.timelineTime, { color: c.textMuted }]}>{formatDateTime(timestamp)}</Text>
-        {!!note && <Text style={[styles.timelineNote, { color: c.textSecondary }]}>{note}</Text>}
       </View>
     </View>
+  );
+}
+
+function BatchDetailSkeleton() {
+  const c = useThemeColors();
+
+  return (
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <View style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]} />
+        <View style={styles.headerRight}>
+          <View style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]} />
+          <View style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]} />
+        </View>
+      </View>
+
+      <View style={styles.headingBlock}>
+        <View style={styles.headingTop}>
+          <SkeletonBox width={90} height={28} radius={8} />
+          <SkeletonBox width={92} height={24} radius={12} />
+        </View>
+        <SkeletonBox width="82%" height={14} radius={7} />
+        <SkeletonBox width="66%" height={14} radius={7} />
+      </View>
+
+      <View style={[styles.photoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <View style={[styles.photo, { backgroundColor: c.border }]} />
+        <View style={styles.photoMeta}>
+          <SkeletonBox width={60} height={22} radius={11} />
+          <SkeletonBox width="44%" height={12} radius={6} />
+        </View>
+      </View>
+
+      <View style={styles.infoGrid}>
+        {[0, 1].map((row) => (
+          <View key={row} style={styles.infoGridRow}>
+            {[0, 1].map((card) => (
+              <View key={card} style={[styles.infoCard, styles.infoCardHalf, { backgroundColor: c.surface, borderColor: c.border }]}>
+                <SkeletonBox width="52%" height={12} radius={6} />
+                <SkeletonBox width="58%" height={18} radius={7} />
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+
+      {[0, 1].map((section) => (
+        <View key={section} style={[styles.detailCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+          <SkeletonBox width={110} height={18} radius={6} />
+          {[0, 1, 2].map((row) => (
+            <View key={row} style={styles.detailRow}>
+              <SkeletonBox width="30%" height={12} radius={6} />
+              <SkeletonBox width="72%" height={14} radius={6} />
+            </View>
+          ))}
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
 export default function BatchDetailRoute() {
   const c = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const batch = getMockBatchById(id);
-  const linkedAsset = getMockWalletAssetByBatchId(id);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const batchPhoto = linkedAsset?.imageUrl
-    ? { uri: linkedAsset.imageUrl }
-    : id
-      ? BATCH_PHOTO_FALLBACKS[id] ?? BATCH_PHOTO_FALLBACKS['B-0047']
-      : BATCH_PHOTO_FALLBACKS['B-0047'];
+  const { getAccessToken } = usePrivy();
 
-  if (!batch) {
+  const [batch, setBatch] = useState<ApiBatchDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const token = await getAccessToken();
+        if (!token) throw new Error('Not authenticated');
+        const data = await getBatch(token, id);
+        if (!cancelled) setBatch(data);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load batch');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [id, getAccessToken]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
+        <BatchDetailSkeleton />
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !batch) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
         <View style={styles.missingWrap}>
           <Text style={[styles.missingTitle, { color: c.foreground }]}>Batch not found</Text>
           <Text style={[styles.missingText, { color: c.textMuted }]}>
-            We could not find the batch you selected.
+            {error ?? 'We could not find the batch you selected.'}
           </Text>
           <TouchableOpacity
             style={[styles.backButton, { backgroundColor: c.accent }]}
@@ -96,6 +199,19 @@ export default function BatchDetailRoute() {
     );
   }
 
+  const uiStatus = statusToUi(batch.status);
+  const photoMedia = batch.media.find((m) => m.media_kind === 'photo');
+  const photoUri = photoMedia ? mediaUrl(photoMedia.storage_key) : null;
+  const estimatedKg = batch.estimated_weight_grams != null
+    ? (batch.estimated_weight_grams / 1000).toFixed(1)
+    : '-';
+  const actualKg = batch.actual_weight_grams != null
+    ? (batch.actual_weight_grams / 1000).toFixed(1)
+    : '-';
+  const shortId = batch.id.slice(0, 8).toUpperCase();
+  const timeline = deriveTimeline(batch);
+  const isAwaitingSupplierApproval = batch.status === 'cosigning';
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -107,100 +223,145 @@ export default function BatchDetailRoute() {
           >
             <Ionicons name="arrow-back" size={18} color={c.foreground} />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]}
-            onPress={() => setMenuOpen(true)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="ellipsis-horizontal" size={18} color={c.foreground} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]}
+              onPress={() => setQrOpen(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="qr-code-outline" size={18} color={c.accent} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]}
+              onPress={() => setMenuOpen(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color={c.foreground} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.headingBlock}>
           <View style={styles.headingTop}>
-            <Text style={[styles.batchId, { color: c.foreground }]}>{batch.id}</Text>
-            <StatusBadge status={batch.status} />
+            <Text style={[styles.batchId, { color: c.foreground }]}>{shortId}</Text>
+            <StatusBadge status={uiStatus} />
           </View>
           <Text style={[styles.headingText, { color: c.textSecondary }]}>
             Review the batch record, material details, and every status update in one place.
           </Text>
         </View>
 
+        {isAwaitingSupplierApproval && (
+          <View style={[styles.approvalCard, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf640' }]}>
+            <View style={styles.approvalCardHeader}>
+              <Ionicons name="hourglass-outline" size={18} color="#8b5cf6" />
+              <Text style={[styles.approvalCardTitle, { color: '#8b5cf6' }]}>Supplier approval required</Text>
+            </View>
+            <Text style={[styles.approvalCardBody, { color: c.textSecondary }]}>
+              PVP has already weighed this batch. Review the measured weight and continue to the approval screen to co-sign.
+            </Text>
+            <TouchableOpacity
+              style={[styles.approvalCardButton, { backgroundColor: '#8b5cf6' }]}
+              onPress={() => router.push(`/batch/approve-cosign?id=${batch.id}` as never)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+              <Text style={styles.approvalCardButtonLabel}>Approve Co-sign</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={[styles.photoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Image source={batchPhoto} style={styles.photo} contentFit="cover" />
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" />
+          ) : (
+            <View style={[styles.photo, { backgroundColor: c.border, alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="image-outline" size={40} color={c.textMuted} />
+            </View>
+          )}
           <View style={styles.photoMeta}>
-            <MaterialBadge material={batch.materialType} />
+            <MaterialBadge material={batch.material.toUpperCase() as never} />
             <Text style={[styles.photoTime, { color: c.textMuted }]}>
-              Captured {formatDateTime(batch.capturedAt)}
+              Captured {formatDateTime(photoMedia?.captured_at ?? batch.created_at)}
             </Text>
           </View>
         </View>
 
         <View style={styles.infoGrid}>
-          <View style={styles.infoGridTop}>
+          <View style={styles.infoGridRow}>
             <View style={[styles.infoCard, styles.infoCardHalf, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.infoLabel, { color: c.textMuted }]}>Estimated Weight</Text>
-              <Text style={[styles.infoValue, { color: c.foreground }]}>{batch.estimatedWeightKg} kg</Text>
+              <Text style={[styles.infoValue, { color: c.foreground }]}>{estimatedKg} kg</Text>
             </View>
             <View style={[styles.infoCard, styles.infoCardHalf, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.infoLabel, { color: c.textMuted }]}>Actual Weight</Text>
-              <Text style={[styles.infoValue, { color: c.foreground }]}>
-                {batch.actualWeightKg ? `${batch.actualWeightKg} kg` : '-'}
-              </Text>
+              <Text style={[styles.infoValue, { color: c.foreground }]}>{actualKg}</Text>
             </View>
           </View>
-
-          <View style={styles.infoGridBottom}>
+          <View style={styles.infoGridRow}>
             <View style={[styles.infoCard, styles.infoCardHalf, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.infoLabel, { color: c.textMuted }]}>Grade</Text>
-              <Text style={[styles.infoValue, { color: c.foreground }]}>{batch.grade}</Text>
+              <Text style={[styles.infoLabel, { color: c.textMuted }]}>Status</Text>
+              <Text style={[styles.infoValue, { color: c.foreground }]}>{batch.status.replace(/_/g, ' ')}</Text>
             </View>
             <View style={[styles.infoCard, styles.infoCardHalf, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.infoLabel, { color: c.textMuted }]}>Drop-off Point</Text>
-              <Text style={[styles.infoValue, styles.infoValueMultiline, { color: c.foreground }]}>
-                {formatDropOffName(batch.pvpName)}
-              </Text>
+              <Text style={[styles.infoLabel, { color: c.textMuted }]}>Material</Text>
+              <Text style={[styles.infoValue, { color: c.foreground }]}>{batch.material.toUpperCase()}</Text>
             </View>
           </View>
         </View>
 
         <View style={[styles.detailCard, { backgroundColor: c.surface, borderColor: c.border }]}>
           <Text style={[styles.sectionTitle, { color: c.foreground }]}>Batch Details</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Submitted</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>{formatDateTime(batch.submittedAt)}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Validated</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>{formatDateTime(batch.validatedAt)}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Asset Ready</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>{formatDateTime(batch.mintedAt)}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Asset ID</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>{batch.cnftId ?? '-'}</Text>
-          </View>
+          <DetailRow label="Batch ID" value={batch.id} />
+          <DetailRow label="Submitted" value={formatDateTime(batch.created_at)} />
+          <DetailRow label="Co-signed" value={formatDateTime(batch.weighed_at)} />
+          <DetailRow label="Asset Ready" value={formatDateTime(batch.cnft_record?.minted_at)} />
+          <DetailRow label="Asset ID" value={batch.cnft_record?.asset_id ?? '-'} />
+          {batch.batch_metadata?.ipfs_cid && (
+            <DetailRow label="IPFS CID" value={batch.batch_metadata.ipfs_cid} />
+          )}
         </View>
 
         <View style={[styles.detailCard, { backgroundColor: c.surface, borderColor: c.border }]}>
           <Text style={[styles.sectionTitle, { color: c.foreground }]}>Timeline</Text>
           <View style={styles.timelineWrap}>
-            {batch.timeline.map((item, index) => (
+            {timeline.map((item, index) => (
               <TimelineItem
-                key={`${item.status}-${item.timestamp}`}
-                status={item.status}
+                key={item.label}
+                label={item.label}
                 timestamp={item.timestamp}
-                note={item.actor ? `Updated by ${item.actor}` : item.note}
-                isLast={index === batch.timeline.length - 1}
+                isLast={index === timeline.length - 1}
               />
             ))}
           </View>
         </View>
       </ScrollView>
+
+      {/* QR modal */}
+      <Modal transparent visible={qrOpen} animationType="fade" onRequestClose={() => setQrOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setQrOpen(false)}>
+          <Pressable
+            style={[styles.actionSheet, { backgroundColor: c.surface, borderColor: c.border, alignItems: 'center', gap: 14, paddingVertical: 24 }]}
+            onPress={() => {}}
+          >
+            <Text style={[styles.actionTitle, { color: c.foreground }]}>Batch QR Code</Text>
+            <Text style={[styles.actionLabel, { color: c.textMuted, marginTop: -8 }]}>{shortId}</Text>
+            <View style={[styles.qrBox, { backgroundColor: c.background, borderColor: c.border }]}>
+              <QRCode value={batch.id} size={220} backgroundColor="transparent" color={c.foreground} />
+            </View>
+            <Text style={[styles.actionLabel, { color: c.textMuted, textAlign: 'center', maxWidth: 260 }]}>
+              Show to the PVP operator at drop-off
+            </Text>
+            <TouchableOpacity
+              style={[styles.closeQrBtn, { backgroundColor: `${c.accent}16`, borderColor: `${c.accent}25` }]}
+              onPress={() => setQrOpen(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.actionLabel, { color: c.accent }]}>Close</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal transparent visible={menuOpen} animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setMenuOpen(false)}>
@@ -209,31 +370,19 @@ export default function BatchDetailRoute() {
             onPress={() => {}}
           >
             <Text style={[styles.actionTitle, { color: c.foreground }]}>Batch Actions</Text>
-
-            <TouchableOpacity style={styles.actionRow} activeOpacity={0.8} onPress={() => setMenuOpen(false)}>
+            <TouchableOpacity
+              style={styles.actionRow}
+              activeOpacity={0.8}
+              onPress={() => {
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                  navigator.clipboard.writeText(batch.id);
+                }
+                setMenuOpen(false);
+              }}
+            >
               <Ionicons name="copy-outline" size={18} color={c.textSecondary} />
               <Text style={[styles.actionLabel, { color: c.foreground }]}>Copy Batch ID</Text>
             </TouchableOpacity>
-
-            {linkedAsset ? (
-              <TouchableOpacity
-                style={styles.actionRow}
-                activeOpacity={0.8}
-                onPress={() => {
-                  setMenuOpen(false);
-                  router.push(`/wallet/cnft/${linkedAsset.id}` as never);
-                }}
-              >
-                <Ionicons name="cube-outline" size={18} color={c.textSecondary} />
-                <Text style={[styles.actionLabel, { color: c.foreground }]}>View Asset</Text>
-              </TouchableOpacity>
-            ) : null}
-
-            <TouchableOpacity style={styles.actionRow} activeOpacity={0.8} onPress={() => setMenuOpen(false)}>
-              <Ionicons name="location-outline" size={18} color={c.textSecondary} />
-              <Text style={[styles.actionLabel, { color: c.foreground }]}>Copy Drop-off Point</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity style={styles.actionRow} activeOpacity={0.8} onPress={() => setMenuOpen(false)}>
               <Ionicons name="close-outline" size={18} color={c.textSecondary} />
               <Text style={[styles.actionLabel, { color: c.foreground }]}>Close</Text>
@@ -241,223 +390,85 @@ export default function BatchDetailRoute() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {isAwaitingSupplierApproval && (
+        <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
+          <TouchableOpacity
+            style={[styles.footerButton, { backgroundColor: '#8b5cf6' }]}
+            onPress={() => router.push(`/batch/approve-cosign?id=${batch.id}` as never)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+            <Text style={styles.footerButtonLabel}>Approve Co-sign</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    gap: 18,
-    paddingBottom: 36,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  safe: { flex: 1 },
+  centerState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  content: { padding: 20, gap: 18, paddingBottom: 36 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerRight: { flexDirection: 'row', gap: 10 },
   headerButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 42, height: 42, borderRadius: 14, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
   },
-  headingBlock: {
-    gap: 8,
+  headingBlock: { gap: 8 },
+  headingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  batchId: { fontSize: FontSize['2xl'], fontFamily: Font.bold },
+  headingText: { fontSize: FontSize.md, fontFamily: Font.regular, lineHeight: 22, maxWidth: 300 },
+  photoCard: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
+  photo: { width: '100%', height: 220 },
+  photoMeta: { padding: 14, gap: 8 },
+  photoTime: { fontSize: FontSize.sm, fontFamily: Font.regular },
+  infoGrid: { gap: 10 },
+  infoGridRow: { flexDirection: 'row', gap: 10 },
+  infoCard: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 13, gap: 10, minHeight: 98, justifyContent: 'space-between' },
+  infoCardHalf: { flex: 1 },
+  infoLabel: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 18 },
+  infoValue: { fontSize: FontSize.lg, fontFamily: Font.semiBold, lineHeight: 26 },
+  detailCard: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 14 },
+  sectionTitle: { fontSize: FontSize.lg, fontFamily: Font.bold },
+  approvalCard: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 12 },
+  approvalCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  approvalCardTitle: { fontSize: FontSize.md, fontFamily: Font.semiBold },
+  approvalCardBody: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 20 },
+  approvalCardButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    height: 46, borderRadius: 14, gap: 8,
   },
-  headingTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 10,
+  approvalCardButtonLabel: { fontSize: FontSize.sm, fontFamily: Font.semiBold, color: '#fff' },
+  detailRow: { gap: 4 },
+  detailLabel: { fontSize: FontSize.sm, fontFamily: Font.regular },
+  detailValue: { fontSize: FontSize.sm, fontFamily: Font.medium, lineHeight: 20 },
+  timelineWrap: { gap: 4 },
+  timelineRow: { flexDirection: 'row', gap: 12 },
+  timelineRail: { alignItems: 'center' },
+  timelineDot: { width: 10, height: 10, borderRadius: 999, marginTop: 5 },
+  timelineLine: { width: 2, flex: 1, marginTop: 6, minHeight: 34, borderRadius: 999 },
+  timelineCopy: { flex: 1, paddingBottom: 14, gap: 3 },
+  timelineTitle: { fontSize: FontSize.md, fontFamily: Font.semiBold },
+  timelineTime: { fontSize: FontSize.sm, fontFamily: Font.regular },
+  missingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 10 },
+  missingTitle: { fontSize: FontSize.xl, fontFamily: Font.bold },
+  missingText: { fontSize: FontSize.md, fontFamily: Font.regular, textAlign: 'center' },
+  backButton: { marginTop: 8, height: 48, borderRadius: 14, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
+  backButtonLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold },
+  qrBox: { borderWidth: 1, borderRadius: 18, padding: 20, alignItems: 'center', justifyContent: 'center' },
+  closeQrBtn: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 32, paddingVertical: 12 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end', padding: 20 },
+  actionSheet: { borderWidth: 1, borderRadius: 20, padding: 16, gap: 6 },
+  actionTitle: { fontSize: FontSize.lg, fontFamily: Font.bold, marginBottom: 4 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  actionLabel: { fontSize: FontSize.md, fontFamily: Font.medium },
+  footer: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 20, borderTopWidth: 1 },
+  footerButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    height: 54, borderRadius: 16, gap: 10,
   },
-  batchId: {
-    fontSize: FontSize['2xl'],
-    fontFamily: Font.bold,
-  },
-  headingText: {
-    fontSize: FontSize.md,
-    fontFamily: Font.regular,
-    lineHeight: 22,
-    maxWidth: 300,
-  },
-  photoCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    overflow: 'hidden',
-  },
-  photo: {
-    width: '100%',
-    height: 220,
-  },
-  photoMeta: {
-    padding: 14,
-    gap: 8,
-  },
-  photoTime: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.regular,
-  },
-  infoGrid: {
-    gap: 10,
-  },
-  infoCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 10,
-    minHeight: 98,
-    justifyContent: 'space-between',
-  },
-  infoGridTop: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  infoGridBottom: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  infoCardHalf: {
-    flex: 1,
-  },
-  infoCardFull: {
-    width: '100%',
-  },
-  infoLabel: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.regular,
-    lineHeight: 18,
-  },
-  infoValue: {
-    fontSize: FontSize.lg,
-    fontFamily: Font.semiBold,
-    lineHeight: 26,
-  },
-  infoValueMultiline: {
-    lineHeight: 25,
-  },
-  detailCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
-    gap: 14,
-  },
-  sectionTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: Font.bold,
-  },
-  detailRow: {
-    gap: 4,
-  },
-  detailLabel: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.regular,
-  },
-  detailValue: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.medium,
-    lineHeight: 20,
-  },
-  timelineWrap: {
-    gap: 4,
-  },
-  timelineRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  timelineRail: {
-    alignItems: 'center',
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-    marginTop: 5,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    marginTop: 6,
-    minHeight: 34,
-    borderRadius: 999,
-  },
-  timelineCopy: {
-    flex: 1,
-    paddingBottom: 14,
-    gap: 3,
-  },
-  timelineTitle: {
-    fontSize: FontSize.md,
-    fontFamily: Font.semiBold,
-  },
-  timelineTime: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.regular,
-  },
-  timelineNote: {
-    fontSize: FontSize.sm,
-    fontFamily: Font.regular,
-    lineHeight: 20,
-  },
-  missingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    gap: 10,
-  },
-  missingTitle: {
-    fontSize: FontSize.xl,
-    fontFamily: Font.bold,
-  },
-  missingText: {
-    fontSize: FontSize.md,
-    fontFamily: Font.regular,
-    textAlign: 'center',
-  },
-  backButton: {
-    marginTop: 8,
-    height: 48,
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonLabel: {
-    fontSize: FontSize.md,
-    fontFamily: Font.semiBold,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-    padding: 20,
-  },
-  actionSheet: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
-    gap: 6,
-  },
-  actionTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: Font.bold,
-    marginBottom: 4,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-  },
-  actionLabel: {
-    fontSize: FontSize.md,
-    fontFamily: Font.medium,
-  },
+  footerButtonLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold, color: '#fff' },
 });

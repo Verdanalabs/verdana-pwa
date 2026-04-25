@@ -9,20 +9,20 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  mode: 'dark',
-  colors: DarkColors,
+  mode: 'light',
+  colors: LightColors,
   toggle: () => {},
-  isDark: true,
+  isDark: false,
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<ThemeMode>('dark');
+  const [mode, setMode] = useState<ThemeMode>('light');
 
   const toggle = () => setMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
 
   const value: ThemeContextValue = {
     mode,
-    colors: mode === 'dark' ? DarkColors : LightColors,
+    colors: mode === 'light' ? LightColors : DarkColors,
     toggle,
     isDark: mode === 'dark',
   };

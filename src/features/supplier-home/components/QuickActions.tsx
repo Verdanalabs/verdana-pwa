@@ -54,7 +54,7 @@ export function QuickActions() {
         <ActionItem
           icon="stats-chart-outline"
           label="Analytics"
-          onPress={() => {}}
+          onPress={() => router.push('/(supplier-tabs)/analytics')}
         />
       </View>
     </View>

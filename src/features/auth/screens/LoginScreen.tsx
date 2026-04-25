@@ -4,44 +4,22 @@ import { useThemeColors } from "@/src/shared/theme/theme-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const LOGIN_OPTIONS = [
-  {
-    id: "google",
-    title: "Continue with Google",
-    icon: "logo-google" as const,
-  },
-  {
-    id: "whatsapp",
-    title: "Continue with WhatsApp",
-    icon: "logo-whatsapp" as const,
-  },
-  {
-    id: "email",
-    title: "Continue with Email",
-    icon: "mail-outline" as const,
-  },
+  // { id: "google",   label: "Continue with Google",   icon: "logo-google"    as const },
+  // { id: "whatsapp", label: "Continue with WhatsApp", icon: "logo-whatsapp"  as const },
+  { id: "email",    label: "Continue with Email",    icon: "mail-outline"   as const },
 ] as const;
 
 export default function LoginRoute() {
   const c = useThemeColors();
   const { loginWithGoogle, loginWithEmail, loginWithSms, isAuthenticated, needsOnboarding } = useAuth();
 
-  // After Privy login + sync, redirect based on onboarding status
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (needsOnboarding) {
-      router.replace("/(auth)/onboarding-profile");
-    } else {
-      router.replace("/(supplier-tabs)/home");
-    }
+    router.replace(needsOnboarding ? "/(auth)/onboarding-profile" : "/(supplier-tabs)/home");
   }, [isAuthenticated, needsOnboarding]);
 
   function handleLogin(provider: "google" | "whatsapp" | "email") {
@@ -52,50 +30,68 @@ export default function LoginRoute() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
-      <View style={styles.content}>
-        <View style={styles.centerBlock}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: c.foreground }]}>Login</Text>
-            <Text style={[styles.subtitle, { color: c.textSecondary }]}>
-              Sign in with the method that works best for your daily work.
+
+      {/* Decorative top accent */}
+      <View style={[styles.topAccent, { backgroundColor: c.accent }]} />
+
+      <View style={styles.root}>
+
+        {/* Center card */}
+        <View style={styles.card}>
+
+          {/* Logo */}
+          <View style={styles.logoWrap}>
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={styles.logoMark}
+              resizeMode="contain"
+            />
+            <Text style={[styles.logoLabel, { color: c.textMuted }]}>VERDANA PROTOCOL</Text>
+          </View>
+
+          {/* Divider */}
+          <View style={[styles.divider, { backgroundColor: c.border }]} />
+
+          {/* Copy */}
+          <View style={styles.copy}>
+            <Text style={[styles.heading, { color: c.foreground }]}>Sign in</Text>
+            <Text style={[styles.sub, { color: c.textMuted }]}>
+              Choose how you'd like to continue.
             </Text>
           </View>
 
-          <View style={styles.optionList}>
-            {LOGIN_OPTIONS.map((option) => (
+          {/* Buttons */}
+          <View style={styles.options}>
+            {LOGIN_OPTIONS.map((opt, i) => (
               <TouchableOpacity
-                key={option.id}
+                key={opt.id}
                 style={[
-                  styles.optionButton,
-                  { backgroundColor: c.surface, borderColor: c.border },
+                  styles.btn,
+                  i === 0
+                    ? { backgroundColor: c.foreground }
+                    : { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
                 ]}
-                onPress={() => handleLogin(option.id)}
-                activeOpacity={0.8}
+                onPress={() => handleLogin(opt.id)}
+                activeOpacity={0.82}
               >
                 <Ionicons
-                  name={option.icon}
-                  size={18}
-                  color={c.textSecondary}
+                  name={opt.icon}
+                  size={17}
+                  color={i === 0 ? c.background : c.textSecondary}
                 />
-                <Text style={[styles.optionLabel, { color: c.foreground }]}>
-                  {option.title}
+                <Text style={[styles.btnLabel, { color: i === 0 ? c.background : c.foreground }]}>
+                  {opt.label}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.replace("/(auth)/welcome")}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.footerText, { color: c.textMuted }]}>
-            Need a simpler start?{" "}
-            <Text style={[styles.footerLink, { color: c.foreground }]}>
-              Go back
-            </Text>
-          </Text>
+        {/* Footer */}
+        <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")} activeOpacity={0.7}>
+          <Text style={[styles.footer, { color: c.textFaint }]}>← Back to welcome</Text>
         </TouchableOpacity>
+
       </View>
     </SafeAreaView>
   );
@@ -103,94 +99,72 @@ export default function LoginRoute() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  content: {
+  topAccent: {
+    height: 4,
+    width: '38%',
+    borderBottomRightRadius: 999,
+    borderBottomLeftRadius: 999,
+    alignSelf: 'center',
+  },
+  root: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 24,
+    paddingHorizontal: 28,
+    paddingBottom: 36,
+    justifyContent: 'center',
+    gap: 28,
   },
-  centerBlock: {
-    gap: 22,
+  card: {
+    gap: 24,
   },
-  header: {
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: FontSize["3xl"],
-    fontFamily: Font.bold,
-    lineHeight: 34,
-  },
-  subtitle: {
-    fontSize: FontSize.md,
-    fontFamily: Font.regular,
-    lineHeight: 22,
-    textAlign: "center",
-  },
-  form: {
-    gap: 12,
-  },
-  inputWrap: {
-    height: 56,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
+  logoWrap: {
+    alignItems: 'center',
     gap: 10,
   },
-  input: {
-    flex: 1,
-    fontSize: FontSize.md,
-    fontFamily: Font.regular,
+  logoMark: {
+    width: 72,
+    height: 72,
   },
-  forgotWrap: {
-    alignItems: "flex-end",
-    paddingHorizontal: 4,
-    marginTop: -2,
-  },
-  forgotText: {
-    fontSize: FontSize.sm,
+  logoLabel: {
     fontFamily: Font.medium,
+    fontSize: FontSize.xs,
+    letterSpacing: 2,
   },
-  primaryCta: {
-    height: 54,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
+  divider: {
+    height: 1,
+    marginHorizontal: 8,
   },
-  primaryCtaText: {
-    fontSize: FontSize.lg,
-    fontFamily: Font.semiBold,
+  copy: {
+    alignItems: 'center',
+    gap: 6,
   },
-  optionList: {
-    gap: 10,
-    marginTop: 4,
+  heading: {
+    fontFamily: Font.bold,
+    fontSize: 32,
+    letterSpacing: -0.5,
   },
-  optionButton: {
-    height: 54,
-    borderRadius: 999,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  optionLabel: {
-    fontSize: FontSize.md,
-    fontFamily: Font.semiBold,
-  },
-  footerText: {
-    textAlign: "center",
-    fontSize: FontSize.sm,
+  sub: {
     fontFamily: Font.regular,
-    marginTop: "auto",
-    paddingTop: 28,
+    fontSize: FontSize.md,
+    lineHeight: 22,
   },
-  footerLink: {
+  options: {
+    gap: 10,
+  },
+  btn: {
+    height: 52,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  btnLabel: {
     fontFamily: Font.semiBold,
+    fontSize: FontSize.md,
+  },
+  footer: {
+    textAlign: 'center',
+    fontFamily: Font.regular,
+    fontSize: FontSize.sm,
   },
 });

@@ -3,7 +3,6 @@ import { BatchSummary } from '@/types';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { StatusBadge } from './StatusBadge';
-import { MaterialBadge } from './MaterialBadge';
 
 interface BatchCardProps {
   batch: BatchSummary;
@@ -20,6 +19,8 @@ function formatDate(iso: string): string {
 
 export function BatchCard({ batch, onPress }: BatchCardProps) {
   const c = useThemeColors();
+  const shortId = `#${batch.id.slice(0, 8).toUpperCase()}`;
+  const title = `${batch.materialType} · ${batch.estimatedWeightKg} kg`;
 
   return (
     <TouchableOpacity
@@ -32,15 +33,13 @@ export function BatchCard({ batch, onPress }: BatchCardProps) {
       <View style={styles.body}>
         <View style={styles.topRow}>
           <View style={styles.leftCol}>
-            <Text style={[styles.batchId, { color: c.foreground }]}>{batch.id}</Text>
-            <MaterialBadge material={batch.materialType} />
+            <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
+            <Text style={[styles.shortId, { color: c.textFaint }]}>{shortId}</Text>
           </View>
           <StatusBadge status={batch.status} size="sm" />
         </View>
 
         <View style={styles.metaRow}>
-          <Text style={[styles.meta, { color: c.textMuted }]}>{batch.estimatedWeightKg} kg</Text>
-          <View style={[styles.dot, { backgroundColor: c.textFaint }]} />
           <Text style={[styles.meta, { color: c.textMuted }]}>{batch.pvpName}</Text>
           <View style={[styles.dot, { backgroundColor: c.textFaint }]} />
           <Text style={[styles.meta, { color: c.textMuted }]}>{formatDate(batch.capturedAt)}</Text>
@@ -76,11 +75,15 @@ const styles = StyleSheet.create({
   },
   leftCol: {
     flex: 1,
-    gap: 5,
+    gap: 3,
   },
-  batchId: {
+  title: {
     fontSize: FontSize.md,
     fontFamily: Font.bold,
+  },
+  shortId: {
+    fontSize: FontSize.xs,
+    fontFamily: Font.regular,
   },
   metaRow: {
     flexDirection: 'row',

@@ -1,24 +1,21 @@
 import type { BatchStatus } from '@/types';
 
 export const BATCH_STATUS_LABEL: Record<BatchStatus, string> = {
-  draft: 'Draft',
-  submitted: 'Sent',
-  transit: 'On the Way',
-  pending_validation: 'Being Checked',
-  verified: 'Approved',
-  minting: 'Processing...',
-  minted: 'Asset Ready',
-  listed: 'For Sale',
-  collateral: 'Locked',
-  rejected: 'Not Accepted',
+  pending:      'Pending',
+  accepted:     'Accepted',
+  cosigning:    'Needs Approval',
+  cosigned:     'Co-signed',
+  mint_pending: 'Minting...',
+  mint_failed:  'Mint Failed',
+  minted:       'Asset Ready',
 };
 
 export const BATCH_STATUS_ORDER: BatchStatus[] = [
-  'draft',
-  'submitted',
-  'transit',
-  'pending_validation',
-  'verified',
-  'minting',
+  'pending',
+  'accepted',
+  'cosigning',
+  'cosigned',
+  'mint_pending',
+  'mint_failed',
   'minted',
 ];

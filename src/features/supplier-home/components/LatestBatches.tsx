@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { BatchSummary } from '@/types';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
@@ -49,13 +50,26 @@ export function LatestBatches({ batches, isLoading = false }: LatestBatchesProps
           <BatchSkeleton />
         </>
       ) : visible.length === 0 ? (
-        <View style={[styles.empty, { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1 }]}>
-          <Text style={styles.emptyEmoji}>📦</Text>
-          <Text style={[styles.emptyTitle, { color: c.foreground }]}>No batches yet</Text>
-          <Text style={[styles.emptyHint, { color: c.textMuted }]}>
-            Tap &quot;Register&quot; to get started.
-          </Text>
+        <View style={[styles.empty, { backgroundColor: c.surface, borderColor: c.border }]}>
+          <View style={[styles.emptyIconWrap, { backgroundColor: c.accent + '15', borderColor: c.accent + '25' }]}>
+            <Ionicons name="layers-outline" size={28} color={c.accent} />
+          </View>
+          <View style={styles.emptyCopy}>
+            <Text style={[styles.emptyTitle, { color: c.foreground }]}>No batches yet</Text>
+            <Text style={[styles.emptyHint, { color: c.textMuted }]}>
+              Register your first plastic batch to start tracking contributions and earning digital assets.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.emptyBtn, { backgroundColor: c.foreground }]}
+            onPress={() => router.push('/batch/new/photo' as never)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add" size={16} color={c.background} />
+            <Text style={[styles.emptyBtnLabel, { color: c.background }]}>Register First Batch</Text>
+          </TouchableOpacity>
         </View>
+
       ) : (
         visible.map((batch) => (
           <BatchCard
@@ -93,22 +107,47 @@ const styles = StyleSheet.create({
     fontFamily: Font.semiBold,
   },
   empty: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 24,
+    gap: 16,
     alignItems: 'center',
-    paddingVertical: 36,
-    gap: 6,
-    borderRadius: 16,
   },
-  emptyEmoji: {
-    fontSize: 28,
-    marginBottom: 4,
+  emptyIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCopy: {
+    gap: 6,
+    alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: FontSize.md,
-    fontFamily: Font.semiBold,
+    fontSize: FontSize.lg,
+    fontFamily: Font.bold,
+    textAlign: 'center',
   },
   emptyHint: {
     fontSize: FontSize.sm,
     fontFamily: Font.regular,
+    lineHeight: 20,
+    maxWidth: 260,
+    textAlign: 'center',
+  },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  emptyBtnLabel: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.sm,
   },
   skeletonCard: {
     flexDirection: 'row',

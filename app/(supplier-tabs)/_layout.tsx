@@ -15,6 +15,7 @@ export default function SupplierTabsLayout() {
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="home" />
+      <Tabs.Screen name="analytics" options={{ href: null }} />
       <Tabs.Screen name="history" />
       <Tabs.Screen name="wallet" />
       <Tabs.Screen name="profile" />

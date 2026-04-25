@@ -6,10 +6,10 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 
 const TIER_CONFIG = {
-  bronze:   { label: 'Bronze',   color: '#cd7f32' },
-  silver:   { label: 'Silver',   color: '#a8a9ad' },
-  gold:     { label: 'Gold',     color: '#f5c518' },
-  platinum: { label: 'Platinum', color: '#67e8f9' },
+  starter:       { label: 'Starter',       color: '#c08457' },
+  active:        { label: 'Active',        color: '#93c5fd' },
+  reliable:      { label: 'Reliable',      color: '#b5f23d' },
+  top_collector: { label: 'Top Collector', color: '#67e8f9' },
 };
 
 function getScoreLabel(score: number) {
@@ -21,14 +21,13 @@ function getScoreLabel(score: number) {
 
 interface DashboardMetricsProps {
   data: DashboardSummary;
-  tier?: keyof typeof TIER_CONFIG;
 }
 
-export function DashboardMetrics({ data, tier = 'silver' }: DashboardMetricsProps) {
+export function DashboardMetrics({ data }: DashboardMetricsProps) {
   const c = useThemeColors();
-  const score = data.reputationScore;
-  const pct = Math.min(score / 100, 1);
-  const tierCfg = TIER_CONFIG[tier];
+  const score = data.reputationScore ?? null;
+  const pct = score == null ? 0 : Math.min(score / 100, 1);
+  const tierCfg = data.reputationTier ? TIER_CONFIG[data.reputationTier] : null;
 
   const barAnim = useRef(new Animated.Value(0)).current;
 
@@ -39,7 +38,7 @@ export function DashboardMetrics({ data, tier = 'silver' }: DashboardMetricsProp
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [pct]);
+  }, [barAnim, pct]);
 
   return (
     <View
@@ -61,45 +60,60 @@ export function DashboardMetrics({ data, tier = 'silver' }: DashboardMetricsProp
           <Text style={[styles.label, { color: c.textMuted }]}>Reputation Score</Text>
         </View>
 
-        <View style={[styles.tierBadge, { backgroundColor: `${tierCfg.color}18`, borderColor: `${tierCfg.color}40` }]}>
-          <View style={[styles.tierDot, { backgroundColor: tierCfg.color }]} />
-          <Text style={[styles.tierText, { color: tierCfg.color }]}>{tierCfg.label}</Text>
+        {tierCfg ? (
+          <View style={[styles.tierBadge, { backgroundColor: `${tierCfg.color}18`, borderColor: `${tierCfg.color}40` }]}>
+            <View style={[styles.tierDot, { backgroundColor: tierCfg.color }]} />
+            <Text style={[styles.tierText, { color: tierCfg.color }]}>{tierCfg.label}</Text>
+          </View>
+        ) : (
+          <View style={[styles.tierBadge, { backgroundColor: c.backgroundSoft, borderColor: c.border }]}>
+            <Ionicons name="lock-closed-outline" size={12} color={c.textMuted} />
+            <Text style={[styles.tierText, { color: c.textMuted }]}>Warming Up</Text>
+          </View>
+        )}
+      </View>
+
+      {score == null || data.reputationState !== 'available' ? (
+        <View style={styles.unavailableWrap}>
+          <Text style={[styles.unavailableTitle, { color: c.foreground }]}>Not enough data yet</Text>
+          <Text style={[styles.unavailableText, { color: c.textMuted }]}>
+            Complete at least 3 batches to unlock your reputation score.
+          </Text>
         </View>
-      </View>
+      ) : (
+        <>
+          <View style={styles.scoreRow}>
+            <Text style={[styles.scoreValue, { color: c.foreground }]}>
+              {score.toFixed(0)}
+            </Text>
+            <Text style={[styles.scoreMax, { color: c.textFaint }]}>/ 100</Text>
+          </View>
 
-      {/* Score */}
-      <View style={styles.scoreRow}>
-        <Text style={[styles.scoreValue, { color: c.foreground }]}>
-          {score.toFixed(1)}
-        </Text>
-        <Text style={[styles.scoreMax, { color: c.textFaint }]}>/ 100</Text>
-      </View>
+          <View style={[styles.trackBg, { backgroundColor: `${c.accent}18` }]}>
+            <Animated.View
+              style={[
+                styles.trackFill,
+                {
+                  backgroundColor: c.accent,
+                  width: barAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            />
+          </View>
 
-      {/* Progress bar */}
-      <View style={[styles.trackBg, { backgroundColor: `${c.accent}18` }]}>
-        <Animated.View
-          style={[
-            styles.trackFill,
-            {
-              backgroundColor: c.accent,
-              width: barAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%'],
-              }),
-            },
-          ]}
-        />
-      </View>
-
-      {/* Footer row */}
-      <View style={styles.footerRow}>
-        <Text style={[styles.scoreLabel, { color: c.textFaint }]}>
-          {getScoreLabel(score)}
-        </Text>
-        <Text style={[styles.pctText, { color: c.accent }]}>
-          {Math.round(pct * 100)}%
-        </Text>
-      </View>
+          <View style={styles.footerRow}>
+            <Text style={[styles.scoreLabel, { color: c.textFaint }]}>
+              {getScoreLabel(score)}
+            </Text>
+            <Text style={[styles.pctText, { color: c.accent }]}>
+              {Math.round(pct * 100)}%
+            </Text>
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -182,6 +196,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  unavailableWrap: {
+    gap: 6,
+  },
+  unavailableTitle: {
+    fontSize: FontSize.xl,
+    fontFamily: Font.bold,
+  },
+  unavailableText: {
+    fontSize: FontSize.sm,
+    fontFamily: Font.regular,
+    lineHeight: 20,
+    maxWidth: 280,
   },
   scoreLabel: {
     fontSize: FontSize.xs,

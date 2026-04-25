@@ -6,8 +6,7 @@ export default function PvpTabsLayout() {
   const { state } = usePvpAuth();
 
   if (state === 'idle') return <Redirect href="/(auth)/pvp-login" />;
-  if (state === 'pending') return <Redirect href="/pvp/pending-approval" />;
-  if (state === 'approved') return <Redirect href="/pvp/onboarding" />;
+  if (state === 'authenticated') return <Redirect href="/pvp/onboarding" />;
 
   return (
     <Tabs

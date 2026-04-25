@@ -4,6 +4,7 @@ export class ApiError extends Error {
   constructor(
     public readonly code: string,
     message: string,
+    public readonly status?: number,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -30,11 +31,11 @@ export async function apiRequest<T>(
   console.log(`[API] ${res.status} ${path}`, JSON.stringify(json));
 
   if (json.error) {
-    throw new ApiError(json.error.code, json.error.message);
+    throw new ApiError(json.error.code, json.error.message, res.status);
   }
 
   if (!res.ok) {
-    throw new ApiError('HTTP_ERROR', `Request failed with status ${res.status}`);
+    throw new ApiError('HTTP_ERROR', `Request failed with status ${res.status}`, res.status);
   }
 
   return json.data as T;

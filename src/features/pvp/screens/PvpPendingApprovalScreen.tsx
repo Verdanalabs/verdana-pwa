@@ -8,15 +8,10 @@ import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
 export default function PvpPendingApprovalRoute() {
   const c = useThemeColors();
-  const { walletAddress, simulateApprove, simulateReject } = usePvpAuth();
-
-  function handleApprove() {
-    simulateApprove();
-    router.replace('/pvp/onboarding');
-  }
+  const { operator, signOut } = usePvpAuth();
 
   function handleReject() {
-    simulateReject();
+    signOut();
     router.replace('/(auth)/pvp-login');
   }
 
@@ -39,11 +34,11 @@ export default function PvpPendingApprovalRoute() {
           </View>
 
           <View style={[styles.walletCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Text style={[styles.walletLabel, { color: c.textMuted }]}>Connected wallet</Text>
+            <Text style={[styles.walletLabel, { color: c.textMuted }]}>Logged in as</Text>
             <View style={styles.walletRow}>
-              <Ionicons name="wallet-outline" size={16} color={c.textSecondary} />
+              <Ionicons name="person-outline" size={16} color={c.textSecondary} />
               <Text style={[styles.walletAddress, { color: c.foreground }]}>
-                {walletAddress}
+                {operator?.email ?? operator?.display_name ?? '—'}
               </Text>
             </View>
           </View>
@@ -61,38 +56,13 @@ export default function PvpPendingApprovalRoute() {
           </View>
         </View>
 
-        {/* DEV ONLY — tombol simulate admin, hapus setelah backend nyambung */}
-        <View style={[styles.devBlock, { borderColor: c.border }]}>
-          <Text style={[styles.devLabel, { color: c.textMuted }]}>
-            🔧 Dev only — simulate admin decision
-          </Text>
-          <View style={styles.devButtons}>
-            <TouchableOpacity
-              style={[styles.devBtn, { backgroundColor: '#16a34a' }]}
-              onPress={handleApprove}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-              <Text style={styles.devBtnText}>Approve</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.devBtn, { backgroundColor: '#dc2626' }]}
-              onPress={handleReject}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="close-circle-outline" size={18} color="#fff" />
-              <Text style={styles.devBtnText}>Reject</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <TouchableOpacity
           onPress={handleReject}
           activeOpacity={0.7}
         >
           <Text style={[styles.footer, { color: c.textMuted }]}>
-            Wrong wallet?{' '}
-            <Text style={[styles.footerLink, { color: c.foreground }]}>Disconnect</Text>
+            Wrong account?{' '}
+            <Text style={[styles.footerLink, { color: c.foreground }]}>Sign out</Text>
           </Text>
         </TouchableOpacity>
 

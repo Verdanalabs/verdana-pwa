@@ -1,19 +1,15 @@
-import { useMemo, useState } from 'react';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialBadge } from '@/src/shared/ui/MaterialBadge';
+import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
-import { useAuth } from '@/src/features/auth/state/auth-context';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
-import { getMockWalletSummary } from '@/src/shared/services/mock/wallet-data';
+import { useWallet } from '@/src/features/wallet/hooks/useWallet';
 import type { CNFTStatus } from '@/types';
-
-type AssetFilter = 'all' | CNFTStatus;
-
-const FILTERS: AssetFilter[] = ['all', 'verified', 'listed', 'collateral'];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -28,62 +24,11 @@ function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-6)}`;
 }
 
-function assetFilterLabel(value: AssetFilter) {
-  switch (value) {
-    case 'verified':
-      return 'Verified';
-    case 'listed':
-      return 'For Sale';
-    case 'collateral':
-      return 'Locked';
-    default:
-      return 'All';
-  }
-}
-
-function AssetFilterChip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  const c = useThemeColors();
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.filterChip,
-        {
-          backgroundColor: selected ? c.accent : c.surface,
-          borderColor: selected ? c.accent : c.border,
-        },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Text
-        style={[
-          styles.filterChipText,
-          { color: selected ? c.accentContrast : c.textSecondary },
-        ]}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 function AssetStatusPill({ status }: { status: CNFTStatus }) {
   const c = useThemeColors();
 
   const map: Record<CNFTStatus, { label: string; bg: string; fg: string }> = {
-    verified: { label: 'Verified', bg: c.statusBg.verified, fg: c.statusFg.verified },
-    listed: { label: 'For Sale', bg: c.statusBg.listed, fg: c.statusFg.listed },
-    collateral: { label: 'Locked', bg: c.statusBg.collateral, fg: c.statusFg.collateral },
-    burned: { label: 'Burned', bg: c.statusBg.rejected, fg: c.statusFg.rejected },
+    minted: { label: 'Asset Ready', bg: c.statusBg.minted, fg: c.statusFg.minted },
   };
 
   return (
@@ -93,15 +38,123 @@ function AssetStatusPill({ status }: { status: CNFTStatus }) {
   );
 }
 
+function WalletLoadingSkeleton() {
+  const c = useThemeColors();
+
+  return (
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <View style={styles.skeletonHeaderCopy}>
+          <SkeletonBox width={90} height={28} radius={8} />
+          <SkeletonBox width={240} height={14} radius={7} />
+          <SkeletonBox width={210} height={14} radius={7} />
+        </View>
+        <View style={[styles.headerIcon, { backgroundColor: c.surface, borderColor: c.border }]} />
+      </View>
+
+      <View style={[styles.heroCard, { borderColor: c.border }]}>
+        <SkeletonBox width="34%" height={12} radius={6} />
+        <SkeletonBox width="48%" height={30} radius={8} />
+        <SkeletonBox width="78%" height={14} radius={7} />
+        <View style={styles.heroStats}>
+          {[0, 1].map((item) => (
+            <View key={item} style={[styles.heroStatCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
+              <SkeletonBox width="40%" height={24} radius={8} />
+              <SkeletonBox width="55%" height={12} radius={6} />
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.addressCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <SkeletonBox width={110} height={12} radius={6} />
+        <SkeletonBox width="88%" height={18} radius={7} />
+        <SkeletonBox width="42%" height={12} radius={6} />
+      </View>
+
+      <View style={styles.assetSection}>
+        <SkeletonBox width={120} height={18} radius={6} />
+        <SkeletonBox width="72%" height={12} radius={6} />
+      </View>
+
+      <View style={styles.assetList}>
+        {[0, 1].map((item) => (
+          <View key={item} style={[styles.assetCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <View style={[styles.assetImage, styles.assetImageFallback, { backgroundColor: c.border }]} />
+            <View style={styles.assetBody}>
+              <View style={styles.assetTop}>
+                <View style={styles.assetTopLeft}>
+                  <SkeletonBox width="68%" height={18} radius={7} />
+                  <SkeletonBox width="42%" height={12} radius={6} />
+                  <SkeletonBox width={60} height={22} radius={11} />
+                </View>
+                <SkeletonBox width={84} height={26} radius={13} />
+              </View>
+              <View style={styles.assetMetrics}>
+                {[0, 1, 2].map((metric) => (
+                  <View key={metric} style={styles.assetMetricItem}>
+                    <SkeletonBox width="60%" height={10} radius={5} />
+                    <SkeletonBox width="82%" height={14} radius={6} />
+                  </View>
+                ))}
+              </View>
+              <View style={styles.assetBottom}>
+                <SkeletonBox width={96} height={10} radius={5} />
+                <SkeletonBox width={16} height={16} radius={8} />
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
 export default function WalletRoute() {
   const c = useThemeColors();
-  const { supplier } = useAuth();
-  const [filter, setFilter] = useState<AssetFilter>('all');
-  const wallet = getMockWalletSummary();
+  const { wallet, user, isLoading, isRefreshing, error, reload } = useWallet();
+  const [copied, setCopied] = useState(false);
 
-  const filteredAssets = useMemo(() => (
-    wallet.cnfts.filter((asset) => filter === 'all' || asset.status === filter)
-  ), [filter, wallet.cnfts]);
+  useFocusEffect(useCallback(() => {
+    void reload();
+  }, [reload]));
+
+  async function handleCopyWalletAddress() {
+    if (wallet?.address === '-' || !wallet?.address) return;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(wallet.address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
+        <WalletLoadingSkeleton />
+      </SafeAreaView>
+    );
+  }
+
+  if (!wallet) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
+        <View style={styles.centerState}>
+          <Text style={[styles.emptyTitle, { color: c.foreground }]}>Wallet unavailable</Text>
+          <Text style={[styles.emptyText, { color: c.textMuted }]}>
+            {error ?? 'We could not load your wallet data.'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: c.accent }]}
+            onPress={reload}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.retryButtonText, { color: c.accentContrast }]}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
@@ -109,12 +162,19 @@ export default function WalletRoute() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={(
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={reload}
+            tintColor={c.accent}
+          />
+        )}
       >
         <View style={styles.header}>
           <View>
             <Text style={[styles.title, { color: c.foreground }]}>Wallet</Text>
             <Text style={[styles.subtitle, { color: c.textSecondary }]}>
-              Keep your balance, asset count, and latest verified batches in one place.
+              View your connected wallet and every minted recycling asset in one place.
             </Text>
           </View>
           <View style={[styles.headerIcon, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -124,65 +184,97 @@ export default function WalletRoute() {
 
         <View style={[styles.heroCard, { borderColor: c.border }]}>
           <View style={[styles.heroGlow, { backgroundColor: c.heroGlowColor }]} />
-          <Text style={styles.heroLabel}>Account Name</Text>
-          <Text style={styles.heroAddress}>{supplier?.name ?? 'Your supplier account'}</Text>
+          <Text style={styles.heroLabel}>Supplier Account</Text>
+          <Text style={styles.heroAddress}>{user?.display_name ?? 'Supplier'}</Text>
           <Text style={styles.heroHint}>
-            Track your supplier account points and asset count in one place.
+            Minted batches appear here after the blockchain record is created successfully.
           </Text>
 
           <View style={styles.heroStats}>
             <View style={[styles.heroStatCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
-              <Text style={styles.heroStatValue}>{wallet.points.toLocaleString('en-US')}</Text>
-              <Text style={styles.heroStatLabel}>Points</Text>
-            </View>
-            <View style={[styles.heroStatCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
               <Text style={styles.heroStatValue}>{wallet.cnftCount}</Text>
               <Text style={styles.heroStatLabel}>Assets</Text>
+            </View>
+            <View style={[styles.heroStatCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
+              <Text style={styles.heroStatValue}>
+                {wallet.address === '-' ? 'No' : 'Yes'}
+              </Text>
+              <Text style={styles.heroStatLabel}>Wallet Linked</Text>
             </View>
           </View>
         </View>
 
         <View style={[styles.addressCard, { backgroundColor: c.surface, borderColor: c.border }]}>
           <View style={styles.addressRow}>
-            <Text style={[styles.addressLabel, { color: c.textMuted }]}>Account Name</Text>
-            <Ionicons name="person-outline" size={16} color={c.textFaint} />
-          </View>
-          <Text style={[styles.addressValue, { color: c.foreground }]}>{supplier?.name ?? 'Your supplier account'}</Text>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={[styles.sectionTitle, { color: c.foreground }]}>Assets</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {FILTERS.map((item) => (
-              <AssetFilterChip
-                key={item}
-                label={assetFilterLabel(item)}
-                selected={filter === item}
-                onPress={() => setFilter(item)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-
-        {filteredAssets.length > 0 ? (
-          <View style={styles.assetList}>
-            {filteredAssets.map((asset) => (
+            <Text style={[styles.addressLabel, { color: c.textMuted }]}>Wallet Address</Text>
+            {wallet.address !== '-' ? (
               <TouchableOpacity
-                key={asset.id}
-                style={[styles.assetCard, { backgroundColor: c.surface, borderColor: c.border }]}
-                onPress={() => router.push(`/wallet/cnft/${asset.id}` as never)}
+                style={[styles.copyButton, { borderColor: c.border, backgroundColor: c.background }]}
+                onPress={handleCopyWalletAddress}
                 activeOpacity={0.8}
               >
-                <Image
-                  source={{ uri: asset.imageUrl }}
-                  style={styles.assetImage}
-                  contentFit="cover"
-                />
+                <Ionicons name={copied ? 'checkmark-outline' : 'copy-outline'} size={14} color={copied ? c.accent : c.textSecondary} />
+                <Text style={[styles.copyButtonText, { color: copied ? c.accent : c.textSecondary }]}>
+                  {copied ? 'Copied' : 'Copy'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Ionicons name="wallet-outline" size={16} color={c.textFaint} />
+            )}
+          </View>
+          <Text style={[styles.addressValue, { color: c.foreground }]}>
+            {wallet.address === '-' ? 'No wallet connected yet' : shortAddress(wallet.address)}
+          </Text>
+          {wallet.address !== '-' ? (
+            <Text style={[styles.addressHint, { color: c.textMuted }]}>
+              Tap copy to use the full wallet address.
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.assetSection}>
+          <Text style={[styles.sectionTitle, { color: c.foreground }]}>Minted Assets</Text>
+          {error ? (
+            <Text style={[styles.sectionHint, { color: c.textMuted }]}>
+              Last refresh returned an error: {error}
+            </Text>
+          ) : (
+            <Text style={[styles.sectionHint, { color: c.textMuted }]}>
+              Each item below is derived from a minted batch with a live cNFT record.
+            </Text>
+          )}
+        </View>
+
+        {wallet.cnfts.length > 0 ? (
+          <View style={styles.assetList}>
+            {wallet.cnfts.map((asset) => (
+              <TouchableOpacity
+                key={asset.batchId}
+                style={[styles.assetCard, { backgroundColor: c.surface, borderColor: c.border }]}
+                onPress={() => router.push(`/wallet/cnft/${asset.batchId}` as never)}
+                activeOpacity={0.8}
+              >
+                {asset.imageUrl ? (
+                  <Image
+                    source={{ uri: asset.imageUrl }}
+                    style={styles.assetImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={[styles.assetImage, styles.assetImageFallback, { backgroundColor: c.border }]}>
+                    <Ionicons name="image-outline" size={28} color={c.textMuted} />
+                  </View>
+                )}
 
                 <View style={styles.assetBody}>
                   <View style={styles.assetTop}>
                     <View style={styles.assetTopLeft}>
-                      <Text style={[styles.assetTitle, { color: c.foreground }]}>{asset.id}</Text>
+                      <Text style={[styles.assetTitle, { color: c.foreground }]}>
+                        {asset.materialType} · {asset.weightKg.toFixed(1)} kg
+                      </Text>
+                      <Text style={[styles.assetSubtitle, { color: c.textMuted }]}>
+                        Asset {shortAddress(asset.assetId)}
+                      </Text>
                       <MaterialBadge material={asset.materialType} />
                     </View>
                     <AssetStatusPill status={asset.status} />
@@ -191,15 +283,17 @@ export default function WalletRoute() {
                   <View style={styles.assetMetrics}>
                     <View style={styles.assetMetricItem}>
                       <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Batch</Text>
-                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{asset.batchId}</Text>
+                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{shortAddress(asset.batchId)}</Text>
                     </View>
                     <View style={styles.assetMetricItem}>
-                      <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Weight</Text>
-                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{asset.weightKg} kg</Text>
+                      <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Asset ID</Text>
+                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{shortAddress(asset.assetId)}</Text>
                     </View>
                     <View style={styles.assetMetricItem}>
-                      <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Grade</Text>
-                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{asset.grade}</Text>
+                      <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Proof</Text>
+                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>
+                        {asset.txSignature ? 'On-chain' : 'Pending'}
+                      </Text>
                     </View>
                   </View>
 
@@ -207,9 +301,7 @@ export default function WalletRoute() {
                     <Text style={[styles.assetBottomText, { color: c.textMuted }]}>
                       Minted {formatDate(asset.mintedAt)}
                     </Text>
-                    <Text style={[styles.assetBottomText, { color: c.textMuted }]}>
-                      {shortAddress(asset.mintAddress)}
-                    </Text>
+                    <Ionicons name="arrow-forward" size={16} color={c.textFaint} />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -218,9 +310,9 @@ export default function WalletRoute() {
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
             <Ionicons name="wallet-outline" size={20} color={c.accent} />
-            <Text style={[styles.emptyTitle, { color: c.foreground }]}>No assets in this filter yet.</Text>
+            <Text style={[styles.emptyTitle, { color: c.foreground }]}>No minted assets yet.</Text>
             <Text style={[styles.emptyText, { color: c.textMuted }]}>
-              Try another filter to see verified, listed, or locked assets.
+              Complete a batch until the `minted` status to see it appear in this wallet.
             </Text>
           </View>
         )}
@@ -232,6 +324,13 @@ export default function WalletRoute() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
+  },
+  centerState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 10,
   },
   scroll: {
     flex: 1,
@@ -335,6 +434,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  copyButtonText: {
+    fontSize: FontSize.xs,
+    fontFamily: Font.semiBold,
+  },
   addressLabel: {
     fontSize: FontSize.sm,
     fontFamily: Font.regular,
@@ -344,26 +456,26 @@ const styles = StyleSheet.create({
     fontFamily: Font.medium,
     lineHeight: 22,
   },
-  filterSection: {
+  skeletonHeaderCopy: {
     gap: 10,
+    flex: 1,
+  },
+  addressHint: {
+    fontSize: FontSize.sm,
+    fontFamily: Font.regular,
+    lineHeight: 20,
+  },
+  assetSection: {
+    gap: 6,
   },
   sectionTitle: {
     fontSize: FontSize.lg,
     fontFamily: Font.bold,
   },
-  filterRow: {
-    gap: 10,
-    paddingRight: 12,
-  },
-  filterChip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  filterChipText: {
+  sectionHint: {
     fontSize: FontSize.sm,
-    fontFamily: Font.semiBold,
+    fontFamily: Font.regular,
+    lineHeight: 20,
   },
   assetList: {
     gap: 12,
@@ -394,6 +506,11 @@ const styles = StyleSheet.create({
   assetTitle: {
     fontSize: FontSize.lg,
     fontFamily: Font.bold,
+  },
+  assetSubtitle: {
+    fontSize: FontSize.sm,
+    fontFamily: Font.regular,
+    lineHeight: 18,
   },
   assetStatus: {
     paddingHorizontal: 10,
@@ -447,5 +564,21 @@ const styles = StyleSheet.create({
     fontFamily: Font.regular,
     lineHeight: 20,
     maxWidth: 280,
+  },
+  assetImageFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryButton: {
+    marginTop: 8,
+    height: 48,
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryButtonText: {
+    fontSize: FontSize.md,
+    fontFamily: Font.semiBold,
   },
 });

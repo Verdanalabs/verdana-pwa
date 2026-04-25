@@ -1,11 +1,10 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { createMockPvpOperator } from '@/src/shared/services/mock/pvp-data';
-import type { PvpOperatorProfile } from '@/types';
+import { pvpLogin, type PvpLoginResponse } from '@/src/features/pvp/services/pvp-auth-api';
+import { createPvpSite, type PvpSite } from '@/src/features/pvp/services/pvp-api';
 
-export type PvpAuthState = 'idle' | 'pending' | 'approved' | 'active';
+export type PvpAuthState = 'idle' | 'authenticated' | 'active';
 
 interface OnboardingInput {
-  name: string;
   stationName: string;
   lat: number;
   lng: number;
@@ -13,62 +12,72 @@ interface OnboardingInput {
 
 interface PvpAuthContextValue {
   state: PvpAuthState;
-  walletAddress: string | null;
-  operator: PvpOperatorProfile | null;
-  connectWallet: () => void;
-  simulateApprove: () => void;
-  simulateReject: () => void;
-  completeOnboarding: (input: OnboardingInput) => void;
+  token: string | null;
+  operator: PvpLoginResponse | null;
+  activeSite: PvpSite | null;
+  loginWithCredentials: (email: string, password: string) => Promise<void>;
+  completeOnboarding: (input: OnboardingInput) => Promise<void>;
   signOut: () => void;
 }
 
 const PvpAuthContext = createContext<PvpAuthContextValue>({
   state: 'idle',
-  walletAddress: null,
+  token: null,
   operator: null,
-  connectWallet: () => {},
-  simulateApprove: () => {},
-  simulateReject: () => {},
-  completeOnboarding: () => {},
+  activeSite: null,
+  loginWithCredentials: async () => {},
+  completeOnboarding: async () => {},
   signOut: () => {},
 });
 
 export function PvpAuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PvpAuthState>('idle');
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [operator, setOperator] = useState<PvpOperatorProfile | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [operator, setOperator] = useState<PvpLoginResponse | null>(null);
+  const [activeSite, setActiveSite] = useState<PvpSite | null>(null);
 
   const value = useMemo<PvpAuthContextValue>(() => ({
     state,
-    walletAddress,
+    token,
     operator,
-    connectWallet: () => {
-      setWalletAddress('7xKf2mk9...4nR8mQ');
-      setState('pending');
+    activeSite,
+    loginWithCredentials: async (email, password) => {
+      const res = await pvpLogin(email, password);
+      setToken(res.token);
+      setOperator(res);
+      if (res.active_site) {
+        // Operator already completed onboarding — restore active site and skip setup
+        setActiveSite({
+          id: res.active_site.id,
+          name: res.active_site.name,
+          latitude: res.active_site.latitude,
+          longitude: res.active_site.longitude,
+          radius_meters: res.active_site.radius_meters,
+          is_active: true,
+          created_at: '',
+        });
+        setState('active');
+      } else {
+        setState('authenticated');
+      }
     },
-    simulateApprove: () => {
-      setState('approved');
-    },
-    simulateReject: () => {
-      setState('idle');
-      setWalletAddress(null);
-    },
-    completeOnboarding: (input) => {
-      setOperator(createMockPvpOperator({
-        name: input.name,
-        stationId: `PVP-${Date.now()}`,
-        stationName: input.stationName,
-        lat: input.lat,
-        lng: input.lng,
-      }));
+    completeOnboarding: async (input) => {
+      if (!token) throw new Error('Not authenticated');
+      const site = await createPvpSite({
+        name: input.stationName,
+        latitude: input.lat,
+        longitude: input.lng,
+      }, token);
+      setActiveSite(site);
       setState('active');
     },
     signOut: () => {
       setState('idle');
-      setWalletAddress(null);
+      setToken(null);
       setOperator(null);
+      setActiveSite(null);
     },
-  }), [state, walletAddress, operator]);
+  }), [state, token, operator, activeSite]);
 
   return <PvpAuthContext.Provider value={value}>{children}</PvpAuthContext.Provider>;
 }

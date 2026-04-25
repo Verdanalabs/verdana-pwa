@@ -9,7 +9,7 @@ import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
 import type { BatchGrade, MaterialType } from '@/types';
 
-const MATERIAL_OPTIONS: MaterialType[] = ['PET', 'HDPE', 'LDPE', 'PP'];
+const MATERIAL_OPTIONS: MaterialType[] = ['PET', 'HDPE', 'LDPE', 'PP', 'MIX'];
 const GRADE_OPTIONS: BatchGrade[] = ['A', 'B', 'C'];
 
 function StepHeader({ step, title, body }: { step: string; title: string; body: string }) {
