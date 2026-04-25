@@ -34,6 +34,10 @@ yarn-error.*
 .env*.local
 .env.staging
 .env.production
+.env.app.staging
+.env.app.production
+.env.pvp.staging
+.env.pvp.production
 
 # typescript
 *.tsbuildinfo
