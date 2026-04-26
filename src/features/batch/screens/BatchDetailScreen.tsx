@@ -92,7 +92,6 @@ function BatchDetailSkeleton() {
         <View style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]} />
         <View style={styles.headerRight}>
           <View style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]} />
-          <View style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]} />
         </View>
       </View>
 
@@ -150,7 +149,6 @@ export default function BatchDetailRoute() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -213,6 +211,7 @@ export default function BatchDetailRoute() {
   const shortId = batch.id.slice(0, 8).toUpperCase();
   const timeline = deriveTimeline(batch);
   const isAwaitingSupplierApproval = batch.status === 'cosigning';
+  const canShowDropOffQr = batch.status === 'accepted';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
@@ -226,13 +225,6 @@ export default function BatchDetailRoute() {
             <Ionicons name="arrow-back" size={18} color={c.foreground} />
           </TouchableOpacity>
           <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]}
-              onPress={() => setQrOpen(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="qr-code-outline" size={18} color={c.accent} />
-            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.headerButton, { backgroundColor: c.surface, borderColor: c.border }]}
               onPress={() => setMenuOpen(true)}
@@ -252,6 +244,29 @@ export default function BatchDetailRoute() {
             Review the batch record, material details, and every status update in one place.
           </Text>
         </View>
+
+        {canShowDropOffQr && (
+          <View style={[styles.qrCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <View style={[styles.qrBox, { backgroundColor: c.background, borderColor: c.border }]}>
+              <QRCode value={batch.id} size={220} backgroundColor="transparent" color={c.foreground} />
+            </View>
+            <Text style={[styles.qrCardTitle, { color: c.foreground, textAlign: 'center' }]}>Drop-off QR</Text>
+            <Text style={[styles.qrCardHint, { color: c.textMuted }]}>
+              Show this code to the PVP operator at drop-off. #{shortId}
+            </Text>
+          </View>
+        )}
+
+        {!canShowDropOffQr && batch.status === 'pending' && (
+          <View style={[styles.qrCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <View style={[styles.qrUnavailable, { backgroundColor: c.background, borderColor: c.border }]}>
+              <Ionicons name="time-outline" size={28} color={c.textMuted} />
+              <Text style={[styles.qrUnavailableText, { color: c.textSecondary }]}>
+                QR handoff will appear here after the PVP operator accepts this batch.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {isAwaitingSupplierApproval && (
           <View style={[styles.approvalCard, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf640' }]}>
@@ -339,32 +354,6 @@ export default function BatchDetailRoute() {
         </View>
       </ScrollView>
 
-      {/* QR modal */}
-      <Modal transparent visible={qrOpen} animationType="fade" onRequestClose={() => setQrOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setQrOpen(false)}>
-          <Pressable
-            style={[styles.actionSheet, { backgroundColor: c.surface, borderColor: c.border, alignItems: 'center', gap: 14, paddingVertical: 24 }]}
-            onPress={() => {}}
-          >
-            <Text style={[styles.actionTitle, { color: c.foreground }]}>Batch QR Code</Text>
-            <Text style={[styles.actionLabel, { color: c.textMuted, marginTop: -8 }]}>{shortId}</Text>
-            <View style={[styles.qrBox, { backgroundColor: c.background, borderColor: c.border }]}>
-              <QRCode value={batch.id} size={220} backgroundColor="transparent" color={c.foreground} />
-            </View>
-            <Text style={[styles.actionLabel, { color: c.textMuted, textAlign: 'center', maxWidth: 260 }]}>
-              Show to the PVP operator at drop-off
-            </Text>
-            <TouchableOpacity
-              style={[styles.closeQrBtn, { backgroundColor: `${c.accent}16`, borderColor: `${c.accent}25` }]}
-              onPress={() => setQrOpen(false)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.actionLabel, { color: c.accent }]}>Close</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       <Modal transparent visible={menuOpen} animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setMenuOpen(false)}>
           <Pressable
@@ -423,6 +412,19 @@ const styles = StyleSheet.create({
   headingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   batchId: { fontSize: FontSize['2xl'], fontFamily: Font.bold },
   headingText: { fontSize: FontSize.md, fontFamily: Font.regular, lineHeight: 22, maxWidth: 300 },
+  qrCard: { borderWidth: 1, borderRadius: 22, padding: 16, gap: 14, alignItems: 'center' },
+  qrCardTitle: { fontSize: FontSize.lg, fontFamily: Font.bold },
+  qrCardHint: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 20, textAlign: 'center' },
+  qrUnavailable: {
+    borderWidth: 1,
+    borderRadius: 18,
+    minHeight: 160,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  qrUnavailableText: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 20, textAlign: 'center' },
   photoCard: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
   photo: { width: '100%', height: 220 },
   photoMeta: { padding: 14, gap: 8 },
@@ -461,7 +463,6 @@ const styles = StyleSheet.create({
   backButton: { marginTop: 8, height: 48, borderRadius: 14, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
   backButtonLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold },
   qrBox: { borderWidth: 1, borderRadius: 18, padding: 20, alignItems: 'center', justifyContent: 'center' },
-  closeQrBtn: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 32, paddingVertical: 12 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end', padding: 20 },
   actionSheet: { borderWidth: 1, borderRadius: 20, padding: 16, gap: 6 },
   actionTitle: { fontSize: FontSize.lg, fontFamily: Font.bold, marginBottom: 4 },

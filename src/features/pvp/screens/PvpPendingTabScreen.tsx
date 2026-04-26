@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,8 +8,7 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { acceptBatch, getPvpBatches, type PvpBatchListItem } from '@/src/features/batch/services/batch-api';
-import { ApiError } from '@/src/shared/services/api';
+import { getPvpBatches, type PvpBatchListItem } from '@/src/features/batch/services/batch-api';
 
 const MATERIAL_COLOR: Record<string, string> = {
   PET: '#3b82f6',
@@ -91,22 +90,18 @@ function QueueSummaryCard({
   );
 }
 
-function BatchCard({
-  item,
-  isAccepting,
-  onAccept,
-}: {
-  item: PvpBatchListItem;
-  isAccepting: boolean;
-  onAccept: (batchId: string) => Promise<void>;
-}) {
+function BatchCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
   const isPending = item.status === 'pending';
   const isAccepted = item.status === 'accepted';
   const matColor = MATERIAL_COLOR[item.material.toUpperCase()] ?? c.accent;
 
   return (
-    <View style={[styles.batchCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+    <TouchableOpacity
+      style={[styles.batchCard, { backgroundColor: c.surface, borderColor: c.border }]}
+      activeOpacity={0.82}
+      onPress={() => router.push(`/pvp/batch-detail?id=${item.id}` as never)}
+    >
       <View style={styles.batchCardTop}>
         <Text style={[styles.batchMeta, { color: c.textMuted }]}>#{shortId(item.id)}</Text>
         <View
@@ -133,47 +128,14 @@ function BatchCard({
 
       <View style={styles.batchMetaRow}>
         <Text style={[styles.batchMetaText, { color: c.textMuted }]}>Submitted {timeAgo(item.created_at)}</Text>
-        <Text style={[styles.batchMetaText, { color: c.textMuted }]}>
-          {isPending ? 'Needs review' : isAccepted ? 'Physical handoff' : 'Supplier action'}
-        </Text>
-      </View>
-
-      {isPending && (
-        <TouchableOpacity
-          style={[styles.primaryAction, { backgroundColor: c.accent }]}
-          onPress={() => { void onAccept(item.id); }}
-          activeOpacity={0.86}
-          disabled={isAccepting}
-        >
-          {isAccepting ? (
-            <ActivityIndicator size="small" color={c.accentContrast} />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color={c.accentContrast} />
-              <Text style={[styles.primaryActionText, { color: c.accentContrast }]}>Accept Batch</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      )}
-
-      {isAccepted && (
-        <TouchableOpacity
-          style={[styles.secondaryAction, { borderColor: c.accent, backgroundColor: `${c.accent}08` }]}
-          onPress={() => router.push(`/pvp/cosign?id=${item.id}` as never)}
-          activeOpacity={0.86}
-        >
-          <Ionicons name="qr-code-outline" size={18} color={c.accent} />
-          <Text style={[styles.secondaryActionText, { color: c.accent }]}>Scan QR and Weigh</Text>
-        </TouchableOpacity>
-      )}
-
-      {!isPending && !isAccepted && (
-        <View style={[styles.waitingCard, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf624' }]}>
-          <Ionicons name="hourglass-outline" size={16} color="#8b5cf6" />
-          <Text style={[styles.waitingText, { color: '#8b5cf6' }]}>Waiting for supplier confirmation</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Text style={[styles.batchMetaText, { color: c.textMuted }]}>
+            {isPending ? 'Review' : isAccepted ? 'Weigh-in' : 'Awaiting sign'}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={c.textMuted} />
         </View>
-      )}
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -203,8 +165,6 @@ export default function PvpPendingTab() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [acceptingBatchId, setAcceptingBatchId] = useState<string | null>(null);
 
   const load = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
     if (!token) return;
@@ -242,25 +202,7 @@ export default function PvpPendingTab() {
     void load('initial');
   }, [load]));
 
-  const handleAccept = useCallback(async (batchId: string) => {
-    if (!token) return;
 
-    setAcceptingBatchId(batchId);
-    setActionError(null);
-
-    try {
-      await acceptBatch(token, batchId);
-      await load('refresh');
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setActionError(e.message);
-      } else {
-        setActionError('Failed to accept batch');
-      }
-    } finally {
-      setAcceptingBatchId(null);
-    }
-  }, [load, token]);
 
   const activeCount = pendingBatches.length + acceptedBatches.length + cosigningBatches.length;
 
@@ -290,12 +232,7 @@ export default function PvpPendingTab() {
       ) : (
         <View style={styles.sectionList}>
           {items.map((item) => (
-            <BatchCard
-              key={item.id}
-              item={item}
-              isAccepting={acceptingBatchId === item.id}
-              onAccept={handleAccept}
-            />
+            <BatchCard key={item.id} item={item} />
           ))}
         </View>
       )}
@@ -364,12 +301,7 @@ export default function PvpPendingTab() {
             </View>
           )}
 
-          {actionError && (
-            <View style={[styles.errorCard, { backgroundColor: `${c.error}10`, borderColor: `${c.error}24` }]}>
-              <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-              <Text style={[styles.errorCardText, { color: c.error }]}>{actionError}</Text>
-            </View>
-          )}
+
 
           {renderBatchSection('Ready To Weigh', 'Accepted batches that can move into physical handoff now', acceptedBatches)}
           {renderBatchSection('Pending Review', 'Supplier submissions that need to be accepted first', pendingBatches)}
@@ -561,44 +493,7 @@ const styles = StyleSheet.create({
     fontFamily: Font.regular,
     fontSize: FontSize.xs,
   },
-  primaryAction: {
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  primaryActionText: {
-    fontFamily: Font.bold,
-    fontSize: FontSize.md,
-  },
-  secondaryAction: {
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  secondaryActionText: {
-    fontFamily: Font.semiBold,
-    fontSize: FontSize.md,
-  },
-  waitingCard: {
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  waitingText: {
-    fontFamily: Font.medium,
-    fontSize: FontSize.sm,
-  },
+
   emptySection: {
     borderRadius: 16,
     borderWidth: 1,
@@ -614,18 +509,5 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     lineHeight: 20,
   },
-  errorCard: {
-    flexDirection: 'row',
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'flex-start',
-  },
-  errorCardText: {
-    flex: 1,
-    fontFamily: Font.regular,
-    fontSize: FontSize.sm,
-    lineHeight: 20,
-  },
+
 });

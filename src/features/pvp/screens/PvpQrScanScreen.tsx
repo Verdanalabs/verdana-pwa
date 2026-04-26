@@ -1,5 +1,5 @@
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -58,10 +58,12 @@ export default function PvpQrScanRoute() {
   const [cameraState, setCameraState] = useState<CameraState>(isWeb ? 'idle' : 'unsupported');
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
+  const [manualOpen, setManualOpen] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [verificationState, setVerificationState] = useState<VerificationState>('idle');
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [verificationHint, setVerificationHint] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const stopScannerLoop = useCallback(() => {
     if (scanTimerRef.current !== null && typeof window !== 'undefined') {
@@ -164,6 +166,7 @@ export default function PvpQrScanRoute() {
 
     stopCamera();
     resetVerification();
+    setManualOpen(false);
     setCameraState('requesting');
     setCameraError(null);
 
@@ -198,6 +201,80 @@ export default function PvpQrScanRoute() {
     router.back();
   }
 
+  function openManualEntry() {
+    stopCamera();
+    setCameraState('idle');
+    resetVerification();
+    setManualOpen(true);
+  }
+
+  function closeManualEntry() {
+    setManualOpen(false);
+  }
+
+  function submitManualCode() {
+    if (!canUseCode) return;
+    setManualOpen(false);
+    stopCamera();
+    setCameraState('idle');
+    void verifyBatchAndNavigate(manualCode.trim());
+  }
+
+  // ── Dev-only: decode QR from uploaded image file ────────────────────────────
+  const handleDevFileUpload = useCallback(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    // Create or reuse a hidden file input
+    if (!fileInputRef.current) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      fileInputRef.current = input;
+    }
+
+    const input = fileInputRef.current;
+    input.value = '';
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      stopCamera();
+      setCameraState('idle');
+      resetVerification();
+      setVerificationState('verifying');
+      setVerificationHint('Decoding QR from uploaded image...');
+
+      try {
+        const bitmap = await createImageBitmap(file);
+
+        if (typeof window.BarcodeDetector !== 'function') {
+          setVerificationState('error');
+          setVerificationError('BarcodeDetector API is not available in this browser. Try Chrome.');
+          return;
+        }
+
+        const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        const results = await detector.detect(bitmap);
+        const payload = results.find((r) => r.rawValue?.trim())?.rawValue?.trim();
+
+        if (!payload) {
+          setVerificationState('error');
+          setVerificationError('No QR code found in the uploaded image. Try a clearer screenshot.');
+          return;
+        }
+
+        await verifyBatchAndNavigate(payload);
+      } catch (err) {
+        setVerificationState('error');
+        setVerificationError(err instanceof Error ? err.message : 'Failed to decode QR from image.');
+      }
+    };
+
+    input.click();
+  }, [stopCamera, resetVerification, verifyBatchAndNavigate]);
+
   useEffect(() => {
     return () => {
       stopCamera();
@@ -225,7 +302,7 @@ export default function PvpQrScanRoute() {
   }, [cameraState, isWeb]);
 
   useEffect(() => {
-    if (!isWeb || cameraState !== 'live' || verificationState === 'verifying' || verificationState === 'success' || !videoRef.current) {
+    if (!isWeb || cameraState !== 'live' || verificationState === 'verifying' || verificationState === 'success' || verificationState === 'error' || !videoRef.current) {
       stopScannerLoop();
       return;
     }
@@ -251,8 +328,8 @@ export default function PvpQrScanRoute() {
         const nextCode = results.find((item) => item.rawValue?.trim())?.rawValue?.trim();
 
         if (nextCode) {
-          setManualCode(nextCode);
-          stopScannerLoop();
+          stopCamera();
+          setCameraState('idle');
           await verifyBatchAndNavigate(nextCode);
           return;
         }
@@ -268,13 +345,15 @@ export default function PvpQrScanRoute() {
     return () => {
       stopScannerLoop();
     };
-  }, [cameraState, isWeb, stopScannerLoop, verificationState, verifyBatchAndNavigate]);
+  }, [cameraState, isWeb, stopCamera, stopScannerLoop, verificationState, verifyBatchAndNavigate]);
 
   const primaryLabel =
-    cameraState === 'requesting'
+    verificationState === 'error'
+      ? 'Scan again'
+      : cameraState === 'requesting'
       ? 'Requesting camera access...'
       : cameraState === 'live'
-        ? 'Camera is live'
+        ? 'Scanning...'
         : 'Open camera for QR scan';
 
   const statusLabel =
@@ -284,11 +363,11 @@ export default function PvpQrScanRoute() {
         ? verificationError ?? 'Batch verification failed.'
         : scanResult
           ? `Scanned code: ${scanResult}`
-          : cameraError
-            ? cameraError
-            : cameraState === 'live'
-              ? 'Point the QR code inside the frame.'
-              : 'Use the live camera or enter the code manually.';
+            : cameraError
+              ? cameraError
+              : cameraState === 'live'
+                ? 'Point the QR code inside the frame.'
+                : 'Open the live camera to scan the supplier QR.';
 
   const canUseCode = manualCode.trim().length > 0 && verificationState !== 'verifying';
 
@@ -362,38 +441,88 @@ export default function PvpQrScanRoute() {
           <Ionicons name="arrow-forward" size={18} color={c.accentContrast} />
         </TouchableOpacity>
 
-        <View style={[styles.manualCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Text style={[styles.manualLabel, { color: c.textSecondary }]}>Manual code</Text>
-          <TextInput
-            value={manualCode}
-            onChangeText={(value) => {
-              setManualCode(value);
-              if (verificationState !== 'idle') {
-                resetVerification();
-              }
-            }}
-            placeholder="Paste or type supplier QR payload"
-            placeholderTextColor={c.textFaint}
-            style={[styles.manualInput, { color: c.foreground, borderColor: c.border, backgroundColor: c.background }]}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+        <TouchableOpacity
+          style={[styles.manualFallbackBtn, { backgroundColor: c.surface, borderColor: c.border }]}
+          activeOpacity={0.82}
+          onPress={openManualEntry}
+          disabled={verificationState === 'verifying'}
+        >
+          <Ionicons name="keypad-outline" size={18} color={c.textSecondary} />
+          <Text style={[styles.manualFallbackText, { color: c.textSecondary }]}>
+            Enter code manually
+          </Text>
+        </TouchableOpacity>
+
+        {__DEV__ && isWeb && (
           <TouchableOpacity
-            style={[styles.manualSubmit, { backgroundColor: canUseCode ? c.foreground : c.background }]}
-            activeOpacity={0.85}
-            disabled={!canUseCode}
-            onPress={() => {
-              if (!canUseCode) return;
-              stopCamera();
-              void verifyBatchAndNavigate(manualCode.trim());
-            }}
+            style={[styles.manualFallbackBtn, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf640' }]}
+            activeOpacity={0.82}
+            onPress={handleDevFileUpload}
+            disabled={verificationState === 'verifying'}
           >
-            <Text style={[styles.manualSubmitText, { color: canUseCode ? c.background : c.textMuted }]}>
-              Verify this code
+            <Ionicons name="image-outline" size={18} color="#8b5cf6" />
+            <Text style={[styles.manualFallbackText, { color: '#8b5cf6' }]}>
+              DEV: Upload QR image
             </Text>
           </TouchableOpacity>
-        </View>
+        )}
       </View>
+
+      <Modal
+        transparent
+        visible={manualOpen}
+        animationType="fade"
+        onRequestClose={closeManualEntry}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={closeManualEntry}>
+          <Pressable
+            style={[styles.manualSheet, { backgroundColor: c.surface, borderColor: c.border }]}
+            onPress={() => {}}
+          >
+            <View style={styles.manualSheetHeader}>
+              <View>
+                <Text style={[styles.manualTitle, { color: c.foreground }]}>Manual code</Text>
+                <Text style={[styles.manualSub, { color: c.textMuted }]}>
+                  Paste the supplier QR payload or batch UUID.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.manualCloseBtn, { backgroundColor: c.background }]}
+                onPress={closeManualEntry}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="close" size={18} color={c.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              value={manualCode}
+              onChangeText={(value) => {
+                setManualCode(value);
+                if (verificationState !== 'idle') {
+                  resetVerification();
+                }
+              }}
+              placeholder="Paste or type supplier QR payload"
+              placeholderTextColor={c.textFaint}
+              style={[styles.manualInput, { color: c.foreground, borderColor: c.border, backgroundColor: c.background }]}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <TouchableOpacity
+              style={[styles.manualSubmit, { backgroundColor: canUseCode ? c.foreground : c.background }]}
+              activeOpacity={0.85}
+              disabled={!canUseCode}
+              onPress={submitManualCode}
+            >
+              <Text style={[styles.manualSubmitText, { color: canUseCode ? c.background : c.textMuted }]}>
+                Verify this code
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -508,15 +637,53 @@ const styles = StyleSheet.create({
     fontFamily: Font.medium,
     fontSize: FontSize.sm,
   },
-  manualCard: {
+  manualFallbackBtn: {
+    height: 50,
+    borderRadius: 14,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
-    gap: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
-  manualLabel: {
-    fontFamily: Font.medium,
+  manualFallbackText: {
+    fontFamily: Font.semiBold,
     fontSize: FontSize.sm,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.46)',
+    justifyContent: 'flex-end',
+    padding: 20,
+  },
+  manualSheet: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 16,
+    gap: 14,
+  },
+  manualSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 14,
+  },
+  manualTitle: {
+    fontFamily: Font.bold,
+    fontSize: FontSize.lg,
+  },
+  manualSub: {
+    fontFamily: Font.regular,
+    fontSize: FontSize.sm,
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  manualCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   manualInput: {
     minHeight: 52,
