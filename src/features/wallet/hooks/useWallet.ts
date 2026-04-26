@@ -18,15 +18,11 @@ function mediaUrl(storageKey: string) {
 
 function toMaterialType(material: string): MaterialType {
   switch (material.toUpperCase()) {
-    case 'PET':
-    case 'HDPE':
-    case 'LDPE':
-    case 'PP':
-    case 'PS':
-    case 'PVC':
-      return material.toUpperCase() as MaterialType;
-    default:
-      return 'OTHER';
+    case 'PET':  return 'PET';
+    case 'HDPE': return 'HDPE';
+    case 'LDPE': return 'LDPE';
+    case 'PP':   return 'PP';
+    default:     return 'MIX';
   }
 }
 

@@ -17,7 +17,6 @@ import { MaterialBadge } from '@/src/shared/ui/MaterialBadge';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
-import { getMe, type VerdanaUser } from '@/src/features/auth/services/auth-api';
 import { getBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
 import type { CNFTStatus, MaterialType } from '@/types';
 
@@ -31,15 +30,11 @@ function mediaUrl(storageKey: string) {
 
 function toMaterialType(material: string): MaterialType {
   switch (material.toUpperCase()) {
-    case 'PET':
-    case 'HDPE':
-    case 'LDPE':
-    case 'PP':
-    case 'PS':
-    case 'PVC':
-      return material.toUpperCase() as MaterialType;
-    default:
-      return 'OTHER';
+    case 'PET':  return 'PET';
+    case 'HDPE': return 'HDPE';
+    case 'LDPE': return 'LDPE';
+    case 'PP':   return 'PP';
+    default:     return 'MIX';
   }
 }
 
@@ -125,7 +120,6 @@ export default function AssetDetailRoute() {
   const c = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getAccessToken } = usePrivy();
-  const [walletUser, setWalletUser] = useState<VerdanaUser | null>(null);
   const [batch, setBatch] = useState<ApiBatchDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,13 +137,9 @@ export default function AssetDetailRoute() {
         const token = await getAccessToken();
         if (!token) throw new Error('Not authenticated');
 
-        const [meData, batchData] = await Promise.all([
-          getMe(token),
-          getBatch(token, id),
-        ]);
+        const batchData = await getBatch(token, id);
 
         if (cancelled) return;
-        setWalletUser(meData);
         setBatch(batchData);
       } catch (e) {
         if (!cancelled) {
@@ -286,35 +276,6 @@ export default function AssetDetailRoute() {
             <Text style={[styles.detailLabel, { color: c.textMuted }]}>Minted</Text>
             <Text style={[styles.detailValue, { color: c.foreground }]}>{formatDateTime(asset.mintedAt)}</Text>
           </View>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Transaction</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>{asset.txSignature ?? '-'}</Text>
-          </View>
-        </View>
-
-        <View style={[styles.detailCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Text style={[styles.sectionTitle, { color: c.foreground }]}>Wallet Info</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Wallet Address</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>{walletUser?.wallet_address ?? '-'}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Merkle Tree</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>{asset.merkleTree ?? '-'}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Short View</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>
-              {walletUser?.wallet_address ? shortAddress(walletUser.wallet_address) : '-'}
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Leaf Index</Text>
-            <Text style={[styles.detailValue, { color: c.foreground }]}>
-              {asset.leafIndex != null ? String(asset.leafIndex) : '-'}
-            </Text>
-          </View>
         </View>
 
         <View style={[styles.detailCard, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -323,21 +284,6 @@ export default function AssetDetailRoute() {
             This asset has been minted successfully and is now tied to the original verified batch.
           </Text>
         </View>
-
-        <TouchableOpacity
-          style={[styles.linkCard, { backgroundColor: c.surface, borderColor: c.border }]}
-          onPress={() => router.push(`/batch/${batch.id}` as never)}
-          activeOpacity={0.8}
-        >
-          <View style={styles.linkCopy}>
-            <Text style={[styles.linkLabel, { color: c.textMuted }]}>Linked Batch</Text>
-            <Text style={[styles.linkValue, { color: c.foreground }]}>{batch.id}</Text>
-            <Text style={[styles.linkHint, { color: c.textSecondary }]}>
-              Open the original batch record and follow the full timeline.
-            </Text>
-          </View>
-          <Ionicons name="arrow-forward" size={18} color={c.textFaint} />
-        </TouchableOpacity>
       </ScrollView>
 
       <Modal transparent visible={menuOpen} animationType="fade" onRequestClose={() => setMenuOpen(false)}>

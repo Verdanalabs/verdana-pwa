@@ -9,8 +9,6 @@ export default function BatchSuccessScreen() {
   const c = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const shortId = id ? id.slice(0, 8).toUpperCase() : '-';
-
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top', 'bottom']}>
       <ScrollView
@@ -26,12 +24,6 @@ export default function BatchSuccessScreen() {
           <Text style={[styles.subtitle, { color: c.textSecondary }]}>
             Your batch is now waiting for PVP review. The QR handoff will be available after the operator accepts the batch.
           </Text>
-        </View>
-
-        <View style={[styles.idCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Text style={[styles.idLabel, { color: c.textMuted }]}>Batch ID</Text>
-          <Text style={[styles.idValue, { color: c.foreground }]}>{shortId}</Text>
-          <Text style={[styles.idFull, { color: c.textFaint }]}>{id}</Text>
         </View>
 
         <View style={[styles.noticeCard, { backgroundColor: c.surface, borderColor: c.border }]}>

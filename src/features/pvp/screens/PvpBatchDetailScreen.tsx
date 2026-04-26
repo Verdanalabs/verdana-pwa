@@ -273,7 +273,7 @@ export default function PvpBatchDetailScreen() {
             <Ionicons name="arrow-back" size={18} color={c.foreground} />
           </TouchableOpacity>
           <Text style={[styles.topBarTitle, { color: c.foreground }]}>Batch Detail</Text>
-          <View style={styles.topBarBtn} />
+          <View style={{ width: 42 }} />
         </View>
 
         {/* Heading */}
@@ -307,21 +307,6 @@ export default function PvpBatchDetailScreen() {
             <Text style={[styles.actionCardBody, { color: c.textSecondary }]}>
               This batch has been submitted by the supplier and is waiting for your review. Accept it to allow physical drop-off.
             </Text>
-            <TouchableOpacity
-              style={[styles.actionCardBtn, { backgroundColor: '#f59e0b' }]}
-              onPress={() => { void handleAccept(); }}
-              activeOpacity={0.86}
-              disabled={isAccepting}
-            >
-              {isAccepting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark" size={18} color="#fff" />
-                  <Text style={styles.actionCardBtnLabel}>Accept Batch</Text>
-                </>
-              )}
-            </TouchableOpacity>
           </View>
         )}
 
@@ -334,14 +319,6 @@ export default function PvpBatchDetailScreen() {
             <Text style={[styles.actionCardBody, { color: c.textSecondary }]}>
               Batch has been accepted. The supplier can now present their QR code at the drop-off point. Scan and weigh to continue.
             </Text>
-            <TouchableOpacity
-              style={[styles.actionCardBtn, { backgroundColor: c.accent }]}
-              onPress={() => router.push(`/pvp/cosign?id=${batch.id}` as never)}
-              activeOpacity={0.86}
-            >
-              <Ionicons name="qr-code-outline" size={18} color={c.accentContrast} />
-              <Text style={[styles.actionCardBtnLabel, { color: c.accentContrast }]}>Scan QR & Weigh</Text>
-            </TouchableOpacity>
           </View>
         )}
 
@@ -404,9 +381,6 @@ export default function PvpBatchDetailScreen() {
           <DetailRow label="Weighed" value={formatDateTime(batch.weighed_at)} />
           <DetailRow label="Asset Ready" value={formatDateTime(batch.cnft_record?.minted_at)} />
           <DetailRow label="Asset ID" value={batch.cnft_record?.asset_id ?? '-'} />
-          {batch.batch_metadata?.ipfs_cid && (
-            <DetailRow label="IPFS CID" value={batch.batch_metadata.ipfs_cid} />
-          )}
         </View>
 
         {/* Timeline card */}

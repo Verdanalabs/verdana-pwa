@@ -153,18 +153,8 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
           </View>
         </View>
 
-        <View
-          style={[
-            styles.priorityStatusPill,
-            {
-              backgroundColor: isAccepted ? `${c.accent}14` : '#f59e0b18',
-              borderColor: isAccepted ? `${c.accent}26` : '#f59e0b35',
-            },
-          ]}
-        >
-          <Text style={[styles.priorityStatusText, { color: isAccepted ? c.accent : '#f59e0b' }]}>
-            {isAccepted ? 'READY TO WEIGH' : 'PENDING'}
-          </Text>
+        <View style={[styles.priorityStatusPill, { backgroundColor: '#f59e0b18', borderColor: '#f59e0b35' }]}>
+          <Text style={[styles.priorityStatusText, { color: '#f59e0b' }]}>PENDING</Text>
         </View>
       </View>
 
@@ -223,7 +213,7 @@ export default function PvpDashboardTab() {
   const completedToday = batches.filter((batch) => batch.status === 'minted');
   const totalKgToday = completedToday.reduce((sum, batch) => sum + weightKg(batch), 0);
 
-  const priorityItems = [...readyToWeigh, ...pending]
+  const priorityItems = [...pending]
     .sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime())
     .slice(0, 3);
 

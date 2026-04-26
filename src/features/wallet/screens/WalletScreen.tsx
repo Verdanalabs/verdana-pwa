@@ -282,10 +282,6 @@ export default function WalletRoute() {
 
                   <View style={styles.assetMetrics}>
                     <View style={styles.assetMetricItem}>
-                      <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Batch</Text>
-                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{shortAddress(asset.batchId)}</Text>
-                    </View>
-                    <View style={styles.assetMetricItem}>
                       <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Asset ID</Text>
                       <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{shortAddress(asset.assetId)}</Text>
                     </View>

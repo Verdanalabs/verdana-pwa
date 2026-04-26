@@ -59,7 +59,7 @@ function toRichBatch(b: ApiBatch): RichBatch {
       status: mapStatus(b.status),
       materialType: b.material.toUpperCase() as BatchSummary['materialType'],
       estimatedWeightKg: b.estimated_weight_grams != null ? b.estimated_weight_grams / 1000 : 0,
-      pvpName: b.pvp_site_id ?? '-',
+      pvpName: '',
       capturedAt: b.created_at,
     },
     apiStatus: b.status,

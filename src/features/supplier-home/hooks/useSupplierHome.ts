@@ -14,13 +14,31 @@ function mapStatus(apiStatus: string): BatchStatus {
   }
 }
 
+const STATUS_PRIORITY: Record<string, number> = {
+  pending:      0,
+  accepted:     1,
+  cosigning:    2,
+  cosigned:     3,
+  mint_pending: 4,
+  mint_failed:  4,
+  minted:       5,
+};
+
+function sortBatches(batches: ApiBatch[]): ApiBatch[] {
+  return [...batches].sort((a, b) => {
+    const priorityDiff = (STATUS_PRIORITY[a.status] ?? 9) - (STATUS_PRIORITY[b.status] ?? 9);
+    if (priorityDiff !== 0) return priorityDiff;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
 function toBatchSummary(b: ApiBatch): BatchSummary {
   return {
     id: b.id,
     status: mapStatus(b.status),
     materialType: b.material.toUpperCase() as BatchSummary['materialType'],
     estimatedWeightKg: b.estimated_weight_grams != null ? b.estimated_weight_grams / 1000 : 0,
-    pvpName: b.pvp_site_id ?? '-',
+    pvpName: '',
     capturedAt: b.created_at,
   };
 }
@@ -82,7 +100,7 @@ export function useSupplierHome(): SupplierHomeData {
       ]);
 
       setUser(meData);
-      setBatches(batchData.map(toBatchSummary));
+      setBatches(sortBatches(batchData).map(toBatchSummary));
       setDashboard(deriveDashboard(batchData, meData));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');

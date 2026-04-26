@@ -149,6 +149,7 @@ export default function BatchDetailRoute() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -208,10 +209,10 @@ export default function BatchDetailRoute() {
   const actualKg = batch.actual_weight_grams != null
     ? (batch.actual_weight_grams / 1000).toFixed(1)
     : '-';
-  const shortId = batch.id.slice(0, 8).toUpperCase();
   const timeline = deriveTimeline(batch);
   const isAwaitingSupplierApproval = batch.status === 'cosigning';
   const canShowDropOffQr = batch.status === 'accepted';
+  const collapsePhoto = batch.status === 'pending' || batch.status === 'accepted';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
@@ -237,7 +238,7 @@ export default function BatchDetailRoute() {
 
         <View style={styles.headingBlock}>
           <View style={styles.headingTop}>
-            <Text style={[styles.batchId, { color: c.foreground }]}>{shortId}</Text>
+            <Text style={[styles.batchId, { color: c.foreground }]}>{batch.material.toUpperCase()}</Text>
             <StatusBadge status={uiStatus} />
           </View>
           <Text style={[styles.headingText, { color: c.textSecondary }]}>
@@ -252,8 +253,12 @@ export default function BatchDetailRoute() {
             </View>
             <Text style={[styles.qrCardTitle, { color: c.foreground, textAlign: 'center' }]}>Drop-off QR</Text>
             <Text style={[styles.qrCardHint, { color: c.textMuted }]}>
-              Show this code to the PVP operator at drop-off. #{shortId}
+              Show this code to the PVP operator at drop-off.
             </Text>
+            <View style={[styles.shortCodeRow, { backgroundColor: c.background, borderColor: c.border }]}>
+              <Text style={[styles.shortCodeLabel, { color: c.textMuted }]}>Manual code</Text>
+              <Text style={[styles.shortCodeValue, { color: c.foreground }]}>{batch.id.slice(0, 8).toUpperCase()}</Text>
+            </View>
           </View>
         )}
 
@@ -277,32 +282,47 @@ export default function BatchDetailRoute() {
             <Text style={[styles.approvalCardBody, { color: c.textSecondary }]}>
               PVP has already weighed this batch. Review the measured weight and continue to the approval screen to co-sign.
             </Text>
-            <TouchableOpacity
-              style={[styles.approvalCardButton, { backgroundColor: '#8b5cf6' }]}
-              onPress={() => router.push(`/batch/approve-cosign?id=${batch.id}` as never)}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-              <Text style={styles.approvalCardButtonLabel}>Approve Co-sign</Text>
-            </TouchableOpacity>
           </View>
         )}
 
-        <View style={[styles.photoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" />
-          ) : (
-            <View style={[styles.photo, { backgroundColor: c.border, alignItems: 'center', justifyContent: 'center' }]}>
-              <Ionicons name="image-outline" size={40} color={c.textMuted} />
+        {collapsePhoto ? (
+          <TouchableOpacity
+            style={[styles.photoCollapsed, { backgroundColor: c.surface, borderColor: c.border }]}
+            onPress={() => setPhotoModalOpen(true)}
+            activeOpacity={0.75}
+            disabled={!photoUri}
+          >
+            <View style={[styles.photoCollapsedIcon, { backgroundColor: c.background, borderColor: c.border }]}>
+              <Ionicons name="image-outline" size={18} color={c.textSecondary} />
             </View>
-          )}
-          <View style={styles.photoMeta}>
-            <MaterialBadge material={batch.material.toUpperCase() as never} />
-            <Text style={[styles.photoTime, { color: c.textMuted }]}>
-              Captured {formatDateTime(photoMedia?.captured_at ?? batch.created_at)}
+            <Text style={[styles.photoCollapsedLabel, { color: c.textSecondary }]}>
+              {photoUri ? 'View submission photo' : 'No photo attached'}
             </Text>
-          </View>
-        </View>
+            {photoUri && (
+              <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => photoUri && setPhotoModalOpen(true)}
+            style={[styles.photoCard, { backgroundColor: c.surface, borderColor: c.border }]}
+          >
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" />
+            ) : (
+              <View style={[styles.photo, { backgroundColor: c.border, alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="image-outline" size={40} color={c.textMuted} />
+              </View>
+            )}
+            <View style={styles.photoMeta}>
+              <MaterialBadge material={batch.material.toUpperCase() as never} />
+              <Text style={[styles.photoTime, { color: c.textMuted }]}>
+                Captured {formatDateTime(photoMedia?.captured_at ?? batch.created_at)}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.infoGrid}>
           <View style={styles.infoGridRow}>
@@ -329,14 +349,10 @@ export default function BatchDetailRoute() {
 
         <View style={[styles.detailCard, { backgroundColor: c.surface, borderColor: c.border }]}>
           <Text style={[styles.sectionTitle, { color: c.foreground }]}>Batch Details</Text>
-          <DetailRow label="Batch ID" value={batch.id} />
           <DetailRow label="Submitted" value={formatDateTime(batch.created_at)} />
           <DetailRow label="Co-signed" value={formatDateTime(batch.weighed_at)} />
           <DetailRow label="Asset Ready" value={formatDateTime(batch.cnft_record?.minted_at)} />
           <DetailRow label="Asset ID" value={batch.cnft_record?.asset_id ?? '-'} />
-          {batch.batch_metadata?.ipfs_cid && (
-            <DetailRow label="IPFS CID" value={batch.batch_metadata.ipfs_cid} />
-          )}
         </View>
 
         <View style={[styles.detailCard, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -394,6 +410,17 @@ export default function BatchDetailRoute() {
           </TouchableOpacity>
         </View>
       )}
+
+      <Modal transparent visible={photoModalOpen} animationType="fade" onRequestClose={() => setPhotoModalOpen(false)}>
+        <Pressable style={styles.photoModalBackdrop} onPress={() => setPhotoModalOpen(false)}>
+          {photoUri && (
+            <Image source={{ uri: photoUri }} style={styles.photoModalImage} resizeMode="contain" />
+          )}
+          <TouchableOpacity style={styles.photoModalClose} onPress={() => setPhotoModalOpen(false)} activeOpacity={0.7}>
+            <Ionicons name="close" size={20} color="#fff" />
+          </TouchableOpacity>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -429,6 +456,26 @@ const styles = StyleSheet.create({
   photo: { width: '100%', height: 220 },
   photoMeta: { padding: 14, gap: 8 },
   photoTime: { fontSize: FontSize.sm, fontFamily: Font.regular },
+  photoCollapsed: {
+    borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  photoCollapsedIcon: {
+    width: 34, height: 34, borderRadius: 10, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  photoCollapsedLabel: { flex: 1, fontSize: FontSize.sm, fontFamily: Font.medium },
+  photoModalBackdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.88)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  photoModalClose: {
+    position: 'absolute', top: 52, right: 20,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  photoModalImage: { width: '92%', aspectRatio: 1, borderRadius: 18 },
   infoGrid: { gap: 10 },
   infoGridRow: { flexDirection: 'row', gap: 10 },
   infoCard: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 13, gap: 10, minHeight: 98, justifyContent: 'space-between' },
@@ -463,6 +510,12 @@ const styles = StyleSheet.create({
   backButton: { marginTop: 8, height: 48, borderRadius: 14, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
   backButtonLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold },
   qrBox: { borderWidth: 1, borderRadius: 18, padding: 20, alignItems: 'center', justifyContent: 'center' },
+  shortCodeRow: {
+    borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+  },
+  shortCodeLabel: { fontSize: FontSize.xs, fontFamily: Font.regular },
+  shortCodeValue: { fontSize: FontSize.md, fontFamily: Font.bold, letterSpacing: 1.5 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end', padding: 20 },
   actionSheet: { borderWidth: 1, borderRadius: 20, padding: 16, gap: 6 },
   actionTitle: { fontSize: FontSize.lg, fontFamily: Font.bold, marginBottom: 4 },

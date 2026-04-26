@@ -7,7 +7,7 @@ export type BatchStatus =
   | 'mint_failed'
   | 'minted';
 
-export type MaterialType = 'PET' | 'HDPE' | 'LDPE' | 'PP' | 'PS' | 'PVC' | 'OTHER' | 'MIX';
+export type MaterialType = 'PET' | 'HDPE' | 'LDPE' | 'PP' | 'MIX';
 
 export type BatchGrade = 'A' | 'B' | 'C';
 

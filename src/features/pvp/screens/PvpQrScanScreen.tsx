@@ -3,10 +3,11 @@ import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpaci
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import jsQR from 'jsqr';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { getBatch } from '@/src/features/batch/services/batch-api';
+import { getBatch, getPvpBatches } from '@/src/features/batch/services/batch-api';
 import { ApiError } from '@/src/shared/services/api';
 
 type CameraState = 'idle' | 'requesting' | 'live' | 'error' | 'unsupported';
@@ -27,6 +28,7 @@ declare global {
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SHORT_ID_PATTERN = /^[0-9a-f]{8}$/i;
 
 function extractBatchId(raw: string): string | null {
   const trimmed = raw.trim();
@@ -51,6 +53,7 @@ export default function PvpQrScanRoute() {
   const { token } = usePvpAuth();
   const isWeb = Platform.OS === 'web';
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const detectorRef = useRef<BarcodeDetectorLike | null>(null);
   const scanTimerRef = useRef<number | null>(null);
@@ -93,13 +96,7 @@ export default function PvpQrScanRoute() {
   }, []);
 
   const verifyBatchAndNavigate = useCallback(async (rawPayload: string) => {
-    const batchId = extractBatchId(rawPayload);
-
-    if (!batchId) {
-      setVerificationState('error');
-      setVerificationError('QR payload is invalid. Scan a valid Verdana batch QR or paste a UUID.');
-      return;
-    }
+    const trimmed = rawPayload.trim();
 
     if (!token) {
       setVerificationState('error');
@@ -109,6 +106,35 @@ export default function PvpQrScanRoute() {
 
     setVerificationState('verifying');
     setVerificationError(null);
+
+    // Resolve short code (e.g. "6335C850") → full UUID via PVP batch list
+    let batchId: string | null = null;
+    if (SHORT_ID_PATTERN.test(trimmed)) {
+      setVerificationHint('Looking up batch by short code...');
+      try {
+        const pvpBatches = await getPvpBatches(token);
+        const match = pvpBatches.find((b) => b.id.slice(0, 8).toLowerCase() === trimmed.toLowerCase());
+        if (!match) {
+          setVerificationState('error');
+          setVerificationError(`No batch found with code "${trimmed.toUpperCase()}". Check the code and try again.`);
+          return;
+        }
+        batchId = match.id;
+      } catch {
+        setVerificationState('error');
+        setVerificationError('Failed to look up batch. Please try again.');
+        return;
+      }
+    } else {
+      batchId = extractBatchId(trimmed);
+    }
+
+    if (!batchId) {
+      setVerificationState('error');
+      setVerificationError('QR payload is invalid. Scan a valid Verdana batch QR or paste a UUID.');
+      return;
+    }
+
     setVerificationHint('Verifying batch with backend...');
     setScanResult(batchId);
 
@@ -307,25 +333,45 @@ export default function PvpQrScanRoute() {
       return;
     }
 
-    if (typeof window.BarcodeDetector !== 'function') {
-      setCameraError((current) => current ?? 'Live camera is active, but QR decoding is not supported in this browser yet.');
-      return;
-    }
+    const useBarcodeDetector = typeof window.BarcodeDetector === 'function';
 
-    detectorRef.current ??= new window.BarcodeDetector({ formats: ['qr_code'] });
+    if (useBarcodeDetector && window.BarcodeDetector) {
+      detectorRef.current ??= new window.BarcodeDetector({ formats: ['qr_code'] });
+    }
 
     const detect = async () => {
       const video = videoRef.current;
-      const detector = detectorRef.current;
 
-      if (!video || !detector || video.readyState < 2) {
+      if (!video || video.readyState < 2) {
         scanTimerRef.current = window.setTimeout(detect, 350);
         return;
       }
 
       try {
-        const results = await detector.detect(video);
-        const nextCode = results.find((item) => item.rawValue?.trim())?.rawValue?.trim();
+        let nextCode: string | undefined;
+
+        if (useBarcodeDetector && detectorRef.current) {
+          const results = await detectorRef.current.detect(video);
+          nextCode = results.find((item) => item.rawValue?.trim())?.rawValue?.trim();
+        } else {
+          // jsQR fallback — works on Safari, Firefox, all browsers
+          const canvas = canvasRef.current;
+          if (!canvas) {
+            scanTimerRef.current = window.setTimeout(detect, 350);
+            return;
+          }
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            scanTimerRef.current = window.setTimeout(detect, 350);
+            return;
+          }
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const result = jsQR(imageData.data, imageData.width, imageData.height);
+          nextCode = result?.data?.trim() || undefined;
+        }
 
         if (nextCode) {
           stopCamera();
@@ -388,6 +434,11 @@ export default function PvpQrScanRoute() {
       <Text style={[styles.subtitle, { color: c.textMuted }]}>
         Point your camera at the supplier&apos;s QR code to begin co-sign.
       </Text>
+
+      {isWeb && createElement('canvas', {
+        ref: (node: HTMLCanvasElement | null) => { canvasRef.current = node; },
+        style: { display: 'none' },
+      })}
 
       <View style={styles.viewfinderWrap}>
         <View style={[styles.viewfinder, { borderColor: c.border, backgroundColor: c.surface }]}>

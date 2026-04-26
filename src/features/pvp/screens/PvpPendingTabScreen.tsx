@@ -100,7 +100,7 @@ function BatchCard({ item }: { item: PvpBatchListItem }) {
     <TouchableOpacity
       style={[styles.batchCard, { backgroundColor: c.surface, borderColor: c.border }]}
       activeOpacity={0.82}
-      onPress={() => router.push(`/pvp/batch-detail?id=${item.id}` as never)}
+      onPress={() => router.push((isAccepted ? '/pvp/qr-scan' : `/pvp/batch-detail?id=${item.id}`) as never)}
     >
       <View style={styles.batchCardTop}>
         <Text style={[styles.batchMeta, { color: c.textMuted }]}>#{shortId(item.id)}</Text>

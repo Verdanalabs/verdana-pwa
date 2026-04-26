@@ -19,7 +19,6 @@ function formatDate(iso: string): string {
 
 export function BatchCard({ batch, onPress }: BatchCardProps) {
   const c = useThemeColors();
-  const shortId = `#${batch.id.slice(0, 8).toUpperCase()}`;
   const title = `${batch.materialType} · ${batch.estimatedWeightKg} kg`;
 
   return (
@@ -34,14 +33,17 @@ export function BatchCard({ batch, onPress }: BatchCardProps) {
         <View style={styles.topRow}>
           <View style={styles.leftCol}>
             <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
-            <Text style={[styles.shortId, { color: c.textFaint }]}>{shortId}</Text>
           </View>
           <StatusBadge status={batch.status} size="sm" />
         </View>
 
         <View style={styles.metaRow}>
-          <Text style={[styles.meta, { color: c.textMuted }]}>{batch.pvpName}</Text>
-          <View style={[styles.dot, { backgroundColor: c.textFaint }]} />
+          {!!batch.pvpName && (
+            <>
+              <Text style={[styles.meta, { color: c.textMuted }]}>{batch.pvpName}</Text>
+              <View style={[styles.dot, { backgroundColor: c.textFaint }]} />
+            </>
+          )}
           <Text style={[styles.meta, { color: c.textMuted }]}>{formatDate(batch.capturedAt)}</Text>
         </View>
       </View>
