@@ -137,13 +137,6 @@ export default function BatchDetailsRoute() {
               })}
             </View>
           </View>
-
-          <View style={[styles.infoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Ionicons name="information-circle-outline" size={18} color={c.accent} />
-            <Text style={[styles.infoText, { color: c.textSecondary }]}>
-              This mock flow keeps the detail step short. Moisture, contamination, and notes can be added later if needed.
-            </Text>
-          </View>
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>

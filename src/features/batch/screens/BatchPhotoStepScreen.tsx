@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { PrimaryButton } from '@/src/shared/ui/PrimaryButton';
@@ -176,6 +176,28 @@ export default function BatchPhotoRoute() {
     setCameraReady(false);
   }, [resetDraft]);
 
+  // ── Dev-only: pick image from file system ─────────────────────────────────
+  const handleDevFilePick = useCallback(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUri = reader.result as string;
+        setPreviewUri(dataUri);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    input.click();
+  }, []);
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
       <View style={styles.screen}>
@@ -273,6 +295,22 @@ export default function BatchPhotoRoute() {
                   </Text>
                 </TouchableOpacity>
               )}
+            </View>
+          )}
+
+          {/* Dev-only: file upload fallback */}
+          {__DEV__ && !hasPhoto && !previewUri && Platform.OS === 'web' && (
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={[styles.captureBtn, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf640', borderWidth: 1 }]}
+                onPress={handleDevFilePick}
+                activeOpacity={0.82}
+              >
+                <Ionicons name="image-outline" size={18} color="#8b5cf6" />
+                <Text style={[styles.captureBtnLabel, { color: '#8b5cf6' }]}>
+                  DEV: Upload from file
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 

@@ -133,7 +133,11 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
   const isAccepted = item.status === 'accepted';
 
   return (
-    <View style={[styles.priorityCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+    <TouchableOpacity
+      style={[styles.priorityCard, { backgroundColor: c.surface, borderColor: c.border }]}
+      activeOpacity={0.82}
+      onPress={() => router.push(`/pvp/batch-detail?id=${item.id}` as never)}
+    >
       <View style={styles.priorityTop}>
         <View style={styles.priorityIdentity}>
           <View style={[styles.priorityMaterialBadge, { backgroundColor: `${matColor}18`, borderColor: `${matColor}40` }]}>
@@ -175,8 +179,9 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
             {isAccepted ? 'Scan and weigh' : 'Review request'}
           </Text>
         </View>
+        <Ionicons name="chevron-forward" size={16} color={c.textMuted} style={{ alignSelf: 'center' }} />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
