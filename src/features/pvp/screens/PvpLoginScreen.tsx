@@ -45,7 +45,7 @@ export default function PvpLoginRoute() {
 
   function openWhatsApp() {
     const msg = encodeURIComponent('Hi, I would like to register as a PVP operator on Verdana Protocol.');
-    void Linking.openURL(`https://wa.me/6283875927641?text=${msg}`);
+    void Linking.openURL(`https://wa.me/6287700598282?text=${msg}`);
   }
 
   return (
