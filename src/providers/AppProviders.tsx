@@ -28,9 +28,21 @@ function CollectorProviders({ children }: { children: ReactNode }) {
 
 function PvpProviders({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider>
-      <PvpAuthProvider>{children}</PvpAuthProvider>
-    </ThemeProvider>
+    <PrivyProvider
+      appId={runtimeConfig.privyAppId}
+      config={{
+        loginMethods: ['google', 'email'],
+        embeddedWallets: {
+          solana: {
+            createOnLogin: 'users-without-wallets',
+          },
+        },
+      }}
+    >
+      <ThemeProvider>
+        <PvpAuthProvider>{children}</PvpAuthProvider>
+      </ThemeProvider>
+    </PrivyProvider>
   );
 }
 

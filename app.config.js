@@ -8,5 +8,6 @@ module.exports = () => ({
     privyAppId: process.env.EXPO_PUBLIC_PRIVY_APP_ID || '',
     collectorAppUrl: process.env.EXPO_PUBLIC_COLLECTOR_APP_URL || '',
     pvpAppUrl: process.env.EXPO_PUBLIC_PVP_APP_URL || '',
+    oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || '',
   },
 });

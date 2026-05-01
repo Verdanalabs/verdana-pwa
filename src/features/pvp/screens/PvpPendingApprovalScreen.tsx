@@ -1,14 +1,28 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
+import { PushPermissionBanner } from '@/src/features/notifications/components/PushPermissionBanner';
+import { usePushNotifications } from '@/src/features/notifications/hooks/usePushNotifications';
 
 export default function PvpPendingApprovalRoute() {
   const c = useThemeColors();
-  const { operator, signOut } = usePvpAuth();
+  const { state, operator, token, refreshSession, signOut } = usePvpAuth();
+  const isRejected = operator?.approval_status === 'rejected';
+  const push = usePushNotifications({
+    userId: operator?.id,
+    role: 'processor',
+    email: operator?.email,
+    getAccessToken: async () => token,
+  });
+
+  useEffect(() => {
+    if (state === 'active') router.replace('/pvp/welcome' as never);
+  }, [state]);
 
   function handleReject() {
     signOut();
@@ -25,11 +39,13 @@ export default function PvpPendingApprovalRoute() {
           </View>
 
           <View style={styles.copyBlock}>
-            <Text style={[styles.title, { color: c.foreground }]}>
-              Waiting for approval
+            <Text style={[styles.title, { color: c.foreground }]}> 
+              {isRejected ? 'Access request rejected' : 'Akun kamu sedang ditinjau'}
             </Text>
-            <Text style={[styles.subtitle, { color: c.textSecondary }]}>
-              Your wallet has been submitted. An admin will review and approve your access before you can start operating.
+            <Text style={[styles.subtitle, { color: c.textSecondary }]}> 
+              {isRejected
+                ? operator?.rejection_reason ?? 'Admin rejected this processor request. Contact Verdana if you think this is a mistake.'
+                : 'Tim Verdana akan meninjau profil dan mengaktifkan akses PVP kamu setelah disetujui.'}
             </Text>
           </View>
 
@@ -43,17 +59,39 @@ export default function PvpPendingApprovalRoute() {
             </View>
           </View>
 
-          <View style={[styles.statusCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+          <View style={[styles.statusCard, { backgroundColor: c.surface, borderColor: c.border }]}> 
             <View style={styles.statusRow}>
               <View style={[styles.statusDot, { backgroundColor: '#f59e0b' }]} />
               <Text style={[styles.statusText, { color: c.textSecondary }]}>
-                Pending admin review
+                {isRejected ? 'Rejected' : 'Pending admin review'}
               </Text>
             </View>
-            <Text style={[styles.statusHint, { color: c.textMuted }]}>
-              You&apos;ll be able to proceed once your access is approved. This usually takes a short time.
+            <Text style={[styles.statusHint, { color: c.textMuted }]}> 
+              {isRejected
+                ? 'Sign out and contact Verdana admin for the next step.'
+                : 'Tap refresh after you receive an approval notification.'}
             </Text>
           </View>
+
+          {!isRejected && (
+            <PushPermissionBanner
+              status={push.status}
+              error={push.error}
+              title="Get approval alerts"
+              body="Enable notifications so Verdana can tell you as soon as this PVP account is approved."
+              onEnable={() => { void push.requestPermission(); }}
+            />
+          )}
+
+          {!isRejected && (
+            <TouchableOpacity
+              style={[styles.refreshBtn, { backgroundColor: c.accent }]}
+              onPress={() => void refreshSession()}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.refreshBtnText, { color: c.accentContrast }]}>Refresh status</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity
@@ -155,6 +193,16 @@ const styles = StyleSheet.create({
     fontFamily: Font.regular,
     fontSize: FontSize.sm,
     lineHeight: 20,
+  },
+  refreshBtn: {
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshBtnText: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.md,
   },
   devBlock: {
     borderWidth: 1,

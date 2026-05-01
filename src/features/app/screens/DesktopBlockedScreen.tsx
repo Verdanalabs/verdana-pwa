@@ -42,8 +42,8 @@ export default function DesktopBlockedScreen() {
               <View style={[styles.pillDot, { backgroundColor: c.accent }]} />
               <Text style={[styles.pillText, { color: c.accent }]}>Hey there 👋</Text>
             </View>
-            <Text style={[styles.title, { color: c.foreground }]}>
-              Looks like you're{'\n'}on a desktop.
+            <Text style={[styles.title, { color: c.foreground }]}> 
+              {"Looks like you're\non a desktop."}
             </Text>
             <Text style={[styles.subtitle, { color: c.textMuted }]}>
               No worries! Verdana is built for the field — grab your phone and open this same link there. It only takes a few seconds to get started.
@@ -52,7 +52,7 @@ export default function DesktopBlockedScreen() {
 
           {/* Steps */}
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Text style={[styles.cardHeading, { color: c.foreground }]}>Here's what to do</Text>
+            <Text style={[styles.cardHeading, { color: c.foreground }]}>What to do next</Text>
             <View style={[styles.divider, { backgroundColor: c.border }]} />
             {steps.map((step) => (
               <View key={step.num} style={styles.stepRow}>

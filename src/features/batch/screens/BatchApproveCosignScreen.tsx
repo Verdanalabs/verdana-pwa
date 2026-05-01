@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { usePrivy } from '@privy-io/react-auth';
+import * as Location from 'expo-location';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
@@ -98,9 +99,15 @@ export default function BatchApproveCosignScreen() {
       const token = await getAccessToken();
       if (!token) throw new Error('Not authenticated');
 
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        throw new Error('Aktifkan izin lokasi supaya sistem bisa memvalidasi kamu berada di PVP.');
+      }
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+
       await cosignBatch(token, batch.id, {
-        latitude: 0,
-        longitude: 0,
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
       });
 
       setDone(true);
