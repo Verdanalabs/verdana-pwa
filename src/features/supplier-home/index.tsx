@@ -4,9 +4,12 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
+import { PushPermissionBanner } from '@/src/features/notifications/components/PushPermissionBanner';
+import { usePushNotifications } from '@/src/features/notifications/hooks/usePushNotifications';
 import { HeroCard } from './components/HeroCard';
 import { QuickActions } from './components/QuickActions';
 import { LatestBatches } from './components/LatestBatches';
@@ -47,7 +50,14 @@ function dicebearUrl(name: string) {
 
 export function SupplierHomeScreen() {
   const c = useThemeColors();
+  const { getAccessToken } = usePrivy();
   const { isLoading, isRefreshing, user, batches, dashboard, refresh } = useSupplierHome();
+  const push = usePushNotifications({
+    userId: user?.id,
+    role: 'collector',
+    email: user?.email,
+    getAccessToken,
+  });
 
   useFocusEffect(useCallback(() => {
     void refresh();
@@ -75,6 +85,7 @@ export function SupplierHomeScreen() {
         <View style={styles.topBarRight}>
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1 }]}
+            onPress={() => { void push.requestPermission(); }}
           >
             <Ionicons name="notifications-outline" size={18} color={c.textSecondary} />
           </TouchableOpacity>
@@ -101,6 +112,13 @@ export function SupplierHomeScreen() {
             />
           )}
         >
+          <PushPermissionBanner
+            status={push.status}
+            error={push.error}
+            title="Get batch updates"
+            body="Receive alerts when PVP receives your batch, requests your signature, or finishes verification."
+            onEnable={() => { void push.requestPermission(); }}
+          />
           <HeroCard data={activeDashboard} supplierName={displayName} />
           <DashboardMetrics data={activeDashboard} />
           <QuickActions />

@@ -89,8 +89,8 @@ export function HeroCard({ data, supplierName }: HeroCardProps) {
             <Text style={[styles.greeting, { color: HERO_TEXT }]}>
               Hi, {firstName}
             </Text>
-            <Text style={[styles.subtext, { color: HERO_TEXT_MUTED }]}>
-              Here's your collection overview
+            <Text style={[styles.subtext, { color: HERO_TEXT_MUTED }]}> 
+              Your collection overview
             </Text>
           </View>
 

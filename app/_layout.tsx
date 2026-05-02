@@ -50,11 +50,18 @@ function PvpSurfaceRedirect() {
   const { state } = usePvpAuth();
 
   if (state === 'active') {
+    if (typeof window !== 'undefined' && window.localStorage.getItem('verdana:pvp-walkthrough-seen') !== '1') {
+      return <Redirect href="/pvp/welcome" />;
+    }
     return <Redirect href={getAuthenticatedHref('pvp')} />;
   }
 
-  if (state === 'authenticated') {
+  if (state === 'authenticated' || state === 'approved') {
     return <Redirect href="/pvp/onboarding" />;
+  }
+
+  if (state === 'pending' || state === 'rejected') {
+    return <Redirect href="/pvp/pending-approval" />;
   }
 
   return <Redirect href={getGuestEntryHref('pvp')} />;

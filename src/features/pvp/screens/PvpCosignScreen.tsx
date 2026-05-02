@@ -109,6 +109,15 @@ export default function PvpCosignScreen() {
       return;
     }
 
+    const estimated = batch.estimated_weight_grams ?? 0;
+    if (estimated > 0) {
+      const diffPercent = Math.abs(((grams - estimated) / estimated) * 100);
+      if (diffPercent > 50) {
+        setSubmitError('Discrepancy is above 50%. This batch requires admin review before confirmation.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -200,6 +209,15 @@ export default function PvpCosignScreen() {
   const estimatedKg = batch.estimated_weight_grams != null
     ? (batch.estimated_weight_grams / 1000).toFixed(1)
     : '-';
+  const actualKgNumber = parseFloat(actualWeightKg);
+  const estimatedGrams = batch.estimated_weight_grams ?? 0;
+  const actualGrams = Number.isFinite(actualKgNumber) ? Math.round(actualKgNumber * 1000) : 0;
+  const diffPercent = estimatedGrams > 0 && actualGrams > 0
+    ? ((actualGrams - estimatedGrams) / estimatedGrams) * 100
+    : null;
+  const absDiffPercent = diffPercent == null ? 0 : Math.abs(diffPercent);
+  const isHighDiscrepancy = absDiffPercent > 15;
+  const isBlockedDiscrepancy = absDiffPercent > 50;
   const shortId = batch.id.slice(0, 8).toUpperCase();
   const alreadyCosigned = batch.status !== 'accepted';
 
@@ -265,7 +283,7 @@ export default function PvpCosignScreen() {
               <Text style={[styles.inputHint, { color: c.textMuted }]}>
                 Weigh the batch and enter the confirmed weight below.
               </Text>
-              <View style={[styles.inputRow, { borderColor: c.border, backgroundColor: c.background }]}>
+              <View style={[styles.inputRow, { borderColor: c.border, backgroundColor: c.background }]}> 
                 <TextInput
                   value={actualWeightKg}
                   onChangeText={setActualWeightKg}
@@ -276,6 +294,25 @@ export default function PvpCosignScreen() {
                 />
                 <Text style={[styles.unitLabel, { color: c.textSecondary }]}>kg</Text>
               </View>
+              {diffPercent != null && (
+                <View style={[
+                  styles.discrepancyCard,
+                  {
+                    backgroundColor: isBlockedDiscrepancy ? `${c.error}12` : isHighDiscrepancy ? '#f59e0b14' : `${c.accent}10`,
+                    borderColor: isBlockedDiscrepancy ? `${c.error}30` : isHighDiscrepancy ? '#f59e0b35' : `${c.accent}24`,
+                  },
+                ]}>
+                  <Ionicons
+                    name={isBlockedDiscrepancy ? 'ban-outline' : isHighDiscrepancy ? 'warning-outline' : 'checkmark-circle-outline'}
+                    size={17}
+                    color={isBlockedDiscrepancy ? c.error : isHighDiscrepancy ? '#f59e0b' : c.accent}
+                  />
+                  <Text style={[styles.discrepancyText, { color: isBlockedDiscrepancy ? c.error : c.textSecondary }]}> 
+                    Estimasi {estimatedKg} kg · Aktual {actualKgNumber.toFixed(1)} kg · Selisih {diffPercent > 0 ? '+' : ''}{diffPercent.toFixed(0)}%
+                    {isBlockedDiscrepancy ? ' · Requires admin review' : isHighDiscrepancy ? ' · High discrepancy' : ''}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {submitError && (
@@ -299,15 +336,15 @@ export default function PvpCosignScreen() {
             <TouchableOpacity
               style={[
                 styles.cosignBtn,
-                { backgroundColor: actualWeightKg.trim() ? c.accent : c.border },
+                { backgroundColor: actualWeightKg.trim() && !isBlockedDiscrepancy ? c.accent : c.border },
               ]}
               onPress={handleWeigh}
-              disabled={!actualWeightKg.trim() || isSubmitting}
+              disabled={!actualWeightKg.trim() || isSubmitting || isBlockedDiscrepancy}
               activeOpacity={0.85}
             >
-              <Ionicons name="scale-outline" size={20} color={actualWeightKg.trim() ? c.accentContrast : c.textMuted} />
-              <Text style={[styles.cosignBtnLabel, { color: actualWeightKg.trim() ? c.accentContrast : c.textMuted }]}>
-                Submit Weight
+              <Ionicons name="create-outline" size={20} color={actualWeightKg.trim() && !isBlockedDiscrepancy ? c.accentContrast : c.textMuted} />
+              <Text style={[styles.cosignBtnLabel, { color: actualWeightKg.trim() && !isBlockedDiscrepancy ? c.accentContrast : c.textMuted }]}> 
+                Tanda Tangan & Konfirmasi
               </Text>
             </TouchableOpacity>
           )}
@@ -346,6 +383,15 @@ const styles = StyleSheet.create({
   },
   weightInput: { flex: 1, fontSize: FontSize['2xl'], fontFamily: Font.bold },
   unitLabel: { fontSize: FontSize.lg, fontFamily: Font.semiBold },
+  discrepancyCard: {
+    flexDirection: 'row',
+    gap: 9,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    alignItems: 'flex-start',
+  },
+  discrepancyText: { flex: 1, fontSize: FontSize.sm, fontFamily: Font.medium, lineHeight: 20 },
   noticeCard: {
     flexDirection: 'row', gap: 10, borderWidth: 1,
     borderRadius: 14, padding: 14, alignItems: 'flex-start',

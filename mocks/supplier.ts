@@ -21,5 +21,6 @@ export const MOCK_DASHBOARD: DashboardSummary = {
   cnftCount: 33,
   usdcBalance: 2450,
   reputationScore: 95.2,
+  reputationState: 'available',
   pendingTransitCount: 2,
 };

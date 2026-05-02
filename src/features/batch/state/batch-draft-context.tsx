@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { BatchGrade, MaterialType } from '@/types';
 
-interface BatchDraft {
+export interface BatchDraft {
   photoUri: string | null;
   capturedAt: string | null;
   materialType: MaterialType | null;
