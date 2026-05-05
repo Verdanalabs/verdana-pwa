@@ -55,8 +55,8 @@ export default function LoginRoute() {
           {/* Copy */}
           <View style={styles.copy}>
             <Text style={[styles.heading, { color: c.foreground }]}>Sign in</Text>
-            <Text style={[styles.sub, { color: c.textMuted }]}>
-              Choose how you'd like to continue.
+            <Text style={[styles.sub, { color: c.textMuted }]}> 
+              {"Choose how you'd like to continue."}
             </Text>
           </View>
 

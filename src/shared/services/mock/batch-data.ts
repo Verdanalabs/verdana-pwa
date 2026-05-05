@@ -18,5 +18,5 @@ export function getLatestMockBatchId(): string {
 }
 
 export function getMockCosignBatch(): Batch | undefined {
-  return MOCK_BATCHES.find((batch) => batch.status === 'transit') ?? MOCK_BATCHES[0];
+  return MOCK_BATCHES.find((batch) => batch.status === 'pending') ?? MOCK_BATCHES[0];
 }

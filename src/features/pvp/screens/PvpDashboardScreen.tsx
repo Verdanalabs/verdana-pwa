@@ -8,6 +8,8 @@ import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { usePvpBatchFeed } from '@/src/features/pvp/hooks/usePvpBatchFeed';
+import { PushPermissionBanner } from '@/src/features/notifications/components/PushPermissionBanner';
+import { usePushNotifications } from '@/src/features/notifications/hooks/usePushNotifications';
 import type { PvpBatchListItem } from '@/src/features/batch/services/batch-api';
 
 const MATERIAL_COLOR: Record<string, string> = {
@@ -204,8 +206,14 @@ function ActivityCard({ item }: { item: PvpBatchListItem }) {
 
 export default function PvpDashboardTab() {
   const c = useThemeColors();
-  const { operator, activeSite } = usePvpAuth();
+  const { operator, activeSite, token } = usePvpAuth();
   const { batches, isLoading, isRefreshing, error, reload } = usePvpBatchFeed();
+  const push = usePushNotifications({
+    userId: operator?.id,
+    role: 'processor',
+    email: operator?.email,
+    getAccessToken: async () => token,
+  });
 
   const pending = batches.filter((batch) => batch.status === 'pending');
   const readyToWeigh = batches.filter((batch) => batch.status === 'accepted');
@@ -250,10 +258,18 @@ export default function PvpDashboardTab() {
           <View style={styles.header}>
             <Text style={[styles.eyebrow, { color: c.accent }]}>PVP DASHBOARD</Text>
             <Text style={[styles.pageTitle, { color: c.foreground }]}>Good shift, {operatorFirstName}</Text>
-            <Text style={[styles.pageSubtitle, { color: c.textMuted }]}>
+            <Text style={[styles.pageSubtitle, { color: c.textMuted }]}> 
               Keep the queue moving from intake to co-sign with a clean operating view.
             </Text>
           </View>
+
+          <PushPermissionBanner
+            status={push.status}
+            error={push.error}
+            title="Enable PVP alerts"
+            body="Get notified when collectors send batches to your site and when approval status changes."
+            onEnable={() => { void push.requestPermission(); }}
+          />
 
           <LinearGradient
             colors={[c.heroGradient[0], c.heroGradient[1], c.heroGradient[2]]}

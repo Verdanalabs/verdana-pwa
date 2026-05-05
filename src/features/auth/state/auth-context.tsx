@@ -11,6 +11,7 @@ import {
 import { usePrivy, useLogout } from "@privy-io/react-auth";
 import { syncUser, type VerdanaUser } from "@/src/features/auth/services/auth-api";
 import { ApiError } from "@/src/shared/services/api";
+import { logoutOneSignalUser } from "@/src/features/notifications/services/onesignal-client";
 
 interface OnboardingInput {
   name: string;
@@ -94,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     sync();
-  }, [ready, authenticated, privyUser, getAccessToken]);
+  }, [ready, authenticated, privyUser, getAccessToken, logout]);
 
   const completeOnboarding = useCallback(
     async (input: OnboardingInput) => {
@@ -126,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setNeedsOnboarding(false);
         syncedRef.current = false;
+        void logoutOneSignalUser();
         logout();
       },
     }),

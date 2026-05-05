@@ -16,7 +16,7 @@ function BatchDraftHarness() {
       <Pressable onPress={() => setDetails({ materialType: 'PET', estimatedWeightKg: '42', grade: 'A' })}>
         <Text>details</Text>
       </Pressable>
-      <Pressable onPress={() => setLocation({ dropOffPoint: 'East Bekasi Drop-off', gpsLat: -6.52, gpsLng: 107.07, distanceKm: 2.3 })}>
+      <Pressable onPress={() => setLocation({ dropOffPoint: 'East Bekasi Drop-off', pvpSiteId: 'site-1', originLat: -6.51, originLng: 107.06, gpsLat: -6.52, gpsLng: 107.07, distanceKm: 2.3 })}>
         <Text>location</Text>
       </Pressable>
       <Pressable onPress={resetDraft}>

@@ -70,13 +70,13 @@ export interface CreateBatchPayload {
   estimated_weight_grams: number;
   origin_latitude: number;
   origin_longitude: number;
-  media: Array<{
+  media: {
     storage_key: string;
     media_kind: string;
     mime_type: string;
     captured_at?: string | null;
     sha256_hex?: string;
-  }>;
+  }[];
 }
 
 export interface PvpBatchListItem {
@@ -163,6 +163,6 @@ export function getPvpBatches(token: string, status?: string): Promise<PvpBatchL
   return apiRequest<PvpBatchListItem[]>(`/v1/pvp/batches${query}`, { token });
 }
 
-export function getPvpSites(token: string): Promise<Array<{ id: string; name: string; latitude: number; longitude: number; radius_meters: number }>> {
+export function getPvpSites(token: string): Promise<{ id: string; name: string; latitude: number; longitude: number; radius_meters: number }[]> {
   return apiRequest(`/v1/pvp-sites`, { token });
 }

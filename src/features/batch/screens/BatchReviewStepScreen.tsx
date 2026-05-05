@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usePrivy } from '@privy-io/react-auth';
@@ -12,6 +11,8 @@ import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { useAuth } from '@/src/features/auth/state/auth-context';
 import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
 import { createUploadUrl, createBatch } from '@/src/features/batch/services/batch-api';
+import NetInfo from '@react-native-community/netinfo';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
 
 function StepHeader({ step, title, body }: { step: string; title: string; body: string }) {
   const c = useThemeColors();
@@ -44,6 +45,7 @@ export default function BatchReviewRoute() {
   const { draft, resetDraft } = useBatchDraft();
   const { user } = useAuth();
   const { getAccessToken } = usePrivy();
+  const { addToQueue } = useOfflineQueue();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -57,6 +59,15 @@ export default function BatchReviewRoute() {
     setSubmitError(null);
 
     try {
+      const netInfo = await NetInfo.fetch();
+      if (!netInfo.isConnected || !netInfo.isInternetReachable) {
+        // Offline -> save to queue
+        await addToQueue(draft);
+        resetDraft();
+        router.replace('/home' as never); // Go home, the queue will sync in background
+        return;
+      }
+
       const token = await getAccessToken();
       if (!token) throw new Error('Not authenticated');
 
