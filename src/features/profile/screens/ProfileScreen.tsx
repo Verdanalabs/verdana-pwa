@@ -84,7 +84,7 @@ export default function ProfileRoute() {
         <View style={styles.header}>
           <Text style={[styles.title, { color: c.foreground }]}>Profile</Text>
           <Text style={[styles.subtitle, { color: c.textSecondary }]}>
-            Your account details, wallet access, and app settings.
+            Your account details, marketplace access, and app settings.
           </Text>
         </View>
 
@@ -120,7 +120,7 @@ export default function ProfileRoute() {
             <Text style={[styles.detailValue, { color: c.foreground }]}>{user?.email ?? '-'}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Wallet</Text>
+            <Text style={[styles.detailLabel, { color: c.textMuted }]}>Wallet Address</Text>
             <Text style={[styles.detailValue, { color: c.foreground }]}>
               {user?.wallet_address ? shortAddress(user.wallet_address) : '-'}
             </Text>
@@ -131,9 +131,9 @@ export default function ProfileRoute() {
           <Text style={[styles.sectionCaption, { color: c.textFaint }]}>ACCESS</Text>
 
           <SettingRow
-            icon="wallet-outline"
-            label="Open Wallet"
-            hint="Review assets, wallet address, and current balances"
+            icon="storefront-outline"
+            label="Open Marketplace"
+            hint="Browse listings, sell your assets, and manage your listings"
             iconColor={c.accent}
             iconBg={`${c.accent}16`}
             onPress={() => router.push('/(supplier-tabs)/wallet')}
