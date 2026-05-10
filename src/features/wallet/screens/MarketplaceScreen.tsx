@@ -2,6 +2,8 @@ import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+const COMING_SOON = true;
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialBadge } from '@/src/shared/ui/MaterialBadge';
@@ -183,6 +185,25 @@ function BrowseSkeleton() {
 
 export default function MarketplaceScreen() {
   const c = useThemeColors();
+
+  if (COMING_SOON) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
+        <View style={styles.comingSoonContainer}>
+          <View style={[styles.comingSoonIcon, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}33` }]}>
+            <Ionicons name="storefront-outline" size={36} color={c.accent} />
+          </View>
+          <Text style={[styles.comingSoonTitle, { color: c.foreground }]}>Marketplace</Text>
+          <View style={[styles.comingSoonBadge, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}33` }]}>
+            <Text style={[styles.comingSoonBadgeText, { color: c.accent }]}>Coming Soon</Text>
+          </View>
+          <Text style={[styles.comingSoonDesc, { color: c.textMuted }]}>
+            Buy and sell verified recycling assets directly on-chain. We're putting the finishing touches on it.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
   const { getAccessToken } = usePrivy();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('browse');
@@ -505,6 +526,44 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   sellBtnText: { fontSize: FontSize.xs, fontFamily: Font.semiBold },
+  // Coming soon
+  comingSoonContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 36,
+    gap: 16,
+  },
+  comingSoonIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  comingSoonTitle: {
+    fontSize: FontSize['2xl'],
+    fontFamily: Font.bold,
+  },
+  comingSoonBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  comingSoonBadgeText: {
+    fontSize: FontSize.sm,
+    fontFamily: Font.semiBold,
+  },
+  comingSoonDesc: {
+    fontSize: FontSize.md,
+    fontFamily: Font.regular,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   // Empty
   emptyCard: {
     borderWidth: 1,
