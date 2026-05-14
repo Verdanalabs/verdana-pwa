@@ -17,7 +17,7 @@ const LEFT_TABS  = [
   { name: 'history', path: '/(supplier-tabs)/history', label: 'History', icon: 'time-outline' as const, active: 'time' as const },
 ];
 const RIGHT_TABS = [
-  { name: 'wallet', path: '/(supplier-tabs)/wallet', label: 'Wallet', icon: 'wallet-outline' as const, active: 'wallet' as const },
+  { name: 'wallet', path: '/(supplier-tabs)/wallet', label: 'Market', icon: 'storefront-outline' as const, active: 'storefront' as const },
   { name: 'profile', path: '/(supplier-tabs)/profile', label: 'Profile', icon: 'person-outline' as const, active: 'person' as const },
 ];
 

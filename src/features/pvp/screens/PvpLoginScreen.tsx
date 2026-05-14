@@ -32,15 +32,15 @@ export default function PvpLoginRoute() {
   }, [state]);
 
   function openWhatsApp() {
-    const msg = encodeURIComponent('Hi, I need a Verdana PVP processor invite link.');
-    void Linking.openURL(`https://wa.me/6283875927641?text=${msg}`);
+    const msg = encodeURIComponent('Hi, I would like to register as a PVP operator on Verdana Protocol.');
+    void Linking.openURL(`https://wa.me/6287700598282?text=${msg}`);
   }
 
   const hasInvite = Boolean(inviteParam);
   const canLogin = Boolean(invite?.is_usable) && isReady;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}> 
+    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
       <View style={[styles.topAccent, { backgroundColor: c.accent }]} />
 
       <View style={styles.root}>
@@ -58,7 +58,7 @@ export default function PvpLoginRoute() {
           </View>
 
           {hasInvite ? (
-            <View style={[styles.inviteCard, { backgroundColor: c.surface, borderColor: inviteError ? c.error : c.border }]}> 
+            <View style={[styles.inviteCard, { backgroundColor: c.surface, borderColor: inviteError ? c.error : c.border }]}>
               {!invite && !inviteError ? (
                 <View style={styles.loadingRow}>
                   <ActivityIndicator color={c.accent} size="small" />
@@ -83,7 +83,7 @@ export default function PvpLoginRoute() {
               ) : null}
             </View>
           ) : (
-            <View style={[styles.inviteCard, { backgroundColor: c.surface, borderColor: c.border }]}> 
+            <View style={[styles.inviteCard, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Ionicons name="mail-unread-outline" size={18} color={c.textMuted} />
               <View style={styles.inviteCopy}>
                 <Text style={[styles.inviteTitle, { color: c.foreground }]}>Invite required</Text>
@@ -120,7 +120,7 @@ export default function PvpLoginRoute() {
               <Text style={[styles.waTitle, { color: c.textSecondary }]}>No invite link?</Text>
               <Text style={[styles.waSub, { color: c.textMuted }]}>Contact Verdana admin via WhatsApp.</Text>
             </View>
-            <View style={[styles.waIcon, { backgroundColor: '#25D366' }]}> 
+            <View style={[styles.waIcon, { backgroundColor: '#25D366' }]}>
               <Ionicons name="logo-whatsapp" size={18} color="#fff" />
             </View>
           </TouchableOpacity>

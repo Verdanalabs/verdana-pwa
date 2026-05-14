@@ -47,8 +47,8 @@ export function QuickActions() {
           onPress={() => router.push('/(supplier-tabs)/history')}
         />
         <ActionItem
-          icon="wallet-outline"
-          label="Wallet"
+          icon="storefront-outline"
+          label="Market"
           onPress={() => router.push('/(supplier-tabs)/wallet')}
         />
         <ActionItem

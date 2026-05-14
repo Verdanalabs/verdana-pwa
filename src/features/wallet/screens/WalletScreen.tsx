@@ -9,7 +9,13 @@ import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { useWallet } from '@/src/features/wallet/hooks/useWallet';
-import type { CNFTStatus } from '@/types';
+import { useListings } from '@/src/features/wallet/hooks/useListings';
+import { CreateListingModal } from '@/src/features/wallet/components/CreateListingModal';
+import type { CNFT, CNFTStatus } from '@/types';
+
+function formatIDR(amount: number): string {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -113,7 +119,9 @@ function WalletLoadingSkeleton() {
 export default function WalletRoute() {
   const c = useThemeColors();
   const { wallet, user, isLoading, isRefreshing, error, reload } = useWallet();
+  const { listingByBatchId, create, cancel } = useListings();
   const [copied, setCopied] = useState(false);
+  const [listingTarget, setListingTarget] = useState<CNFT | null>(null);
 
   useFocusEffect(useCallback(() => {
     void reload();
@@ -247,61 +255,101 @@ export default function WalletRoute() {
 
         {wallet.cnfts.length > 0 ? (
           <View style={styles.assetList}>
-            {wallet.cnfts.map((asset) => (
-              <TouchableOpacity
-                key={asset.batchId}
-                style={[styles.assetCard, { backgroundColor: c.surface, borderColor: c.border }]}
-                onPress={() => router.push(`/wallet/cnft/${asset.batchId}` as never)}
-                activeOpacity={0.8}
-              >
-                {asset.imageUrl ? (
-                  <Image
-                    source={{ uri: asset.imageUrl }}
-                    style={styles.assetImage}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <View style={[styles.assetImage, styles.assetImageFallback, { backgroundColor: c.border }]}>
-                    <Ionicons name="image-outline" size={28} color={c.textMuted} />
-                  </View>
-                )}
+            {wallet.cnfts.map((asset) => {
+              const listing = listingByBatchId[asset.batchId];
+              const isListed = listing?.status === 'active';
+              const isSold = listing?.status === 'sold';
 
-                <View style={styles.assetBody}>
-                  <View style={styles.assetTop}>
-                    <View style={styles.assetTopLeft}>
-                      <Text style={[styles.assetTitle, { color: c.foreground }]}>
-                        {asset.materialType} · {asset.weightKg.toFixed(1)} kg
-                      </Text>
-                      <Text style={[styles.assetSubtitle, { color: c.textMuted }]}>
-                        Asset {shortAddress(asset.assetId)}
-                      </Text>
-                      <MaterialBadge material={asset.materialType} />
+              return (
+                <TouchableOpacity
+                  key={asset.batchId}
+                  style={[styles.assetCard, { backgroundColor: c.surface, borderColor: isListed ? c.accent : c.border }]}
+                  onPress={() => router.push(`/wallet/cnft/${asset.batchId}` as never)}
+                  activeOpacity={0.8}
+                >
+                  {asset.imageUrl ? (
+                    <Image
+                      source={{ uri: asset.imageUrl }}
+                      style={styles.assetImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={[styles.assetImage, styles.assetImageFallback, { backgroundColor: c.border }]}>
+                      <Ionicons name="image-outline" size={28} color={c.textMuted} />
                     </View>
-                    <AssetStatusPill status={asset.status} />
-                  </View>
+                  )}
 
-                  <View style={styles.assetMetrics}>
-                    <View style={styles.assetMetricItem}>
-                      <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Asset ID</Text>
-                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{shortAddress(asset.assetId)}</Text>
+                  <View style={styles.assetBody}>
+                    <View style={styles.assetTop}>
+                      <View style={styles.assetTopLeft}>
+                        <Text style={[styles.assetTitle, { color: c.foreground }]}>
+                          {asset.materialType} · {asset.weightKg.toFixed(1)} kg
+                        </Text>
+                        <Text style={[styles.assetSubtitle, { color: c.textMuted }]}>
+                          Asset {shortAddress(asset.assetId)}
+                        </Text>
+                        <MaterialBadge material={asset.materialType} />
+                      </View>
+                      <AssetStatusPill status={asset.status} />
                     </View>
-                    <View style={styles.assetMetricItem}>
-                      <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Proof</Text>
-                      <Text style={[styles.assetMetricValue, { color: c.foreground }]}>
-                        {asset.txSignature ? 'On-chain' : 'Pending'}
-                      </Text>
-                    </View>
-                  </View>
 
-                  <View style={styles.assetBottom}>
-                    <Text style={[styles.assetBottomText, { color: c.textMuted }]}>
-                      Minted {formatDate(asset.mintedAt)}
-                    </Text>
-                    <Ionicons name="arrow-forward" size={16} color={c.textFaint} />
+                    <View style={styles.assetMetrics}>
+                      <View style={styles.assetMetricItem}>
+                        <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Asset ID</Text>
+                        <Text style={[styles.assetMetricValue, { color: c.foreground }]}>{shortAddress(asset.assetId)}</Text>
+                      </View>
+                      <View style={styles.assetMetricItem}>
+                        <Text style={[styles.assetMetricLabel, { color: c.textMuted }]}>Proof</Text>
+                        <Text style={[styles.assetMetricValue, { color: c.foreground }]}>
+                          {asset.txSignature ? 'On-chain' : 'Pending'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Listing row */}
+                    <View style={styles.listingRow}>
+                      <Text style={[styles.assetBottomText, { color: c.textMuted }]}>
+                        Minted {formatDate(asset.mintedAt)}
+                      </Text>
+
+                      {isSold ? (
+                        <View style={[styles.soldBadge, { backgroundColor: `${c.accent}22` }]}>
+                          <Text style={[styles.soldBadgeText, { color: c.accent }]}>Terjual</Text>
+                        </View>
+                      ) : isListed ? (
+                        <View style={styles.listedActions}>
+                          <Text style={[styles.listedPrice, { color: c.accent }]}>
+                            {formatIDR(listing.price_idr)}
+                          </Text>
+                          <TouchableOpacity
+                            style={[styles.cancelListingBtn, { borderColor: c.border }]}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              void cancel(listing.id);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={[styles.cancelListingText, { color: c.textSecondary }]}>Batalkan</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={[styles.sellBtn, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}44` }]}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            setListingTarget(asset);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="pricetag-outline" size={13} color={c.accent} />
+                          <Text style={[styles.sellBtnText, { color: c.accent }]}>Jual</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -313,6 +361,13 @@ export default function WalletRoute() {
           </View>
         )}
       </ScrollView>
+
+      <CreateListingModal
+        asset={listingTarget}
+        visible={listingTarget !== null}
+        onClose={() => setListingTarget(null)}
+        onSubmit={create}
+      />
     </SafeAreaView>
   );
 }
@@ -564,6 +619,53 @@ const styles = StyleSheet.create({
   assetImageFallback: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  listingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
+  soldBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  soldBadgeText: {
+    fontSize: FontSize.xs,
+    fontFamily: Font.semiBold,
+  },
+  listedActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  listedPrice: {
+    fontSize: FontSize.sm,
+    fontFamily: Font.bold,
+  },
+  cancelListingBtn: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  cancelListingText: {
+    fontSize: FontSize.xs,
+    fontFamily: Font.medium,
+  },
+  sellBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  sellBtnText: {
+    fontSize: FontSize.xs,
+    fontFamily: Font.semiBold,
   },
   retryButton: {
     marginTop: 8,

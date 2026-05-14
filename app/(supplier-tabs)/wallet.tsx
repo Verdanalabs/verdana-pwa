@@ -1,1 +1,1 @@
-export { default } from '@/src/features/wallet/screens/WalletScreen';
+export { default } from '@/src/features/wallet/screens/MarketplaceScreen';
