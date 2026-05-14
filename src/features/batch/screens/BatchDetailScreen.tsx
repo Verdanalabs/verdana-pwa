@@ -25,7 +25,7 @@ function statusToUi(status: string): BatchStatus {
   switch (status) {
     case 'pending':            return 'pending';
     case 'accepted':           return 'accepted';
-    case 'pickup_dispatched':  return 'accepted';
+    case 'pickup_dispatched':  return 'pickup_dispatched';
     case 'cosigning':          return 'cosigning';
     case 'cosigned':           return 'cosigned';
     case 'mint_pending':       return 'mint_pending';

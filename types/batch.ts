@@ -1,6 +1,7 @@
 export type BatchStatus =
   | 'pending'
   | 'accepted'
+  | 'pickup_dispatched'
   | 'cosigning'
   | 'cosigned'
   | 'mint_pending'

@@ -93,9 +93,7 @@ function QueueSummaryCard({
 function BatchCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
   const isPending = item.status === 'pending';
-  const isAccepted = item.status === 'accepted';
   const isDispatched = item.status === 'pickup_dispatched';
-  const isActive = isAccepted || isDispatched;
   const matColor = MATERIAL_COLOR[item.material.toUpperCase()] ?? c.accent;
 
   const statusLabel = isPending ? 'PENDING' : isDispatched ? 'EN ROUTE' : 'READY TO WEIGH';

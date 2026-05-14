@@ -11,16 +11,17 @@ import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { getBatches, type ApiBatch } from '@/src/features/batch/services/batch-api';
 import type { BatchStatus, BatchSummary } from '@/types';
 
-type StatusFilter = 'all' | 'pending' | 'accepted' | 'cosigning' | 'cosigned' | 'minted';
+type StatusFilter = 'all' | 'pending' | 'accepted' | 'pickup_dispatched' | 'cosigning' | 'cosigned' | 'minted';
 type MaterialFilter = 'all' | 'PET' | 'HDPE' | 'LDPE' | 'PP' | 'MIX';
 
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
-  { key: 'all',       label: 'All' },
-  { key: 'pending',   label: 'Pending' },
-  { key: 'accepted',  label: 'Accepted' },
-  { key: 'cosigning', label: 'Needs Approval' },
-  { key: 'cosigned',  label: 'Co-signed' },
-  { key: 'minted',    label: 'Asset Ready' },
+  { key: 'all',              label: 'All' },
+  { key: 'pending',          label: 'Pending' },
+  { key: 'accepted',         label: 'Accepted' },
+  { key: 'pickup_dispatched', label: 'On the Way' },
+  { key: 'cosigning',        label: 'Needs Approval' },
+  { key: 'cosigned',         label: 'Co-signed' },
+  { key: 'minted',           label: 'Asset Ready' },
 ];
 
 const MATERIAL_FILTERS: MaterialFilter[] = ['all', 'PET', 'HDPE', 'LDPE', 'PP', 'MIX'];
@@ -35,14 +36,15 @@ function mapStatus(apiStatus: string): BatchStatus {
 
 function uiStatusFilter(apiStatus: string): StatusFilter {
   switch (apiStatus) {
-    case 'pending':     return 'pending';
-    case 'accepted':    return 'accepted';
-    case 'cosigning':   return 'cosigning';
+    case 'pending':            return 'pending';
+    case 'accepted':           return 'accepted';
+    case 'pickup_dispatched':  return 'pickup_dispatched';
+    case 'cosigning':          return 'cosigning';
     case 'cosigned':
     case 'mint_pending':
-    case 'mint_failed': return 'cosigned';
-    case 'minted':      return 'minted';
-    default:            return 'pending';
+    case 'mint_failed':        return 'cosigned';
+    case 'minted':             return 'minted';
+    default:                   return 'pending';
   }
 }
 

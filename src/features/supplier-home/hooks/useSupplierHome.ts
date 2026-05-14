@@ -15,13 +15,14 @@ function mapStatus(apiStatus: string): BatchStatus {
 }
 
 const STATUS_PRIORITY: Record<string, number> = {
-  pending:      0,
-  accepted:     1,
-  cosigning:    2,
-  cosigned:     3,
-  mint_pending: 4,
-  mint_failed:  4,
-  minted:       5,
+  pending:            0,
+  accepted:           1,
+  pickup_dispatched:  2,
+  cosigning:          3,
+  cosigned:           4,
+  mint_pending:       5,
+  mint_failed:        5,
+  minted:             6,
 };
 
 function sortBatches(batches: ApiBatch[]): ApiBatch[] {
@@ -54,7 +55,7 @@ function deriveDashboard(batches: ApiBatch[], user: VerdanaUser): DashboardSumma
     batchCount: batches.length,
     cnftCount: batches.filter((b) => b.status === 'minted').length,
     pendingTransitCount: batches.filter((b) =>
-      ['pending', 'accepted', 'cosigning'].includes(b.status)
+      ['pending', 'accepted', 'pickup_dispatched', 'cosigning'].includes(b.status)
     ).length,
     reputationScore: user.reputation?.score ?? null,
     reputationTier: user.reputation?.tier as DashboardSummary['reputationTier'],

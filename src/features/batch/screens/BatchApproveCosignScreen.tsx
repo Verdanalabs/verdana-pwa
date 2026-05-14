@@ -90,10 +90,41 @@ export default function BatchApproveCosignScreen() {
     return () => { cancelled = true; };
   }, [id, getAccessToken]);
 
+  const [approveStep, setApproveStep] = useState<string | null>(null);
+
+  async function acquireLocationWithRetry(): Promise<Location.LocationObject> {
+    // Accept a position cached within the last 10 s to avoid a cold-start GPS fix.
+    try {
+      return await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        maximumAge: 10_000,
+      });
+    } catch {
+      // First attempt failed (likely kCLErrorLocationUnknown while GPS is acquiring).
+      // Retry up to 2 more times with a short delay.
+    }
+
+    const MAX_RETRIES = 2;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      setApproveStep(`Getting location… (attempt ${attempt + 1}/${MAX_RETRIES + 1})`);
+      await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+      try {
+        return await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+      } catch (err) {
+        if (attempt === MAX_RETRIES) throw err;
+      }
+    }
+    // Unreachable, but satisfies TypeScript.
+    throw new Error('Unable to acquire GPS location.');
+  }
+
   async function handleApprove() {
     if (!batch || !user) return;
     setIsApproving(true);
     setApproveError(null);
+    setApproveStep('Checking location permission…');
 
     try {
       const token = await getAccessToken();
@@ -103,8 +134,16 @@ export default function BatchApproveCosignScreen() {
       if (status !== 'granted') {
         throw new Error('Aktifkan izin lokasi supaya sistem bisa memvalidasi kamu berada dekat processor.');
       }
-      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
 
+      setApproveStep('Getting your location…');
+      let location: Location.LocationObject;
+      try {
+        location = await acquireLocationWithRetry();
+      } catch {
+        throw new Error('Could not get your GPS location. Please step outside or try again in a moment.');
+      }
+
+      setApproveStep('Submitting…');
       await cosignBatch(token, batch.id, {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -115,6 +154,7 @@ export default function BatchApproveCosignScreen() {
       setApproveError(e instanceof Error ? e.message : 'Failed to approve. Please try again.');
     } finally {
       setIsApproving(false);
+      setApproveStep(null);
     }
   }
 
@@ -254,7 +294,9 @@ export default function BatchApproveCosignScreen() {
           {isApproving ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator color={c.accent} />
-              <Text style={[styles.loadingText, { color: c.textSecondary }]}>Approving...</Text>
+              <Text style={[styles.loadingText, { color: c.textSecondary }]}>
+                {approveStep ?? 'Approving…'}
+              </Text>
             </View>
           ) : (
             <TouchableOpacity
