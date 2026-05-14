@@ -37,7 +37,9 @@ export default function PvpLoginRoute() {
   }
 
   const hasInvite = Boolean(inviteParam);
-  const canLogin = Boolean(invite?.is_usable) && isReady;
+  // Invite is only required during onboarding (new registrations).
+  // Existing processors must always be able to log in, so only gate on Privy being ready.
+  const canLogin = isReady;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
@@ -84,10 +86,12 @@ export default function PvpLoginRoute() {
             </View>
           ) : (
             <View style={[styles.inviteCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Ionicons name="mail-unread-outline" size={18} color={c.textMuted} />
+              <Ionicons name="information-circle-outline" size={18} color={c.accent} />
               <View style={styles.inviteCopy}>
-                <Text style={[styles.inviteTitle, { color: c.foreground }]}>Invite required</Text>
-                <Text style={[styles.inviteText, { color: c.textMuted }]}>Ask Verdana admin for a PVP processor invite link.</Text>
+                <Text style={[styles.inviteTitle, { color: c.foreground }]}>Already a processor?</Text>
+                <Text style={[styles.inviteText, { color: c.textMuted }]}>
+                  Log in directly below. New registrations require an invite link from a Verdana admin.
+                </Text>
               </View>
             </View>
           )}

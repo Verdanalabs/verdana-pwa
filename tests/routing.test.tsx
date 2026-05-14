@@ -15,17 +15,22 @@ jest.mock('@/src/features/pvp/state/pvp-auth-context', () => ({
 }));
 
 jest.mock('@/src/shared/navigation/PvpTabBar', () => ({
-  PvpCustomTabBar: () => null,
+  PvpCustomTabBar: Object.assign(() => null, { displayName: 'PvpCustomTabBar' }),
 }));
 
 jest.mock('expo-router', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ReactLocal = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Text, View } = require('react-native');
 
   const Redirect = ({ href }: { href: string }) => ReactLocal.createElement(Text, { testID: 'redirect' }, href);
+  Redirect.displayName = 'Redirect';
   const Stack = ({ children }: { children?: React.ReactNode }) => ReactLocal.createElement(View, { testID: 'stack' }, children);
+  Stack.displayName = 'Stack';
   const Tabs = ({ children }: { children?: React.ReactNode }) => ReactLocal.createElement(View, { testID: 'tabs' }, children);
-  Tabs.Screen = () => null;
+  Tabs.displayName = 'Tabs';
+  Tabs.Screen = Object.assign(() => null, { displayName: 'Tabs.Screen' });
 
   return { Redirect, Stack, Tabs };
 });

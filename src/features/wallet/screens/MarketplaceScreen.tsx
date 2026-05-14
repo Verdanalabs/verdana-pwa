@@ -2,8 +2,6 @@ import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const COMING_SOON = true;
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialBadge } from '@/src/shared/ui/MaterialBadge';
@@ -16,6 +14,8 @@ import { CreateListingModal } from '@/src/features/wallet/components/CreateListi
 import { usePrivy } from '@privy-io/react-auth';
 import { getBrowseListings } from '@/src/features/wallet/services/listing-api';
 import type { CNFT, Listing } from '@/types';
+
+const COMING_SOON = true;
 
 type ActiveTab = 'browse' | 'my-assets';
 
@@ -186,24 +186,7 @@ function BrowseSkeleton() {
 export default function MarketplaceScreen() {
   const c = useThemeColors();
 
-  if (COMING_SOON) {
-    return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
-        <View style={styles.comingSoonContainer}>
-          <View style={[styles.comingSoonIcon, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}33` }]}>
-            <Ionicons name="storefront-outline" size={36} color={c.accent} />
-          </View>
-          <Text style={[styles.comingSoonTitle, { color: c.foreground }]}>Marketplace</Text>
-          <View style={[styles.comingSoonBadge, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}33` }]}>
-            <Text style={[styles.comingSoonBadgeText, { color: c.accent }]}>Coming Soon</Text>
-          </View>
-          <Text style={[styles.comingSoonDesc, { color: c.textMuted }]}>
-            Buy and sell verified recycling assets directly on-chain. We're putting the finishing touches on it.
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // ── All hooks must be called unconditionally before any early return ──
   const { getAccessToken } = usePrivy();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('browse');
@@ -234,6 +217,25 @@ export default function MarketplaceScreen() {
     void reloadWallet();
     void reloadListings();
   }, [loadBrowse, reloadWallet, reloadListings]));
+
+  if (COMING_SOON) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
+        <View style={styles.comingSoonContainer}>
+          <View style={[styles.comingSoonIcon, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}33` }]}>
+            <Ionicons name="storefront-outline" size={36} color={c.accent} />
+          </View>
+          <Text style={[styles.comingSoonTitle, { color: c.foreground }]}>Marketplace</Text>
+          <View style={[styles.comingSoonBadge, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}33` }]}>
+            <Text style={[styles.comingSoonBadgeText, { color: c.accent }]}>Coming Soon</Text>
+          </View>
+          <Text style={[styles.comingSoonDesc, { color: c.textMuted }]}>
+            Buy and sell verified recycling assets directly on-chain. We&apos;re putting the finishing touches on it.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const filteredListings = materialFilter === 'All'
     ? browseListings
