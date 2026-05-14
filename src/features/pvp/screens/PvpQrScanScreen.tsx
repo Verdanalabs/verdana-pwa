@@ -141,7 +141,7 @@ export default function PvpQrScanRoute() {
     try {
       const batch = await getBatch(token, batchId);
 
-      if (batch.status !== 'accepted') {
+      if (batch.status !== 'accepted' && batch.status !== 'pickup_dispatched') {
         setVerificationState('error');
         setVerificationError(
           batch.status === 'pending'

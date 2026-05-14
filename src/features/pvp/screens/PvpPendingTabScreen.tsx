@@ -93,7 +93,7 @@ function QueueSummaryCard({
 function BatchCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
   const isPending = item.status === 'pending';
-  const isAccepted = item.status === 'accepted';
+  const isAccepted = item.status === 'accepted' || item.status === 'pickup_dispatched';
   const matColor = MATERIAL_COLOR[item.material.toUpperCase()] ?? c.accent;
 
   return (
@@ -178,14 +178,14 @@ export default function PvpPendingTab() {
     setError(null);
 
     try {
-      const [pending, accepted, cosigning] = await Promise.all([
+      const [pending, accepted, dispatched, cosigning] = await Promise.all([
         getPvpBatches(token, 'pending'),
         getPvpBatches(token, 'accepted'),
+        getPvpBatches(token, 'pickup_dispatched'),
         getPvpBatches(token, 'cosigning'),
       ]);
-
       setPendingBatches(pending);
-      setAcceptedBatches(accepted);
+      setAcceptedBatches([...accepted, ...dispatched]);
       setCosigningBatches(cosigning);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load batches');
@@ -285,7 +285,7 @@ export default function PvpPendingTab() {
             </Text>
 
             <View style={styles.summaryRow}>
-              <QueueSummaryCard value={acceptedBatches.length} label="Ready to weigh" />
+              <QueueSummaryCard value={acceptedBatches.length} label="Active" />
               <QueueSummaryCard value={pendingBatches.length} label="Pending review" />
               <QueueSummaryCard value={cosigningBatches.length} label="Awaiting sign" />
             </View>
@@ -303,7 +303,7 @@ export default function PvpPendingTab() {
 
 
 
-          {renderBatchSection('Ready To Weigh', 'Accepted batches that can move into physical handoff now', acceptedBatches)}
+          {renderBatchSection('Active Batches', 'Accepted and dispatched batches — scan QR to weigh', acceptedBatches)}
           {renderBatchSection('Pending Review', 'Supplier submissions that need to be accepted first', pendingBatches)}
           {renderBatchSection('Awaiting Supplier Approval', 'Weighed batches waiting for supplier confirmation', cosigningBatches)}
         </ScrollView>

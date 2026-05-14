@@ -38,6 +38,17 @@ export interface ApiBatchDetail {
   updated_at: string;
   weighed_at?: string;
   delivered_at?: string;
+  origin_latitude?: number;
+  origin_longitude?: number;
+  collector_gps_lat?: number;
+  collector_gps_lng?: number;
+  pickup_gps_lat?: number;
+  pickup_gps_lng?: number;
+  pickup_gps_at?: string;
+  collector_cosign_gps_lat?: number;
+  collector_cosign_gps_lng?: number;
+  proximity_check_passed?: boolean;
+  proximity_distance_m?: number;
   media: ApiBatchMedia[];
   cosign_event?: {
     signed_at: string;
@@ -65,11 +76,14 @@ export interface UploadUrlResponse {
 
 export interface CreateBatchPayload {
   collector_user_id: string;
-  pvp_site_id: string;
+  pvp_site_id?: string;
   material: string;
   estimated_weight_grams: number;
   origin_latitude: number;
   origin_longitude: number;
+  collector_gps_lat?: number;
+  collector_gps_lng?: number;
+  collector_gps_accuracy_m?: number;
   media: {
     storage_key: string;
     media_kind: string;
@@ -93,8 +107,9 @@ export interface PvpBatchListItem {
 
 export interface PvpWeighPayload {
   actual_weight_grams: number;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
+  gps_accuracy_m?: number;
   weighed_at: string;
 }
 
@@ -144,6 +159,14 @@ export function cosignBatch(token: string, batchId: string, payload: CosignPaylo
 
 export function acceptBatch(token: string, batchId: string): Promise<{ id: string; status: string }> {
   return apiRequest<{ id: string; status: string }>(`/v1/batches/${batchId}/accept`, {
+    method: 'PATCH',
+    token,
+    body: JSON.stringify({}),
+  });
+}
+
+export function dispatchBatch(token: string, batchId: string): Promise<{ id: string; status: string }> {
+  return apiRequest<{ id: string; status: string }>(`/v1/batches/${batchId}/dispatch`, {
     method: 'PATCH',
     token,
     body: JSON.stringify({}),

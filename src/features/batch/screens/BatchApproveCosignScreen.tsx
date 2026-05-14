@@ -101,7 +101,7 @@ export default function BatchApproveCosignScreen() {
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        throw new Error('Aktifkan izin lokasi supaya sistem bisa memvalidasi kamu berada di PVP.');
+        throw new Error('Aktifkan izin lokasi supaya sistem bisa memvalidasi kamu berada dekat processor.');
       }
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
 
@@ -201,7 +201,7 @@ export default function BatchApproveCosignScreen() {
             />
             <Text style={[styles.statusCardTitle, { color: isCosigning ? '#8b5cf6' : c.foreground }]}>
               {isCosigning
-                ? 'PVP has weighed your batch'
+                ? 'Processor has weighed your batch'
                 : `Batch status: ${batch.status.replace(/_/g, ' ')}`}
             </Text>
           </View>
@@ -227,7 +227,7 @@ export default function BatchApproveCosignScreen() {
             <Row label="You Estimated" value={`${estKg} kg`} />
             <View style={[styles.divider, { backgroundColor: c.border }]} />
             <View style={styles.actualRow}>
-              <Text style={[styles.rowLabel, { color: c.textMuted }]}>PVP Measured</Text>
+              <Text style={[styles.rowLabel, { color: c.textMuted }]}>Processor Measured</Text>
               <Text style={[styles.actualValue, { color: c.accent }]}>{actualKg} kg</Text>
             </View>
           </View>

@@ -23,14 +23,15 @@ function mediaUrl(storageKey: string) {
 
 function statusToUi(status: string): BatchStatus {
   switch (status) {
-    case 'pending':      return 'pending';
-    case 'accepted':     return 'accepted';
-    case 'cosigning':    return 'cosigning';
-    case 'cosigned':     return 'cosigned';
-    case 'mint_pending': return 'mint_pending';
-    case 'mint_failed':  return 'mint_failed';
-    case 'minted':       return 'minted';
-    default:             return 'pending';
+    case 'pending':            return 'pending';
+    case 'accepted':           return 'accepted';
+    case 'pickup_dispatched':  return 'accepted';
+    case 'cosigning':          return 'cosigning';
+    case 'cosigned':           return 'cosigned';
+    case 'mint_pending':       return 'mint_pending';
+    case 'mint_failed':        return 'mint_failed';
+    case 'minted':             return 'minted';
+    default:                   return 'pending';
   }
 }
 
@@ -58,8 +59,14 @@ function deriveTimeline(batch: ApiBatchDetail): TimelineEntry[] {
   const entries: TimelineEntry[] = [
     { label: 'Batch Registered', timestamp: batch.created_at },
   ];
+  if (batch.pickup_gps_at) {
+    entries.push({ label: 'Processor Dispatched', timestamp: batch.pickup_gps_at });
+  }
   if (batch.weighed_at) {
-    entries.push({ label: 'Co-signed at Drop-off', timestamp: batch.weighed_at });
+    entries.push({ label: 'Weighed at Location', timestamp: batch.weighed_at });
+  }
+  if (batch.cosign_event?.signed_at) {
+    entries.push({ label: 'Co-signed', timestamp: batch.cosign_event.signed_at });
   }
   if (batch.cnft_record?.minted_at) {
     entries.push({ label: 'cNFT Asset Minted', timestamp: batch.cnft_record.minted_at });

@@ -133,6 +133,7 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
   const matColor = MATERIAL_COLOR[item.material.toUpperCase()] ?? c.accent;
   const isAccepted = item.status === 'accepted';
+  const isDispatched = item.status === 'pickup_dispatched';
 
   return (
     <TouchableOpacity
@@ -155,8 +156,13 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
           </View>
         </View>
 
-        <View style={[styles.priorityStatusPill, { backgroundColor: '#f59e0b18', borderColor: '#f59e0b35' }]}>
-          <Text style={[styles.priorityStatusText, { color: '#f59e0b' }]}>PENDING</Text>
+        <View style={[styles.priorityStatusPill, {
+          backgroundColor: isDispatched ? '#8b5cf618' : isAccepted ? `${c.accent}18` : '#f59e0b18',
+          borderColor: isDispatched ? '#8b5cf635' : isAccepted ? `${c.accent}35` : '#f59e0b35',
+        }]}>
+          <Text style={[styles.priorityStatusText, { color: isDispatched ? '#8b5cf6' : isAccepted ? c.accent : '#f59e0b' }]}>
+            {isDispatched ? 'EN ROUTE' : isAccepted ? 'ACCEPTED' : 'PENDING'}
+          </Text>
         </View>
       </View>
 
@@ -168,7 +174,7 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
         <View style={styles.priorityMetaItem}>
           <Text style={[styles.priorityMetaLabel, { color: c.textFaint }]}>Next step</Text>
           <Text style={[styles.priorityMetaValue, { color: c.foreground }]}>
-            {isAccepted ? 'Scan and weigh' : 'Review request'}
+            {isDispatched ? 'Scan & weigh' : isAccepted ? 'Dispatch' : 'Review request'}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={16} color={c.textMuted} style={{ alignSelf: 'center' }} />
@@ -216,7 +222,7 @@ export default function PvpDashboardTab() {
   });
 
   const pending = batches.filter((batch) => batch.status === 'pending');
-  const readyToWeigh = batches.filter((batch) => batch.status === 'accepted');
+  const readyToWeigh = batches.filter((batch) => batch.status === 'accepted' || batch.status === 'pickup_dispatched');
   const awaitingSign = batches.filter((batch) => batch.status === 'cosigning');
   const completedToday = batches.filter((batch) => batch.status === 'minted');
   const totalKgToday = completedToday.reduce((sum, batch) => sum + weightKg(batch), 0);

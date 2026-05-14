@@ -15,7 +15,7 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { acceptBatch, getBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
+import { acceptBatch, dispatchBatch, getBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
 import { ApiError } from '@/src/shared/services/api';
 import { runtimeConfig } from '@/src/shared/config/runtime-config';
 
@@ -51,24 +51,26 @@ function formatDateTime(iso?: string | null) {
 
 function statusLabel(status: string) {
   switch (status) {
-    case 'pending':      return 'PENDING REVIEW';
-    case 'accepted':     return 'READY TO WEIGH';
-    case 'cosigning':    return 'AWAITING SIGN';
-    case 'cosigned':     return 'COSIGNED';
-    case 'mint_pending': return 'MINTING...';
-    case 'minted':       return 'MINTED';
-    default:             return status.toUpperCase();
+    case 'pending':            return 'PENDING REVIEW';
+    case 'accepted':           return 'READY TO DISPATCH';
+    case 'pickup_dispatched':  return 'EN ROUTE';
+    case 'cosigning':          return 'AWAITING SIGN';
+    case 'cosigned':           return 'COSIGNED';
+    case 'mint_pending':       return 'MINTING...';
+    case 'minted':             return 'MINTED';
+    default:                   return status.toUpperCase();
   }
 }
 
 function statusColor(status: string, accent: string) {
   switch (status) {
-    case 'pending':      return '#f59e0b';
-    case 'accepted':     return accent;
-    case 'cosigning':    return '#8b5cf6';
-    case 'cosigned':     return '#3b82f6';
-    case 'minted':       return '#10b981';
-    default:             return '#6b7280';
+    case 'pending':            return '#f59e0b';
+    case 'accepted':           return accent;
+    case 'pickup_dispatched':  return '#8b5cf6';
+    case 'cosigning':          return '#8b5cf6';
+    case 'cosigned':           return '#3b82f6';
+    case 'minted':             return '#10b981';
+    default:                   return '#6b7280';
   }
 }
 
@@ -129,8 +131,11 @@ function deriveTimeline(batch: ApiBatchDetail): TimelineEntry[] {
   const entries: TimelineEntry[] = [
     { label: 'Batch Registered', timestamp: batch.created_at },
   ];
+  if (batch.pickup_gps_at) {
+    entries.push({ label: 'Processor Dispatched', timestamp: batch.pickup_gps_at });
+  }
   if (batch.weighed_at) {
-    entries.push({ label: 'Weighed at PVP', timestamp: batch.weighed_at });
+    entries.push({ label: 'Weighed at Location', timestamp: batch.weighed_at });
   }
   if (batch.cosign_event?.signed_at) {
     entries.push({ label: 'Co-signed', timestamp: batch.cosign_event.signed_at });
@@ -168,6 +173,7 @@ export default function PvpBatchDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [isDispatching, setIsDispatching] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -203,6 +209,24 @@ export default function PvpBatchDetailScreen() {
       }
     } finally {
       setIsAccepting(false);
+    }
+  }, [batch, load, token]);
+
+  const handleDispatch = useCallback(async () => {
+    if (!token || !batch) return;
+    setIsDispatching(true);
+    setActionError(null);
+    try {
+      await dispatchBatch(token, batch.id);
+      await load();
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setActionError(e.message);
+      } else {
+        setActionError('Failed to dispatch');
+      }
+    } finally {
+      setIsDispatching(false);
     }
   }, [batch, load, token]);
 
@@ -248,6 +272,7 @@ export default function PvpBatchDetailScreen() {
   // ── Derived values ────────────────────────────────────────────────────────
   const isPending = batch.status === 'pending';
   const isAccepted = batch.status === 'accepted';
+  const isDispatched = batch.status === 'pickup_dispatched';
   const isCosigning = batch.status === 'cosigning';
   const sColor = statusColor(batch.status, c.accent);
   const matColor = MATERIAL_COLOR[batch.material.toUpperCase()] ?? c.accent;
@@ -313,11 +338,23 @@ export default function PvpBatchDetailScreen() {
         {isAccepted && (
           <View style={[styles.actionCard, { backgroundColor: `${c.accent}0c`, borderColor: `${c.accent}30` }]}>
             <View style={styles.actionCardHeader}>
-              <Ionicons name="scale-outline" size={18} color={c.accent} />
-              <Text style={[styles.actionCardTitle, { color: c.accent }]}>Ready for weigh-in</Text>
+              <Ionicons name="checkmark-circle-outline" size={18} color={c.accent} />
+              <Text style={[styles.actionCardTitle, { color: c.accent }]}>Batch accepted</Text>
             </View>
             <Text style={[styles.actionCardBody, { color: c.textSecondary }]}>
-              Batch has been accepted. The supplier can now present their QR code at the drop-off point. Scan and weigh to continue.
+              You have accepted this batch. Tap &quot;I&apos;m on my way&quot; to notify the collector that you are heading to their location.
+            </Text>
+          </View>
+        )}
+
+        {isDispatched && (
+          <View style={[styles.actionCard, { backgroundColor: '#8b5cf60c', borderColor: '#8b5cf630' }]}>
+            <View style={styles.actionCardHeader}>
+              <Ionicons name="car-outline" size={18} color="#8b5cf6" />
+              <Text style={[styles.actionCardTitle, { color: '#8b5cf6' }]}>En route to collector</Text>
+            </View>
+            <Text style={[styles.actionCardBody, { color: c.textSecondary }]}>
+              The collector has been notified. Once you arrive, scan their QR code and weigh the batch to proceed.
             </Text>
           </View>
         )}
@@ -400,7 +437,7 @@ export default function PvpBatchDetailScreen() {
       </ScrollView>
 
       {/* Sticky footer for primary actions */}
-      {(isPending || isAccepted) && (
+      {(isPending || isAccepted || isDispatched) && (
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
           {isPending && (
             <TouchableOpacity
@@ -422,11 +459,28 @@ export default function PvpBatchDetailScreen() {
           {isAccepted && (
             <TouchableOpacity
               style={[styles.footerBtn, { backgroundColor: c.accent }]}
+              onPress={() => { void handleDispatch(); }}
+              activeOpacity={0.85}
+              disabled={isDispatching}
+            >
+              {isDispatching ? (
+                <ActivityIndicator size="small" color={c.accentContrast} />
+              ) : (
+                <>
+                  <Ionicons name="car-outline" size={20} color={c.accentContrast} />
+                  <Text style={[styles.footerBtnLabel, { color: c.accentContrast }]}>I&apos;m on my way</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+          {isDispatched && (
+            <TouchableOpacity
+              style={[styles.footerBtn, { backgroundColor: '#8b5cf6' }]}
               onPress={() => router.push(`/pvp/cosign?id=${batch.id}` as never)}
               activeOpacity={0.85}
             >
-              <Ionicons name="qr-code-outline" size={20} color={c.accentContrast} />
-              <Text style={[styles.footerBtnLabel, { color: c.accentContrast }]}>Scan QR & Weigh</Text>
+              <Ionicons name="qr-code-outline" size={20} color="#fff" />
+              <Text style={[styles.footerBtnLabel, { color: '#fff' }]}>Scan QR & Weigh</Text>
             </TouchableOpacity>
           )}
         </View>

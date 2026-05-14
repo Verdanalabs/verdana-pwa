@@ -79,6 +79,7 @@ export default function PvpCosignScreen() {
   const [actualWeightKg, setActualWeightKg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
@@ -120,26 +121,43 @@ export default function PvpCosignScreen() {
 
     setIsSubmitting(true);
     setSubmitError(null);
+    setGpsError(null);
 
     try {
+      // GPS is mandatory for the pickup model.
+      if (typeof navigator === 'undefined' || !navigator.geolocation) {
+        setGpsError('GPS is required for pickup verification. Please enable location services.');
+        setIsSubmitting(false);
+        return;
+      }
+
       let lat = 0;
       let lng = 0;
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        try {
-          const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
-          );
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        } catch {
-          // GPS unavailable — backend skips geofence check if 0,0
-        }
+      let accuracy = 0;
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, enableHighAccuracy: true })
+        );
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+        accuracy = pos.coords.accuracy;
+      } catch {
+        setGpsError('Could not get your location. GPS is required to verify proximity with the collector.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!lat || !lng) {
+        setGpsError('GPS coordinates are invalid. Please try again.');
+        setIsSubmitting(false);
+        return;
       }
 
       await pvpWeighBatch(token, batch.id, {
         actual_weight_grams: grams,
         latitude: lat,
         longitude: lng,
+        gps_accuracy_m: accuracy,
         weighed_at: new Date().toISOString(),
       });
 
@@ -319,6 +337,13 @@ export default function PvpCosignScreen() {
               <View style={[styles.errorCard, { backgroundColor: `${c.error}12`, borderColor: `${c.error}25` }]}>
                 <Ionicons name="alert-circle-outline" size={16} color={c.error} />
                 <Text style={[styles.errorCardText, { color: c.error }]}>{submitError}</Text>
+              </View>
+            )}
+
+            {gpsError && (
+              <View style={[styles.errorCard, { backgroundColor: `${c.error}12`, borderColor: `${c.error}25` }]}>
+                <Ionicons name="location-outline" size={16} color={c.error} />
+                <Text style={[styles.errorCardText, { color: c.error }]}>{gpsError}</Text>
               </View>
             )}
           </>

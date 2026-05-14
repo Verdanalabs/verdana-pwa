@@ -50,7 +50,7 @@ export default function BatchReviewRoute() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const canSubmit = !!draft.photoUri && !!draft.materialType && !!draft.grade && !!draft.dropOffPoint && !isSubmitting;
+  const canSubmit = !!draft.photoUri && !!draft.materialType && !!draft.grade && !isSubmitting;
 
   async function handleSubmit() {
     if (!canSubmit || !user) return;
@@ -90,14 +90,15 @@ export default function BatchReviewRoute() {
 
       // 3. Create the batch
       const weightGrams = Math.round(parseFloat(draft.estimatedWeightKg) * 1000);
-      if (!draft.pvpSiteId) throw new Error('No PVP site selected');
       const batch = await createBatch(token, {
         collector_user_id: user.id,
-        pvp_site_id: draft.pvpSiteId,
+        pvp_site_id: draft.pvpSiteId ?? undefined,
         material: draft.materialType!.toLowerCase(),
         estimated_weight_grams: weightGrams,
         origin_latitude: draft.originLat ?? 0,
         origin_longitude: draft.originLng ?? 0,
+        collector_gps_lat: draft.originLat ?? undefined,
+        collector_gps_lng: draft.originLng ?? undefined,
         media: [{
           storage_key,
           media_kind: 'photo',
