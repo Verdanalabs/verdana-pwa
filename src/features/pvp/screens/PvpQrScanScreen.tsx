@@ -7,7 +7,7 @@ import jsQR from 'jsqr';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { getBatch, getPvpBatches } from '@/src/features/batch/services/batch-api';
+import { getBatch, getPvpBatches, dispatchBatch } from '@/src/features/batch/services/batch-api';
 import { ApiError } from '@/src/shared/services/api';
 
 type CameraState = 'idle' | 'requesting' | 'live' | 'error' | 'unsupported';
@@ -151,6 +151,19 @@ export default function PvpQrScanRoute() {
               : `Batch is not ready for weigh-in. Current status: ${batch.status}.`
         );
         return;
+      }
+
+      // Auto-dispatch if batch is still in 'accepted' status.
+      if (batch.status === 'accepted') {
+        setVerificationHint('Marking dispatch...');
+        try {
+          await dispatchBatch(token, batch.id);
+        } catch (dispatchErr) {
+          // If dispatch fails with 409 (already dispatched), that's fine — continue to weigh.
+          if (!(dispatchErr instanceof ApiError && dispatchErr.status === 409)) {
+            throw dispatchErr;
+          }
+        }
       }
 
       setVerificationState('success');

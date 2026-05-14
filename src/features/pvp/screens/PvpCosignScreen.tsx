@@ -7,7 +7,8 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { getBatch, pvpWeighBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
+import { getBatch, dispatchBatch, pvpWeighBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
+import { ApiError } from '@/src/shared/services/api';
 
 import { runtimeConfig } from '@/src/shared/config/runtime-config';
 
@@ -124,6 +125,17 @@ export default function PvpCosignScreen() {
     setGpsError(null);
 
     try {
+      // Auto-dispatch if batch is still in 'accepted' status.
+      if (batch.status === 'accepted') {
+        try {
+          await dispatchBatch(token, batch.id);
+        } catch (dispatchErr) {
+          // If dispatch fails with 409 (already dispatched), that's fine — continue to weigh.
+          if (!(dispatchErr instanceof ApiError && dispatchErr.status === 409)) {
+            throw dispatchErr;
+          }
+        }
+      }
       // GPS is mandatory for the pickup model.
       if (typeof navigator === 'undefined' || !navigator.geolocation) {
         setGpsError('GPS is required for pickup verification. Please enable location services.');
