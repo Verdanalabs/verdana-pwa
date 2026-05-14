@@ -97,7 +97,6 @@ export default function BatchApproveCosignScreen() {
     try {
       return await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        maximumAge: 10_000,
       });
     } catch {
       // First attempt failed (likely kCLErrorLocationUnknown while GPS is acquiring).

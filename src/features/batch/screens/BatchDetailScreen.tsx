@@ -217,9 +217,53 @@ export default function BatchDetailRoute() {
     ? (batch.actual_weight_grams / 1000).toFixed(1)
     : '-';
   const timeline = deriveTimeline(batch);
-  const isAwaitingSupplierApproval = batch.status === 'cosigning';
-  const canShowDropOffQr = batch.status === 'accepted';
-  const collapsePhoto = batch.status === 'pending' || batch.status === 'accepted';
+  const isPending = batch.status === 'pending';
+  const isAccepted = batch.status === 'accepted';
+  const isDispatched = batch.status === 'pickup_dispatched';
+  const isCosigning = batch.status === 'cosigning';
+  const canShowQr = isAccepted || isDispatched;
+  const collapsePhoto = isPending || isAccepted || isDispatched;
+
+  const statusCopy: Record<string, { title: string; body: string; icon: string; color: string }> = {
+    pending: {
+      title: 'Waiting for a processor',
+      body: 'Your batch has been submitted. A processor needs to accept it before the pickup can begin.',
+      icon: 'time-outline',
+      color: '#f59e0b',
+    },
+    accepted: {
+      title: 'Processor accepted',
+      body: 'A processor has claimed your batch and will head to your location soon. Keep your batch ready.',
+      icon: 'checkmark-circle-outline',
+      color: c.accent,
+    },
+    pickup_dispatched: {
+      title: 'Processor is on the way!',
+      body: 'The processor is heading to your location. Have your batch ready for weighing when they arrive. Show the QR code below.',
+      icon: 'car-outline',
+      color: '#8b5cf6',
+    },
+    cosigning: {
+      title: 'Approval required',
+      body: 'The processor has weighed your batch. Review the actual weight and approve to complete the co-sign.',
+      icon: 'hourglass-outline',
+      color: '#8b5cf6',
+    },
+    cosigned: {
+      title: 'Co-signed successfully',
+      body: 'Both parties have signed. Your batch is being processed and the cNFT asset will be minted shortly.',
+      icon: 'checkmark-done-outline',
+      color: '#10b981',
+    },
+    minted: {
+      title: 'Asset ready!',
+      body: 'Your recycling batch has been verified and the cNFT asset has been minted on Solana.',
+      icon: 'diamond-outline',
+      color: '#10b981',
+    },
+  };
+
+  const currentStatusCopy = statusCopy[batch.status] ?? statusCopy.pending;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
@@ -249,18 +293,35 @@ export default function BatchDetailRoute() {
             <StatusBadge status={uiStatus} />
           </View>
           <Text style={[styles.headingText, { color: c.textSecondary }]}>
-            Review the batch record, material details, and every status update in one place.
+            {currentStatusCopy.body}
           </Text>
         </View>
 
-        {canShowDropOffQr && (
+        {/* Status-specific action card */}
+        <View style={[styles.statusActionCard, {
+          backgroundColor: `${currentStatusCopy.color}10`,
+          borderColor: `${currentStatusCopy.color}30`,
+        }]}>
+          <View style={styles.statusActionHeader}>
+            <Ionicons name={currentStatusCopy.icon as keyof typeof Ionicons.glyphMap} size={18} color={currentStatusCopy.color} />
+            <Text style={[styles.statusActionTitle, { color: currentStatusCopy.color }]}>{currentStatusCopy.title}</Text>
+          </View>
+          <Text style={[styles.statusActionBody, { color: c.textSecondary }]}>{currentStatusCopy.body}</Text>
+        </View>
+
+        {/* QR Code — visible for accepted and pickup_dispatched */}
+        {canShowQr && (
           <View style={[styles.qrCard, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={[styles.qrBox, { backgroundColor: c.background, borderColor: c.border }]}>
               <QRCode value={batch.id} size={220} backgroundColor="transparent" color={c.foreground} />
             </View>
-            <Text style={[styles.qrCardTitle, { color: c.foreground, textAlign: 'center' }]}>Drop-off QR</Text>
+            <Text style={[styles.qrCardTitle, { color: c.foreground, textAlign: 'center' }]}>
+              {isDispatched ? 'Your QR Code' : 'Drop-off QR'}
+            </Text>
             <Text style={[styles.qrCardHint, { color: c.textMuted }]}>
-              Show this code to the PVP operator at drop-off.
+              {isDispatched
+                ? 'Show this code to the processor when they arrive at your location.'
+                : 'Show this code to the processor when they arrive.'}
             </Text>
             <View style={[styles.shortCodeRow, { backgroundColor: c.background, borderColor: c.border }]}>
               <Text style={[styles.shortCodeLabel, { color: c.textMuted }]}>Manual code</Text>
@@ -269,26 +330,15 @@ export default function BatchDetailRoute() {
           </View>
         )}
 
-        {!canShowDropOffQr && batch.status === 'pending' && (
+        {/* QR unavailable — pending state */}
+        {isPending && (
           <View style={[styles.qrCard, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={[styles.qrUnavailable, { backgroundColor: c.background, borderColor: c.border }]}>
               <Ionicons name="time-outline" size={28} color={c.textMuted} />
               <Text style={[styles.qrUnavailableText, { color: c.textSecondary }]}>
-                QR handoff will appear here after the PVP operator accepts this batch.
+                QR code will appear here after a processor accepts your batch.
               </Text>
             </View>
-          </View>
-        )}
-
-        {isAwaitingSupplierApproval && (
-          <View style={[styles.approvalCard, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf640' }]}>
-            <View style={styles.approvalCardHeader}>
-              <Ionicons name="hourglass-outline" size={18} color="#8b5cf6" />
-              <Text style={[styles.approvalCardTitle, { color: '#8b5cf6' }]}>Supplier approval required</Text>
-            </View>
-            <Text style={[styles.approvalCardBody, { color: c.textSecondary }]}>
-              PVP has already weighed this batch. Review the measured weight and continue to the approval screen to co-sign.
-            </Text>
           </View>
         )}
 
@@ -405,7 +455,7 @@ export default function BatchDetailRoute() {
         </Pressable>
       </Modal>
 
-      {isAwaitingSupplierApproval && (
+      {isCosigning && (
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
           <TouchableOpacity
             style={[styles.footerButton, { backgroundColor: '#8b5cf6' }]}
@@ -448,7 +498,7 @@ const styles = StyleSheet.create({
   headingText: { fontSize: FontSize.md, fontFamily: Font.regular, lineHeight: 22, maxWidth: 300 },
   qrCard: { borderWidth: 1, borderRadius: 22, padding: 16, gap: 14, alignItems: 'center' },
   qrCardTitle: { fontSize: FontSize.lg, fontFamily: Font.bold },
-  qrCardHint: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 20, textAlign: 'center' },
+  qrCardHint: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 20, textAlign: 'center', maxWidth: 280 },
   qrUnavailable: {
     borderWidth: 1,
     borderRadius: 18,
@@ -500,6 +550,10 @@ const styles = StyleSheet.create({
     height: 46, borderRadius: 14, gap: 8,
   },
   approvalCardButtonLabel: { fontSize: FontSize.sm, fontFamily: Font.semiBold, color: '#fff' },
+  statusActionCard: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 10 },
+  statusActionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  statusActionTitle: { fontSize: FontSize.md, fontFamily: Font.semiBold },
+  statusActionBody: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 20 },
   detailRow: { gap: 4 },
   detailLabel: { fontSize: FontSize.sm, fontFamily: Font.regular },
   detailValue: { fontSize: FontSize.sm, fontFamily: Font.medium, lineHeight: 20 },
