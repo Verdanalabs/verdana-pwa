@@ -249,7 +249,7 @@ export default function PvpCosignScreen() {
   const isHighDiscrepancy = absDiffPercent > 15;
   const isBlockedDiscrepancy = absDiffPercent > 50;
   const shortId = batch.id.slice(0, 8).toUpperCase();
-  const alreadyCosigned = batch.status !== 'accepted';
+  const alreadyCosigned = batch.status === 'cosigning' || batch.status === 'cosigned' || batch.status === 'minted' || batch.status === 'mint_pending' || batch.status === 'minting';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
