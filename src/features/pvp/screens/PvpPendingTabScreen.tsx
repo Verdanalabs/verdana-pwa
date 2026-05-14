@@ -93,14 +93,23 @@ function QueueSummaryCard({
 function BatchCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
   const isPending = item.status === 'pending';
-  const isAccepted = item.status === 'accepted' || item.status === 'pickup_dispatched';
+  const isAccepted = item.status === 'accepted';
+  const isDispatched = item.status === 'pickup_dispatched';
+  const isActive = isAccepted || isDispatched;
   const matColor = MATERIAL_COLOR[item.material.toUpperCase()] ?? c.accent;
+
+  const statusLabel = isPending ? 'PENDING' : isDispatched ? 'EN ROUTE' : 'READY TO WEIGH';
+  const statusColor = isPending ? '#f59e0b' : isDispatched ? '#8b5cf6' : c.accent;
+  const nextStep = isPending ? 'Review' : isDispatched ? 'Scan & weigh' : 'Dispatch';
+  const navigateTo = isPending
+    ? `/pvp/batch-detail?id=${item.id}`
+    : `/pvp/batch-detail?id=${item.id}`;
 
   return (
     <TouchableOpacity
       style={[styles.batchCard, { backgroundColor: c.surface, borderColor: c.border }]}
       activeOpacity={0.82}
-      onPress={() => router.push((isAccepted ? '/pvp/qr-scan' : `/pvp/batch-detail?id=${item.id}`) as never)}
+      onPress={() => router.push(navigateTo as never)}
     >
       <View style={styles.batchCardTop}>
         <Text style={[styles.batchMeta, { color: c.textMuted }]}>#{shortId(item.id)}</Text>
@@ -108,13 +117,13 @@ function BatchCard({ item }: { item: PvpBatchListItem }) {
           style={[
             styles.statusPill,
             {
-              backgroundColor: isPending ? '#f59e0b16' : isAccepted ? `${c.accent}14` : '#8b5cf616',
-              borderColor: isPending ? '#f59e0b2e' : isAccepted ? `${c.accent}26` : '#8b5cf62e',
+              backgroundColor: `${statusColor}16`,
+              borderColor: `${statusColor}2e`,
             },
           ]}
         >
-          <Text style={[styles.statusPillText, { color: isPending ? '#f59e0b' : isAccepted ? c.accent : '#8b5cf6' }]}>
-            {isPending ? 'PENDING' : isAccepted ? 'READY TO WEIGH' : 'AWAITING SIGN'}
+          <Text style={[styles.statusPillText, { color: statusColor }]}>
+            {statusLabel}
           </Text>
         </View>
       </View>
@@ -130,7 +139,7 @@ function BatchCard({ item }: { item: PvpBatchListItem }) {
         <Text style={[styles.batchMetaText, { color: c.textMuted }]}>Submitted {timeAgo(item.created_at)}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Text style={[styles.batchMetaText, { color: c.textMuted }]}>
-            {isPending ? 'Review' : isAccepted ? 'Weigh-in' : 'Awaiting sign'}
+            {nextStep}
           </Text>
           <Ionicons name="chevron-forward" size={14} color={c.textMuted} />
         </View>
