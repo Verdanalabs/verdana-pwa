@@ -99,13 +99,24 @@
 
 ## P2 - Growth Features
 
-| Item                             | Status |
-| -------------------------------- | ------ |
-| Marketplace listing flow         | todo   |
-| Lending / collateral flow        | todo   |
-| CO2 impact metrics               | todo   |
-| Multi-role switch dalam satu app | todo   |
-| Enterprise dashboard handoff     | todo   |
+| Item                                         | Status |
+| -------------------------------------------- | ------ |
+| Marketplace listing flow                     | done   |
+| Marketplace order management (create/confirm/complete) | done   |
+| Inventory management (stock, movements, analytics)     | done   |
+| Lending / collateral flow                    | todo   |
+| CO2 impact metrics                           | todo   |
+| Multi-role switch dalam satu app             | todo   |
+| Enterprise dashboard handoff                 | todo   |
+
+> **Exception (logged per Documentation Rules):** Inventory Management and Marketplace
+> (incl. order management) were implemented under the "Priority 2 — Buildable Assets"
+> directive in the product backlog (Google Doc), ahead of the `07-ai-working-rules.md`
+> non-goal "jangan over-engineer marketplace ... sebelum core batch flow stabil." This is
+> an intentional, product-authorized deviation. Decisions: inventory is sourced from
+> `minted` batches now (grade/category columns reserved for the future Waste Grading
+> service); the marketplace keeps the batch-backed listing model with an Orders layer
+> added on top. See `core-api` migrations `000020`/`000021` and `src/features/inventory`.
 
 ---
 

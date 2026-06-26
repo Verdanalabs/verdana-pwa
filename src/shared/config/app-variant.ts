@@ -117,6 +117,7 @@ export function getPathSurface(pathname: string | undefined): RouteSurface {
     pathname.startsWith('/batch/') ||
     pathname.startsWith('/batch') ||
     pathname.startsWith('/wallet/') ||
+    pathname.startsWith('/inventory') ||
     pathname.startsWith('/(supplier-tabs)') ||
     pathname === '/(auth)/login' ||
     pathname === '/(auth)/welcome' ||

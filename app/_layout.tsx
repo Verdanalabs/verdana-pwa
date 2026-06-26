@@ -97,6 +97,7 @@ function AppShell() {
         <Stack.Screen name="(supplier-tabs)" />
         <Stack.Screen name="(pvp-tabs)" />
         <Stack.Screen name="batch" />
+        <Stack.Screen name="inventory" />
         <Stack.Screen name="desktop-blocked" />
         <Stack.Screen name="pvp" />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
