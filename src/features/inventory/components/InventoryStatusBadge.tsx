@@ -24,6 +24,11 @@ const LIGHT: Record<InventoryStatus, { bg: string; fg: string }> = {
   depleted: { bg: '#fee2e2', fg: '#991b1b' },
 };
 
+export function useInventoryStatusPalette(): Record<InventoryStatus, { bg: string; fg: string }> {
+  const { isDark } = useTheme();
+  return isDark ? DARK : LIGHT;
+}
+
 interface InventoryStatusBadgeProps {
   status: InventoryStatus;
   size?: 'sm' | 'md';
