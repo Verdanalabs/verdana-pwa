@@ -105,7 +105,7 @@ export default function PvpCosignScreen() {
   async function handleWeigh() {
     if (!batch || !token) return;
 
-    const grams = Math.round(parseFloat(actualWeightKg) * 1000);
+    const grams = Math.round(parseFloat(actualWeightKg.replace(',', '.')) * 1000);
     if (!grams || grams <= 0) {
       setSubmitError('Enter a valid actual weight.');
       return;
@@ -239,7 +239,7 @@ export default function PvpCosignScreen() {
   const estimatedKg = batch.estimated_weight_grams != null
     ? (batch.estimated_weight_grams / 1000).toFixed(1)
     : '-';
-  const actualKgNumber = parseFloat(actualWeightKg);
+  const actualKgNumber = parseFloat(actualWeightKg.replace(',', '.'));
   const estimatedGrams = batch.estimated_weight_grams ?? 0;
   const actualGrams = Number.isFinite(actualKgNumber) ? Math.round(actualKgNumber * 1000) : 0;
   const diffPercent = estimatedGrams > 0 && actualGrams > 0
