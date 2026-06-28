@@ -10,7 +10,6 @@ import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
 import type { BatchGrade, MaterialType } from '@/types';
 
 const MATERIAL_OPTIONS: MaterialType[] = ['PET', 'HDPE', 'LDPE', 'PP', 'MIX'];
-const GRADE_OPTIONS: BatchGrade[] = ['A', 'B', 'C'];
 
 function StepHeader({ step, title, body }: { step: string; title: string; body: string }) {
   const c = useThemeColors();
@@ -30,12 +29,14 @@ export default function BatchDetailsRoute() {
 
   const [materialType, setMaterialType] = useState<MaterialType>(draft.materialType ?? 'PET');
   const [estimatedWeightKg, setEstimatedWeightKg] = useState(draft.estimatedWeightKg);
-  const [grade, setGrade] = useState<BatchGrade>(draft.grade ?? 'A');
+  const [grade] = useState<BatchGrade>(draft.grade ?? 'C');
+
+  const normalizedWeight = estimatedWeightKg.replace(',', '.');
 
   const weightError = useMemo(() => {
     if (!estimatedWeightKg.trim()) return 'Add the estimated weight before you continue.';
-    const parsed = Number(estimatedWeightKg);
-    if (Number.isNaN(parsed) || parsed <= 0) return 'Use a valid weight in kilograms.';
+    const parsed = Number(estimatedWeightKg.replace(',', '.'));
+    if (Number.isNaN(parsed) || parsed < 0) return 'Use a valid weight in kilograms.';
     return null;
   }, [estimatedWeightKg]);
 
@@ -98,7 +99,7 @@ export default function BatchDetailsRoute() {
                 onChangeText={setEstimatedWeightKg}
                 placeholder="Enter weight in kg"
                 placeholderTextColor={c.textMuted}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
                 style={[styles.input, { color: c.foreground }]}
               />
               <Text style={[styles.inputUnit, { color: c.textSecondary }]}>kg</Text>
@@ -106,37 +107,6 @@ export default function BatchDetailsRoute() {
             {weightError ? <Text style={[styles.errorText, { color: '#ff7a7a' }]}>{weightError}</Text> : null}
           </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: c.foreground }]}>Material Grade</Text>
-            <View style={styles.gradeRow}>
-              {GRADE_OPTIONS.map((option) => {
-                const selected = option === grade;
-                return (
-                  <Pressable
-                    key={option}
-                    style={[
-                      styles.gradeCard,
-                      {
-                        backgroundColor: c.surface,
-                        borderColor: selected ? c.accent : c.border,
-                      },
-                    ]}
-                    onPress={() => setGrade(option)}
-                  >
-                    <Text style={[styles.gradeLabel, { color: c.textSecondary }]}>Grade</Text>
-                    <Text
-                      style={[
-                        styles.gradeValue,
-                        { color: selected ? c.accent : c.foreground },
-                      ]}
-                    >
-                      {option}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
@@ -144,7 +114,7 @@ export default function BatchDetailsRoute() {
             label="Continue to Location"
             onPress={() => {
               if (weightError) return;
-              setDetails({ materialType, estimatedWeightKg, grade });
+              setDetails({ materialType, estimatedWeightKg: normalizedWeight, grade });
               router.push('/batch/new/location');
             }}
             disabled={Boolean(weightError)}

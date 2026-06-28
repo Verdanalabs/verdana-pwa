@@ -37,7 +37,7 @@ export default function PvpLoginRoute() {
   }
 
   const hasInvite = Boolean(inviteParam);
-  const canLogin = Boolean(invite?.is_usable) && isReady;
+  const canLogin = isReady;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
@@ -93,15 +93,6 @@ export default function PvpLoginRoute() {
           )}
 
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: canLogin ? c.foreground : c.border }]}
-              onPress={loginWithGoogle}
-              activeOpacity={0.85}
-              disabled={!canLogin}
-            >
-              <Ionicons name="logo-google" size={18} color={canLogin ? c.background : c.textMuted} />
-              <Text style={[styles.btnLabel, { color: canLogin ? c.background : c.textMuted }]}>Continue with Google</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.secondaryBtn, { borderColor: c.border }]}
               onPress={loginWithEmail}

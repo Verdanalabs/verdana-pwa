@@ -166,7 +166,6 @@ export default function BatchReviewRoute() {
               label="Estimated Weight"
               value={draft.estimatedWeightKg ? `${draft.estimatedWeightKg} kg` : '-'}
             />
-            <DetailRow label="Grade" value={draft.grade ?? '-'} />
             <DetailRow label="Drop-off Point" value={draft.dropOffPoint ?? '-'} />
             <DetailRow
               label="Distance"

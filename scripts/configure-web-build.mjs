@@ -140,7 +140,13 @@ function rewriteWebAssets() {
   const replaceExtensions = new Set(['.html', '.js', '.map', '.css']);
 
   function walk(dir) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
 
       if (entry.isDirectory()) {
