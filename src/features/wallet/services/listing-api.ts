@@ -30,6 +30,13 @@ export async function getMyListings(token: string): Promise<Listing[]> {
   });
 }
 
+export async function getListing(token: string, listingId: string): Promise<Listing> {
+  return apiRequest<Listing>(`/v1/market/listings/${listingId}`, {
+    method: 'GET',
+    token,
+  });
+}
+
 export async function getBrowseListings(token: string, params?: { material?: string; limit?: number; offset?: number }): Promise<Listing[]> {
   const query = new URLSearchParams();
   if (params?.material) query.set('material', params.material);

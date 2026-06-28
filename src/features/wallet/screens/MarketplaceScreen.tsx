@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialBadge } from '@/src/shared/ui/MaterialBadge';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
+import { LoadErrorCard } from '@/src/shared/ui/LoadErrorCard';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { useWallet } from '@/src/features/wallet/hooks/useWallet';
@@ -15,7 +16,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { getBrowseListings } from '@/src/features/wallet/services/listing-api';
 import type { CNFT, Listing } from '@/types';
 
-const COMING_SOON = true;
+const COMING_SOON = false;
 
 type ActiveTab = 'browse' | 'my-assets';
 
@@ -36,12 +37,16 @@ function formatDate(iso: string) {
 
 // ─── Browse listing card ────────────────────────────────────────────────────
 
-function ListingCard({ listing }: { listing: Listing }) {
+function ListingCard({ listing, onPress }: { listing: Listing; onPress?: () => void }) {
   const c = useThemeColors();
   const material = listing.material.toUpperCase();
 
   return (
-    <View style={[styles.listingCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+    <TouchableOpacity
+      style={[styles.listingCard, { backgroundColor: c.surface, borderColor: c.border }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.listingCardTop}>
         <View style={styles.listingCardLeft}>
           <MaterialBadge material={material as never} />
@@ -71,7 +76,7 @@ function ListingCard({ listing }: { listing: Listing }) {
           Listed {formatDate(listing.listed_at)}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -89,8 +94,9 @@ function MyAssetCard({
   onCancel: (listingId: string) => void;
 }) {
   const c = useThemeColors();
-  const isListed = listing?.status === 'active';
-  const isSold   = listing?.status === 'sold';
+  const isListed   = listing?.status === 'active';
+  const isReserved = listing?.status === 'reserved';
+  const isSold     = listing?.status === 'sold';
 
   return (
     <TouchableOpacity
@@ -122,6 +128,10 @@ function MyAssetCard({
           {isSold ? (
             <View style={[styles.soldBadge, { backgroundColor: `${c.accent}22` }]}>
               <Text style={[styles.soldBadgeText, { color: c.accent }]}>Sold</Text>
+            </View>
+          ) : isReserved ? (
+            <View style={[styles.soldBadge, { backgroundColor: `${c.textMuted}22` }]}>
+              <Text style={[styles.soldBadgeText, { color: c.textMuted }]}>Reserved</Text>
             </View>
           ) : isListed ? (
             <View style={styles.listedGroup}>
@@ -190,20 +200,26 @@ export default function MarketplaceScreen() {
   const { getAccessToken } = usePrivy();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('browse');
-  const [materialFilter, setMaterialFilter] = useState<string>('Semua');
+  const [materialFilter, setMaterialFilter] = useState<string>('All');
   const [browseListings, setBrowseListings] = useState<Listing[]>([]);
   const [browseLoading, setBrowseLoading] = useState(true);
   const [browseRefreshing, setBrowseRefreshing] = useState(false);
+  const [browseError, setBrowseError] = useState<string | null>(null);
 
   const { wallet, isLoading: walletLoading, isRefreshing: walletRefreshing, reload: reloadWallet } = useWallet();
   const { listingByBatchId, create, cancel, reload: reloadListings } = useListings();
   const [listingTarget, setListingTarget] = useState<CNFT | null>(null);
 
   const loadBrowse = useCallback(async () => {
-    const token = await getAccessToken();
-    if (!token) return;
-    const data = await getBrowseListings(token, { limit: 30 });
-    setBrowseListings(data);
+    try {
+      setBrowseError(null);
+      const token = await getAccessToken();
+      if (!token) return;
+      const data = await getBrowseListings(token, { limit: 30 });
+      setBrowseListings(data);
+    } catch (e) {
+      setBrowseError(e instanceof Error ? e.message : 'Failed to load listings');
+    }
   }, [getAccessToken]);
 
   const refreshBrowse = useCallback(async () => {
@@ -251,8 +267,21 @@ export default function MarketplaceScreen() {
             Buy and sell verified recycling assets
           </Text>
         </View>
-        <View style={[styles.headerIcon, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Ionicons name="storefront-outline" size={18} color={c.accent} />
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={[styles.headerIcon, { backgroundColor: c.surface, borderColor: c.border }]}
+            onPress={() => router.push('/inventory' as never)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="cube-outline" size={18} color={c.accent} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerIcon, { backgroundColor: c.surface, borderColor: c.border }]}
+            onPress={() => router.push('/wallet/orders' as never)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="receipt-outline" size={18} color={c.accent} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -309,7 +338,9 @@ export default function MarketplaceScreen() {
             ))}
           </ScrollView>
 
-          {browseLoading ? (
+          {browseError && !browseLoading ? (
+            <LoadErrorCard message={browseError} onRetry={refreshBrowse} />
+          ) : browseLoading ? (
             <BrowseSkeleton />
           ) : filteredListings.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -321,7 +352,9 @@ export default function MarketplaceScreen() {
             </View>
           ) : (
             <View style={{ gap: 12 }}>
-              {filteredListings.map((l) => <ListingCard key={l.id} listing={l} />)}
+              {filteredListings.map((l) => (
+                <ListingCard key={l.id} listing={l} onPress={() => router.push(`/wallet/listing/${l.id}` as never)} />
+              ))}
             </View>
           )}
         </ScrollView>
@@ -408,6 +441,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: FontSize.sm,
     fontFamily: Font.regular,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
   },
   headerIcon: {
     width: 42,

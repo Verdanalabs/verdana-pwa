@@ -32,3 +32,35 @@ jest.mock('@expo/vector-icons', () => {
 
   return { Ionicons };
 });
+
+// @privy-io/react-auth ships an ESM-only dependency chain (ofetch, uuid, ...)
+// that Jest cannot load. The app only consumes these three exports, so stub them
+// to keep auth-dependent screens renderable in tests.
+jest.mock('@privy-io/react-auth', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react');
+  return {
+    PrivyProvider: ({ children }: { children?: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    usePrivy: () => ({
+      ready: true,
+      authenticated: false,
+      user: null,
+      login: jest.fn(),
+      logout: jest.fn(),
+      getAccessToken: jest.fn(async () => null),
+    }),
+    useLogout: () => ({ logout: jest.fn() }),
+  };
+});
+
+// app-variant.ts reads window.location.hostname at import time to detect the
+// collector/PVP build. The test environment may leave window.location unset, so
+// provide a benign default that resolves to the collector variant.
+if (typeof window !== 'undefined' && (!window.location || !window.location.hostname)) {
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    writable: true,
+    value: { hostname: 'localhost', href: 'http://localhost/', origin: 'http://localhost' },
+  });
+}

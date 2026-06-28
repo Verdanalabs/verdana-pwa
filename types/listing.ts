@@ -1,4 +1,4 @@
-export type ListingStatus = 'active' | 'cancelled' | 'sold';
+export type ListingStatus = 'active' | 'reserved' | 'cancelled' | 'sold';
 
 export interface Listing {
   id: string;
