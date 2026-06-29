@@ -12,7 +12,7 @@ import { getBatches, type ApiBatch } from '@/src/features/batch/services/batch-a
 import type { BatchStatus, BatchSummary } from '@/types';
 
 type StatusFilter = 'all' | 'pending' | 'accepted' | 'pickup_dispatched' | 'cosigning' | 'cosigned' | 'minted';
-type MaterialFilter = 'all' | 'PET' | 'HDPE' | 'LDPE' | 'PP' | 'MIX';
+type MaterialFilter = 'all' | 'PET' | 'HDPE' | 'LDPE' | 'PP' | 'MIX' | 'ORGANIC';
 
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'all',              label: 'All' },
@@ -24,7 +24,7 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'minted',           label: 'Asset Ready' },
 ];
 
-const MATERIAL_FILTERS: MaterialFilter[] = ['all', 'PET', 'HDPE', 'LDPE', 'PP', 'MIX'];
+const MATERIAL_FILTERS: MaterialFilter[] = ['all', 'PET', 'HDPE', 'LDPE', 'PP', 'MIX', 'ORGANIC'];
 
 function mapStatus(apiStatus: string): BatchStatus {
   switch (apiStatus) {

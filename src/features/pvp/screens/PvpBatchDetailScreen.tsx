@@ -420,6 +420,17 @@ export default function PvpBatchDetailScreen() {
           <DetailRow label="Asset ID" value={batch.cnft_record?.asset_id ?? '-'} />
         </View>
 
+        {/* Grading action */}
+        <TouchableOpacity
+          style={[styles.gradeBtn, { backgroundColor: c.surface, borderColor: c.border }]}
+          onPress={() => router.push(`/grading/${batch.id}`)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="ribbon-outline" size={18} color={c.accent} />
+          <Text style={[styles.gradeBtnLabel, { color: c.foreground }]}>Grade Material</Text>
+          <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+        </TouchableOpacity>
+
         {/* Timeline card */}
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border, padding: 16, gap: 14 }]}>
           <Text style={[styles.sectionTitle, { color: c.foreground }]}>Timeline</Text>
@@ -538,6 +549,8 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: FontSize.lg, fontFamily: Font.semiBold, lineHeight: 26 },
 
   sectionTitle: { fontSize: FontSize.lg, fontFamily: Font.bold },
+  gradeBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16 },
+  gradeBtnLabel: { flex: 1, fontSize: FontSize.md, fontFamily: Font.semiBold },
   detailRow: { gap: 4 },
   detailLabel: { fontSize: FontSize.sm, fontFamily: Font.regular },
   detailValue: { fontSize: FontSize.sm, fontFamily: Font.medium, lineHeight: 20 },

@@ -149,6 +149,34 @@ export default function PvpFacilityTab() {
         </View>
 
         <View style={styles.section}>
+          <Text style={[styles.sectionCaption, { color: c.textFaint }]}>OPERATIONS</Text>
+          <View style={[styles.sectionCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <TouchableOpacity
+              style={[styles.navRow, { borderBottomColor: c.border }]}
+              onPress={() => router.push('/processing')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.infoIconWrap, { backgroundColor: c.backgroundSoft }]}>
+                <Ionicons name="cube-outline" size={16} color={c.textMuted} />
+              </View>
+              <Text style={[styles.navText, { color: c.foreground }]}>Processing (Anorganic)</Text>
+              <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.navRow, { borderBottomColor: 'transparent' }]}
+              onPress={() => router.push('/maggot')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.infoIconWrap, { backgroundColor: c.backgroundSoft }]}>
+                <Ionicons name="bug-outline" size={16} color={c.textMuted} />
+              </View>
+              <Text style={[styles.navText, { color: c.foreground }]}>Maggot Farming (Organic)</Text>
+              <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <Text style={[styles.sectionCaption, { color: c.textFaint }]}>APPEARANCE</Text>
           <View style={[styles.preferenceCard, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={styles.preferenceLeft}>
@@ -347,6 +375,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     borderBottomWidth: 1,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  navText: {
+    flex: 1,
+    fontFamily: Font.medium,
+    fontSize: FontSize.sm,
   },
   infoIconWrap: {
     width: 34,
