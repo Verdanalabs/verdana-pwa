@@ -28,7 +28,8 @@ export default function Root({ children }: PropsWithChildren) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              // ponytail: skip SW in dev — it cache-firsts the bundle and serves stale env across restarts
+              if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
                 window.addEventListener('load', function () {
                   navigator.serviceWorker.register('/service-worker.js').catch(function () {});
                 });

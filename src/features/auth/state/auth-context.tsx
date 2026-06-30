@@ -62,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (syncedRef.current) return;
-    syncedRef.current = true;
 
     // Find the embedded Solana wallet from linked accounts
     const solanaWallet = privyUser?.linkedAccounts?.find(
@@ -71,6 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (a as { chainType?: string }).chainType === "solana" &&
         (a as { walletClientType?: string }).walletClientType === "privy",
     ) as { address: string } | undefined;
+
+    // ponytail: Privy provisions the embedded wallet async. Bail until it's
+    // ready — effect re-runs on privyUser change, so sync fires once it lands.
+    // Without this, first-login sync sends no wallet_address → 400 for new users.
+    if (!solanaWallet?.address) return;
+
+    syncedRef.current = true;
 
     async function sync() {
       try {

@@ -9,6 +9,7 @@ const DARK: Record<MaterialType, { bg: string; text: string }> = {
   LDPE: { bg: '#0a2828', text: '#2dd4bf' },
   PP:   { bg: '#162a10', text: '#86efac' },
   MIX:  { bg: '#1a1a2e', text: '#a78bfa' },
+  ORGANIC: { bg: '#2a1f0a', text: '#d9a441' },
 };
 
 const LIGHT: Record<MaterialType, { bg: string; text: string }> = {
@@ -17,6 +18,7 @@ const LIGHT: Record<MaterialType, { bg: string; text: string }> = {
   LDPE: { bg: '#ccfbf1', text: '#134e4a' },
   PP:   { bg: '#dcfce7', text: '#14532d' },
   MIX:  { bg: '#ede9fe', text: '#5b21b6' },
+  ORGANIC: { bg: '#f5ecd6', text: '#7c5510' },
 };
 
 interface MaterialBadgeProps {
