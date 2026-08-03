@@ -5,6 +5,8 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useTheme, useThemeColors } from '@/src/shared/theme/theme-context';
+// Hero card stays dark in both themes, and StyleSheet.create has no hook access.
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { usePvpBatchFeed } from '@/src/features/pvp/hooks/usePvpBatchFeed';
 
@@ -69,7 +71,7 @@ export default function PvpFacilityTab() {
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: c.background }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={[styles.eyebrow, { color: c.accent }]}>FACILITY</Text>
+          <Text style={[styles.eyebrow, { color: c.accentInk }]}>FACILITY</Text>
           <Text style={[styles.pageTitle, { color: c.foreground }]}>Station Settings</Text>
           <Text style={[styles.pageSub, { color: c.textMuted }]}>
             Review operator identity, site details, and local operating preferences.
@@ -106,17 +108,17 @@ export default function PvpFacilityTab() {
 
         <View style={[styles.metricsRow, { backgroundColor: c.surface, borderColor: c.border }]}>
           <View style={styles.metricItem}>
-            <Text style={[styles.metricValue, { color: c.accent }]}>{batches.length}</Text>
+            <Text style={[styles.metricValue, { color: c.accentInk }]}>{batches.length}</Text>
             <Text style={[styles.metricLabel, { color: c.textMuted }]}>Tracked batches</Text>
           </View>
           <View style={[styles.metricDivider, { backgroundColor: c.border }]} />
           <View style={styles.metricItem}>
-            <Text style={[styles.metricValue, { color: c.accent }]}>{totalKg.toFixed(1)}</Text>
+            <Text style={[styles.metricValue, { color: c.accentInk }]}>{totalKg.toFixed(1)}</Text>
             <Text style={[styles.metricLabel, { color: c.textMuted }]}>Total kg</Text>
           </View>
           <View style={[styles.metricDivider, { backgroundColor: c.border }]} />
           <View style={styles.metricItem}>
-            <Text style={[styles.metricValue, { color: c.accent }]}>{awaitingSign}</Text>
+            <Text style={[styles.metricValue, { color: c.accentInk }]}>{awaitingSign}</Text>
             <Text style={[styles.metricLabel, { color: c.textMuted }]}>Awaiting sign</Text>
           </View>
         </View>
@@ -244,7 +246,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     padding: 18,
-    backgroundColor: '#0b160d',
+    backgroundColor: t.surface,
     gap: 18,
   },
   heroGlow: {
@@ -276,7 +278,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   heroName: {
-    color: '#ffffff',
+    color: t.white,
     fontSize: FontSize.xl,
     fontFamily: Font.bold,
   },
@@ -303,7 +305,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   heroSiteValue: {
-    color: '#ffffff',
+    color: t.white,
     fontSize: FontSize.lg,
     fontFamily: Font.semiBold,
     marginTop: 4,
@@ -323,10 +325,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#16a34a',
+    backgroundColor: t.success,
   },
   heroBadgeText: {
-    color: '#8ff3b2',
+    color: t.success,
     fontFamily: Font.semiBold,
     fontSize: FontSize.xs,
   },

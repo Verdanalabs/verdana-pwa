@@ -98,8 +98,8 @@ export function InventoryFilterBar({
         </Text>
         {isFiltered ? (
           <TouchableOpacity onPress={onClear} style={styles.clearBtn} activeOpacity={0.7} hitSlop={8}>
-            <Ionicons name="close-circle" size={15} color={c.accent} />
-            <Text style={[styles.clearText, { color: c.accent }]}>Clear filters</Text>
+            <Ionicons name="close-circle" size={15} color={c.accentInk} />
+            <Text style={[styles.clearText, { color: c.accentInk }]}>Clear filters</Text>
           </TouchableOpacity>
         ) : null}
       </View>

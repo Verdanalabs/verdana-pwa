@@ -42,7 +42,7 @@ export default function PvpOnboardingRoute() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={[styles.heroBadge, { borderColor: `${c.accent}26`, backgroundColor: `${c.accent}10` }]}> 
-            <Text style={[styles.heroBadgeText, { color: c.accent }]}>PVP REGISTRATION</Text>
+            <Text style={[styles.heroBadgeText, { color: c.accentInk }]}>PVP REGISTRATION</Text>
           </View>
 
           <Text style={[styles.title, { color: c.foreground }]}>Lengkapi profil operator</Text>
@@ -52,7 +52,7 @@ export default function PvpOnboardingRoute() {
         {invite && (
           <View style={[styles.siteCard, { backgroundColor: c.surface, borderColor: c.border }]}> 
             <View style={[styles.siteIcon, { backgroundColor: `${c.accent}14` }]}> 
-              <Ionicons name="business-outline" size={18} color={c.accent} />
+              <Ionicons name="business-outline" size={18} color={c.accentInk} />
             </View>
             <View style={styles.siteCopy}>
               <Text style={[styles.siteLabel, { color: c.textMuted }]}>Assigned PVP site</Text>

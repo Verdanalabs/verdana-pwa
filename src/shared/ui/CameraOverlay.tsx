@@ -1,4 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { DarkColors } from '@/src/shared/theme/tokens';
+
+/**
+ * The viewfinder is always a dark surface regardless of the app theme, so this
+ * reads the dark palette directly instead of using `useThemeColors()`. That also
+ * makes the tokens available at module scope, where hooks can't reach.
+ */
+const t = DarkColors;
+
+/** True black behind the camera preview — a tinted backdrop would cast the feed. */
+const VIEWFINDER_BACKDROP = '#000';
 
 interface CameraOverlayProps {
   onCapture: (uri: string) => void;
@@ -164,13 +175,13 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
                 transform: 'translate(-50%, -50%)',
               }}>
                 {/* Top-left */}
-                <div style={{ ...s.corner, top: 0, left: 0, borderTop: `${CORNER_W}px solid #fff`, borderLeft: `${CORNER_W}px solid #fff`, borderTopLeftRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
+                <div style={{ ...s.corner, top: 0, left: 0, borderTop: `${CORNER_W}px solid ${t.white}`, borderLeft: `${CORNER_W}px solid ${t.white}`, borderTopLeftRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
                 {/* Top-right */}
-                <div style={{ ...s.corner, top: 0, right: 0, borderTop: `${CORNER_W}px solid #fff`, borderRight: `${CORNER_W}px solid #fff`, borderTopRightRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
+                <div style={{ ...s.corner, top: 0, right: 0, borderTop: `${CORNER_W}px solid ${t.white}`, borderRight: `${CORNER_W}px solid ${t.white}`, borderTopRightRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
                 {/* Bottom-left */}
-                <div style={{ ...s.corner, bottom: 0, left: 0, borderBottom: `${CORNER_W}px solid #fff`, borderLeft: `${CORNER_W}px solid #fff`, borderBottomLeftRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
+                <div style={{ ...s.corner, bottom: 0, left: 0, borderBottom: `${CORNER_W}px solid ${t.white}`, borderLeft: `${CORNER_W}px solid ${t.white}`, borderBottomLeftRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
                 {/* Bottom-right */}
-                <div style={{ ...s.corner, bottom: 0, right: 0, borderBottom: `${CORNER_W}px solid #fff`, borderRight: `${CORNER_W}px solid #fff`, borderBottomRightRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
+                <div style={{ ...s.corner, bottom: 0, right: 0, borderBottom: `${CORNER_W}px solid ${t.white}`, borderRight: `${CORNER_W}px solid ${t.white}`, borderBottomRightRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
 
                 {/* Scan line */}
                 {ready && (
@@ -181,7 +192,7 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
                     top: scanY * (VF_SIZE - 4),
                     height: 2.5,
                     borderRadius: 99,
-                    background: 'linear-gradient(90deg, transparent, #4ade80, #4ade80, transparent)',
+                    background: `linear-gradient(90deg, transparent, ${t.accent}, ${t.accent}, transparent)`,
                     boxShadow: '0 0 8px 2px rgba(74,222,128,0.5)',
                   }} />
                 )}
@@ -232,7 +243,7 @@ const s: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: '#000',
+    backgroundColor: VIEWFINDER_BACKDROP,
     zIndex: 9999,
     display: 'flex',
     flexDirection: 'column',
@@ -276,7 +287,7 @@ const s: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  iconText: { color: '#fff', fontSize: 18, lineHeight: '1' },
+  iconText: { color: t.white, fontSize: 18, lineHeight: '1' },
   hintWrap: {
     position: 'absolute',
     top: '50%',
@@ -286,7 +297,7 @@ const s: Record<string, React.CSSProperties> = {
     textAlign: 'center',
   } as React.CSSProperties,
   hintText: {
-    color: '#fff',
+    color: t.white,
     fontSize: 15,
     fontWeight: '500',
     textAlign: 'center',
@@ -308,14 +319,14 @@ const s: Record<string, React.CSSProperties> = {
   captureBtn: {
     width: 72, height: 72, borderRadius: 36,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    border: '3.5px solid #fff',
+    border: `3.5px solid ${t.white}`,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     transition: 'transform 0.1s',
   },
   captureBtnInner: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#fff',
+    backgroundColor: t.white,
   },
   previewActions: {
     display: 'flex',
@@ -329,7 +340,7 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.15)',
     border: '1.5px solid rgba(255,255,255,0.35)',
-    color: '#fff',
+    color: t.white,
     fontSize: 16,
     fontWeight: '600',
     cursor: 'pointer',
@@ -338,9 +349,9 @@ const s: Record<string, React.CSSProperties> = {
     flex: 1,
     padding: '14px 0',
     borderRadius: 16,
-    backgroundColor: '#4ade80',
+    backgroundColor: t.accent,
     border: 'none',
-    color: '#0a1a0a',
+    color: t.accentContrast,
     fontSize: 16,
     fontWeight: '700',
     cursor: 'pointer',
@@ -350,11 +361,11 @@ const s: Record<string, React.CSSProperties> = {
     alignItems: 'center', gap: 16, padding: 24, zIndex: 10,
   },
   errorText: {
-    color: '#fff', textAlign: 'center', fontSize: 16, maxWidth: 280, margin: 0,
+    color: t.white, textAlign: 'center', fontSize: 16, maxWidth: 280, margin: 0,
   },
   btn: {
     padding: '10px 24px', borderRadius: 12,
-    backgroundColor: '#fff', border: 'none',
+    backgroundColor: t.white, border: 'none',
     cursor: 'pointer', fontSize: 16, fontWeight: '600',
   },
 };

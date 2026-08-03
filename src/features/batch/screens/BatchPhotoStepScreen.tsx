@@ -8,6 +8,8 @@ import { PrimaryButton } from '@/src/shared/ui/PrimaryButton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 
 // ── Inline camera — just video feed, no overlays ─────────────────────────────
 
@@ -111,7 +113,7 @@ const cs: Record<string, React.CSSProperties> = {
     position: 'relative',
     width: '100%',
     height: '100%',
-    backgroundColor: '#000',
+    backgroundColor: t.shadowColor,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -138,7 +140,7 @@ function StepHeader({ step, title, body }: { step: string; title: string; body: 
   const c = useThemeColors();
   return (
     <View style={styles.header}>
-      <Text style={[styles.stepText, { color: c.accent }]}>{step}</Text>
+      <Text style={[styles.stepText, { color: c.accentInk }]}>{step}</Text>
       <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
       <Text style={[styles.body, { color: c.textSecondary }]}>{body}</Text>
     </View>
@@ -230,7 +232,7 @@ export default function BatchPhotoRoute() {
                 <Image source={{ uri: draft.photoUri! }} style={styles.previewImage} contentFit="cover" />
                 <View style={styles.previewMeta}>
                   <View style={[styles.metaPill, { backgroundColor: `${c.accent}16`, borderColor: `${c.accent}20` }]}>
-                    <Ionicons name="checkmark-circle" size={14} color={c.accent} />
+                    <Ionicons name="checkmark-circle" size={14} color={c.accentInk} />
                     <Text style={[styles.metaPillText, { color: c.textSecondary }]}>Photo captured</Text>
                   </View>
                   {draft.capturedAt && (
@@ -302,12 +304,12 @@ export default function BatchPhotoRoute() {
           {__DEV__ && !hasPhoto && !previewUri && Platform.OS === 'web' && (
             <View style={styles.actionRow}>
               <TouchableOpacity
-                style={[styles.captureBtn, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf640', borderWidth: 1 }]}
+                style={[styles.captureBtn, { backgroundColor: withAlpha(c.info, Alpha.subtle), borderColor: withAlpha(c.info, Alpha.strong), borderWidth: 1 }]}
                 onPress={handleDevFilePick}
                 activeOpacity={0.82}
               >
-                <Ionicons name="image-outline" size={18} color="#8b5cf6" />
-                <Text style={[styles.captureBtnLabel, { color: '#8b5cf6' }]}>
+                <Ionicons name="image-outline" size={18} color={c.info} />
+                <Text style={[styles.captureBtnLabel, { color: c.info }]}>
                   DEV: Upload from file
                 </Text>
               </TouchableOpacity>

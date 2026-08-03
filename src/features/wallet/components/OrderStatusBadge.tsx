@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Font, FontSize } from '@/src/shared/theme/typography';
-import { useTheme } from '@/src/shared/theme/theme-context';
+import { useThemeColors } from '@/src/shared/theme/theme-context';
+import type { Tone } from '@/src/shared/theme/tokens';
 import type { OrderStatus } from '@/types';
 
 const LABEL: Record<OrderStatus, string> = {
@@ -10,18 +11,12 @@ const LABEL: Record<OrderStatus, string> = {
   cancelled: 'Cancelled',
 };
 
-const DARK: Record<OrderStatus, { bg: string; fg: string }> = {
-  pending: { bg: '#2a1f08', fg: '#fbbf24' },
-  confirmed: { bg: '#0c1f3a', fg: '#60a5fa' },
-  completed: { bg: '#b5f23d', fg: '#070e07' },
-  cancelled: { bg: '#2a0808', fg: '#f87171' },
-};
-
-const LIGHT: Record<OrderStatus, { bg: string; fg: string }> = {
-  pending: { bg: '#fef3c7', fg: '#92400e' },
-  confirmed: { bg: '#dbeafe', fg: '#1d4ed8' },
-  completed: { bg: '#96cc2e', fg: '#091406' },
-  cancelled: { bg: '#fee2e2', fg: '#991b1b' },
+// Statuses map to shared tones rather than carrying their own palette.
+const TONE: Record<OrderStatus, Tone> = {
+  pending: 'warning',
+  confirmed: 'info',
+  completed: 'accent',
+  cancelled: 'danger',
 };
 
 interface OrderStatusBadgeProps {
@@ -30,9 +25,10 @@ interface OrderStatusBadgeProps {
 }
 
 export function OrderStatusBadge({ status, size = 'md' }: OrderStatusBadgeProps) {
-  const { isDark } = useTheme();
-  const palette = isDark ? DARK : LIGHT;
-  const { bg, fg } = palette[status] ?? palette.pending;
+  const c = useThemeColors();
+  const tone = TONE[status] ?? 'neutral';
+  const bg = c.toneBg[tone];
+  const fg = c.toneFg[tone];
 
   return (
     <View style={[styles.badge, { backgroundColor: bg }, size === 'sm' && styles.sm]}>

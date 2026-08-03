@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { getBatch, dispatchBatch, pvpWeighBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
@@ -187,7 +188,7 @@ export default function PvpCosignScreen() {
       <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top', 'bottom']}>
         <View style={styles.successWrap}>
           <View style={[styles.successIcon, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}25` }]}>
-            <Ionicons name="checkmark-circle" size={52} color={c.accent} />
+            <Ionicons name="checkmark-circle" size={52} color={c.accentInk} />
           </View>
           <Text style={[styles.successTitle, { color: c.foreground }]}>Weight Submitted!</Text>
           <Text style={[styles.successSub, { color: c.textSecondary }]}>
@@ -278,10 +279,10 @@ export default function PvpCosignScreen() {
           <View style={styles.photoFooter}>
             <Text style={[styles.batchShortId, { color: c.foreground }]}>{shortId}</Text>
             <View style={[styles.statusPill, {
-              backgroundColor: alreadyCosigned ? `${c.accent}18` : `${'#f59e0b'}20`,
-              borderColor: alreadyCosigned ? `${c.accent}30` : `${'#f59e0b'}40`,
+              backgroundColor: alreadyCosigned ? `${c.accent}18` : `${c.warning}20`,
+              borderColor: alreadyCosigned ? `${c.accent}30` : `${c.warning}40`,
             }]}>
-              <Text style={[styles.statusPillText, { color: alreadyCosigned ? c.accent : '#f59e0b' }]}>
+              <Text style={[styles.statusPillText, { color: alreadyCosigned ? c.accent : c.warning }]}>
                 {alreadyCosigned ? 'Already co-signed' : 'Awaiting co-sign'}
               </Text>
             </View>
@@ -300,7 +301,7 @@ export default function PvpCosignScreen() {
         {/* Already co-signed notice */}
         {alreadyCosigned ? (
           <View style={[styles.noticeCard, { backgroundColor: `${c.accent}10`, borderColor: `${c.accent}20` }]}>
-            <Ionicons name="information-circle-outline" size={18} color={c.accent} />
+            <Ionicons name="information-circle-outline" size={18} color={c.accentInk} />
             <Text style={[styles.noticeText, { color: c.textSecondary }]}>
               This batch has already been co-signed and cannot be modified.
             </Text>
@@ -328,14 +329,14 @@ export default function PvpCosignScreen() {
                 <View style={[
                   styles.discrepancyCard,
                   {
-                    backgroundColor: isBlockedDiscrepancy ? `${c.error}12` : isHighDiscrepancy ? '#f59e0b14' : `${c.accent}10`,
-                    borderColor: isBlockedDiscrepancy ? `${c.error}30` : isHighDiscrepancy ? '#f59e0b35' : `${c.accent}24`,
+                    backgroundColor: isBlockedDiscrepancy ? `${c.error}12` : isHighDiscrepancy ? withAlpha(c.warning, Alpha.subtle) : `${c.accent}10`,
+                    borderColor: isBlockedDiscrepancy ? `${c.error}30` : isHighDiscrepancy ? withAlpha(c.warning, Alpha.medium) : `${c.accent}24`,
                   },
                 ]}>
                   <Ionicons
                     name={isBlockedDiscrepancy ? 'ban-outline' : isHighDiscrepancy ? 'warning-outline' : 'checkmark-circle-outline'}
                     size={17}
-                    color={isBlockedDiscrepancy ? c.error : isHighDiscrepancy ? '#f59e0b' : c.accent}
+                    color={isBlockedDiscrepancy ? c.error : isHighDiscrepancy ? c.warning : c.accent}
                   />
                   <Text style={[styles.discrepancyText, { color: isBlockedDiscrepancy ? c.error : c.textSecondary }]}> 
                     Estimasi {estimatedKg} kg · Aktual {actualKgNumber.toFixed(1)} kg · Selisih {diffPercent > 0 ? '+' : ''}{diffPercent.toFixed(0)}%
@@ -366,7 +367,7 @@ export default function PvpCosignScreen() {
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
           {isSubmitting ? (
             <View style={styles.loadingRow}>
-              <ActivityIndicator color={c.accent} />
+              <ActivityIndicator color={c.accentInk} />
               <Text style={[styles.loadingText, { color: c.textSecondary }]}>Submitting weight...</Text>
             </View>
           ) : (

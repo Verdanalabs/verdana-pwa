@@ -60,7 +60,7 @@ function ListingCard({ listing, onPress }: { listing: Listing; onPress?: () => v
           ) : null}
         </View>
         <View style={[styles.priceTag, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}44` }]}>
-          <Text style={[styles.priceTagText, { color: c.accent }]}>{formatIDR(listing.price_idr)}</Text>
+          <Text style={[styles.priceTagText, { color: c.accentInk }]}>{formatIDR(listing.price_idr)}</Text>
         </View>
       </View>
 
@@ -127,7 +127,7 @@ function MyAssetCard({
           {/* Status / action */}
           {isSold ? (
             <View style={[styles.soldBadge, { backgroundColor: `${c.accent}22` }]}>
-              <Text style={[styles.soldBadgeText, { color: c.accent }]}>Sold</Text>
+              <Text style={[styles.soldBadgeText, { color: c.accentInk }]}>Sold</Text>
             </View>
           ) : isReserved ? (
             <View style={[styles.soldBadge, { backgroundColor: `${c.textMuted}22` }]}>
@@ -135,7 +135,7 @@ function MyAssetCard({
             </View>
           ) : isListed ? (
             <View style={styles.listedGroup}>
-              <Text style={[styles.listedPrice, { color: c.accent }]}>{formatIDR(listing!.price_idr)}</Text>
+              <Text style={[styles.listedPrice, { color: c.accentInk }]}>{formatIDR(listing!.price_idr)}</Text>
               <TouchableOpacity
                 style={[styles.cancelBtn, { borderColor: c.border }]}
                 onPress={(e) => { e.stopPropagation(); onCancel(listing!.id); }}
@@ -150,8 +150,8 @@ function MyAssetCard({
               onPress={(e) => { e.stopPropagation(); onSell(); }}
               activeOpacity={0.8}
             >
-              <Ionicons name="pricetag-outline" size={13} color={c.accent} />
-              <Text style={[styles.sellBtnText, { color: c.accent }]}>Sell</Text>
+              <Ionicons name="pricetag-outline" size={13} color={c.accentInk} />
+              <Text style={[styles.sellBtnText, { color: c.accentInk }]}>Sell</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -239,11 +239,11 @@ export default function MarketplaceScreen() {
       <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
         <View style={styles.comingSoonContainer}>
           <View style={[styles.comingSoonIcon, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}33` }]}>
-            <Ionicons name="storefront-outline" size={36} color={c.accent} />
+            <Ionicons name="storefront-outline" size={36} color={c.accentInk} />
           </View>
           <Text style={[styles.comingSoonTitle, { color: c.foreground }]}>Marketplace</Text>
           <View style={[styles.comingSoonBadge, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}33` }]}>
-            <Text style={[styles.comingSoonBadgeText, { color: c.accent }]}>Coming Soon</Text>
+            <Text style={[styles.comingSoonBadgeText, { color: c.accentInk }]}>Coming Soon</Text>
           </View>
           <Text style={[styles.comingSoonDesc, { color: c.textMuted }]}>
             Buy and sell verified recycling assets directly on-chain. We&apos;re putting the finishing touches on it.
@@ -273,14 +273,14 @@ export default function MarketplaceScreen() {
             onPress={() => router.push('/inventory' as never)}
             activeOpacity={0.7}
           >
-            <Ionicons name="cube-outline" size={18} color={c.accent} />
+            <Ionicons name="cube-outline" size={18} color={c.accentInk} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.headerIcon, { backgroundColor: c.surface, borderColor: c.border }]}
             onPress={() => router.push('/wallet/orders' as never)}
             activeOpacity={0.7}
           >
-            <Ionicons name="receipt-outline" size={18} color={c.accent} />
+            <Ionicons name="receipt-outline" size={18} color={c.accentInk} />
           </TouchableOpacity>
         </View>
       </View>
@@ -314,7 +314,7 @@ export default function MarketplaceScreen() {
           style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={browseRefreshing} onRefresh={refreshBrowse} tintColor={c.accent} />}
+          refreshControl={<RefreshControl refreshing={browseRefreshing} onRefresh={refreshBrowse} tintColor={c.accentInk} />}
         >
           {/* Material filter chips */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
@@ -344,7 +344,7 @@ export default function MarketplaceScreen() {
             <BrowseSkeleton />
           ) : filteredListings.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Ionicons name="storefront-outline" size={20} color={c.accent} />
+              <Ionicons name="storefront-outline" size={20} color={c.accentInk} />
               <Text style={[styles.emptyTitle, { color: c.foreground }]}>No listings yet</Text>
               <Text style={[styles.emptyText, { color: c.textMuted }]}>
                 No assets are listed for sale{materialFilter !== 'All' ? ` for ${materialFilter}` : ''}.
@@ -370,7 +370,7 @@ export default function MarketplaceScreen() {
             <RefreshControl
               refreshing={walletRefreshing}
               onRefresh={async () => { await reloadWallet(); await reloadListings(); }}
-              tintColor={c.accent}
+              tintColor={c.accentInk}
             />
           }
         >
@@ -389,7 +389,7 @@ export default function MarketplaceScreen() {
             </View>
           ) : !wallet || wallet.cnfts.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Ionicons name="cube-outline" size={20} color={c.accent} />
+              <Ionicons name="cube-outline" size={20} color={c.accentInk} />
               <Text style={[styles.emptyTitle, { color: c.foreground }]}>No assets yet</Text>
               <Text style={[styles.emptyText, { color: c.textMuted }]}>
                 Complete a batch until the minted status to see your assets here.

@@ -18,7 +18,7 @@ function StepHeader({ step, title, body }: { step: string; title: string; body: 
   const c = useThemeColors();
   return (
     <View style={styles.header}>
-      <Text style={[styles.stepText, { color: c.accent }]}>{step}</Text>
+      <Text style={[styles.stepText, { color: c.accentInk }]}>{step}</Text>
       <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
       <Text style={[styles.body, { color: c.textSecondary }]}>{body}</Text>
     </View>
@@ -146,7 +146,7 @@ export default function BatchReviewRoute() {
             )}
             <View style={styles.previewMeta}>
               <View style={[styles.metaPill, { backgroundColor: `${c.accent}16`, borderColor: `${c.accent}20` }]}>
-                <Ionicons name="checkmark-circle-outline" size={14} color={c.accent} />
+                <Ionicons name="checkmark-circle-outline" size={14} color={c.accentInk} />
                 <Text style={[styles.metaText, { color: c.textSecondary }]}>Ready for submission</Text>
               </View>
               <Text style={[styles.previewHint, { color: c.textMuted }]}>
@@ -185,7 +185,7 @@ export default function BatchReviewRoute() {
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
           {isSubmitting ? (
             <View style={styles.loadingRow}>
-              <ActivityIndicator color={c.accent} />
+              <ActivityIndicator color={c.accentInk} />
               <Text style={[styles.loadingText, { color: c.textSecondary }]}>Uploading and creating batch...</Text>
             </View>
           ) : (

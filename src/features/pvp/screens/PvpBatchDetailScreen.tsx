@@ -13,6 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import type { ThemeColors } from '@/src/shared/theme/tokens';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
+import type { BatchStatus } from '@/types';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { acceptBatch, dispatchBatch, getBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
@@ -24,15 +27,6 @@ const API_BASE = runtimeConfig.apiBaseUrl;
 function mediaUrl(storageKey: string) {
   return `${API_BASE}/v1/media/${storageKey}`;
 }
-
-const MATERIAL_COLOR: Record<string, string> = {
-  PET: '#3b82f6',
-  HDPE: '#10b981',
-  LDPE: '#f59e0b',
-  PP: '#f97316',
-  PVC: '#ef4444',
-  PS: '#8b5cf6',
-};
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
@@ -62,16 +56,10 @@ function statusLabel(status: string) {
   }
 }
 
-function statusColor(status: string, accent: string) {
-  switch (status) {
-    case 'pending':            return '#f59e0b';
-    case 'accepted':           return accent;
-    case 'pickup_dispatched':  return '#8b5cf6';
-    case 'cosigning':          return '#8b5cf6';
-    case 'cosigned':           return '#3b82f6';
-    case 'minted':             return '#10b981';
-    default:                   return '#6b7280';
-  }
+// Status colour comes from the shared statusFg record so this screen can't drift
+// from the badges elsewhere in the app. See src/shared/theme/tokens.ts.
+function statusColor(status: string, c: ThemeColors) {
+  return c.statusFg[status as BatchStatus] ?? c.textMuted;
 }
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -274,8 +262,8 @@ export default function PvpBatchDetailScreen() {
   const isAccepted = batch.status === 'accepted';
   const isDispatched = batch.status === 'pickup_dispatched';
   const isCosigning = batch.status === 'cosigning';
-  const sColor = statusColor(batch.status, c.accent);
-  const matColor = MATERIAL_COLOR[batch.material.toUpperCase()] ?? c.accent;
+  const sColor = statusColor(batch.status, c);
+  const matColor = c.materialFg[batch.material.toUpperCase()] ?? c.accent;
   const photoMedia = batch.media.find((m) => m.media_kind === 'photo');
   const photoUri = photoMedia ? mediaUrl(photoMedia.storage_key) : null;
   const estimatedKg = batch.estimated_weight_grams != null
@@ -324,10 +312,10 @@ export default function PvpBatchDetailScreen() {
 
         {/* Status-appropriate call-to-action card */}
         {isPending && (
-          <View style={[styles.actionCard, { backgroundColor: '#f59e0b0c', borderColor: '#f59e0b30' }]}>
+          <View style={[styles.actionCard, { backgroundColor: withAlpha(c.warning, Alpha.faint), borderColor: withAlpha(c.warning, Alpha.medium) }]}>
             <View style={styles.actionCardHeader}>
-              <Ionicons name="document-text-outline" size={18} color="#f59e0b" />
-              <Text style={[styles.actionCardTitle, { color: '#f59e0b' }]}>Pending review</Text>
+              <Ionicons name="document-text-outline" size={18} color={c.warning} />
+              <Text style={[styles.actionCardTitle, { color: c.warning }]}>Pending review</Text>
             </View>
             <Text style={[styles.actionCardBody, { color: c.textSecondary }]}>
               This batch has been submitted by the supplier and is waiting for your review. Accept it to allow physical drop-off.
@@ -338,8 +326,8 @@ export default function PvpBatchDetailScreen() {
         {isAccepted && (
           <View style={[styles.actionCard, { backgroundColor: `${c.accent}0c`, borderColor: `${c.accent}30` }]}>
             <View style={styles.actionCardHeader}>
-              <Ionicons name="checkmark-circle-outline" size={18} color={c.accent} />
-              <Text style={[styles.actionCardTitle, { color: c.accent }]}>Batch accepted</Text>
+              <Ionicons name="checkmark-circle-outline" size={18} color={c.accentInk} />
+              <Text style={[styles.actionCardTitle, { color: c.accentInk }]}>Batch accepted</Text>
             </View>
             <Text style={[styles.actionCardBody, { color: c.textSecondary }]}>
               You have accepted this batch. Tap &quot;I&apos;m on my way&quot; to notify the collector that you are heading to their location.
@@ -348,10 +336,10 @@ export default function PvpBatchDetailScreen() {
         )}
 
         {isDispatched && (
-          <View style={[styles.actionCard, { backgroundColor: '#8b5cf60c', borderColor: '#8b5cf630' }]}>
+          <View style={[styles.actionCard, { backgroundColor: withAlpha(c.info, Alpha.faint), borderColor: withAlpha(c.info, Alpha.medium) }]}>
             <View style={styles.actionCardHeader}>
-              <Ionicons name="car-outline" size={18} color="#8b5cf6" />
-              <Text style={[styles.actionCardTitle, { color: '#8b5cf6' }]}>En route to collector</Text>
+              <Ionicons name="car-outline" size={18} color={c.info} />
+              <Text style={[styles.actionCardTitle, { color: c.info }]}>En route to collector</Text>
             </View>
             <Text style={[styles.actionCardBody, { color: c.textSecondary }]}>
               The collector has been notified. Once you arrive, scan their QR code and weigh the batch to proceed.
@@ -360,10 +348,10 @@ export default function PvpBatchDetailScreen() {
         )}
 
         {isCosigning && (
-          <View style={[styles.actionCard, { backgroundColor: '#8b5cf60c', borderColor: '#8b5cf630' }]}>
+          <View style={[styles.actionCard, { backgroundColor: withAlpha(c.info, Alpha.faint), borderColor: withAlpha(c.info, Alpha.medium) }]}>
             <View style={styles.actionCardHeader}>
-              <Ionicons name="hourglass-outline" size={18} color="#8b5cf6" />
-              <Text style={[styles.actionCardTitle, { color: '#8b5cf6' }]}>Awaiting supplier approval</Text>
+              <Ionicons name="hourglass-outline" size={18} color={c.info} />
+              <Text style={[styles.actionCardTitle, { color: c.info }]}>Awaiting supplier approval</Text>
             </View>
             <Text style={[styles.actionCardBody, { color: c.textSecondary }]}>
               You have weighed this batch. The supplier needs to review and co-sign before minting can proceed.
@@ -426,7 +414,7 @@ export default function PvpBatchDetailScreen() {
           onPress={() => router.push(`/grading/${batch.id}`)}
           activeOpacity={0.8}
         >
-          <Ionicons name="ribbon-outline" size={18} color={c.accent} />
+          <Ionicons name="ribbon-outline" size={18} color={c.accentInk} />
           <Text style={[styles.gradeBtnLabel, { color: c.foreground }]}>Grade Material</Text>
           <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
         </TouchableOpacity>
@@ -452,17 +440,17 @@ export default function PvpBatchDetailScreen() {
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
           {isPending && (
             <TouchableOpacity
-              style={[styles.footerBtn, { backgroundColor: '#f59e0b' }]}
+              style={[styles.footerBtn, { backgroundColor: c.warning }]}
               onPress={() => { void handleAccept(); }}
               activeOpacity={0.85}
               disabled={isAccepting}
             >
               {isAccepting ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={c.white} />
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-                  <Text style={styles.footerBtnLabel}>Accept Batch</Text>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={c.white} />
+                  <Text style={[styles.footerBtnLabel, { color: c.white }]}>Accept Batch</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -486,12 +474,12 @@ export default function PvpBatchDetailScreen() {
           )}
           {isDispatched && (
             <TouchableOpacity
-              style={[styles.footerBtn, { backgroundColor: '#8b5cf6' }]}
+              style={[styles.footerBtn, { backgroundColor: c.info }]}
               onPress={() => router.push(`/pvp/cosign?id=${batch.id}` as never)}
               activeOpacity={0.85}
             >
-              <Ionicons name="qr-code-outline" size={20} color="#fff" />
-              <Text style={[styles.footerBtnLabel, { color: '#fff' }]}>Scan QR & Weigh</Text>
+              <Ionicons name="qr-code-outline" size={20} color={c.white} />
+              <Text style={[styles.footerBtnLabel, { color: c.white }]}>Scan QR & Weigh</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -527,7 +515,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     height: 46, borderRadius: 14, gap: 8,
   },
-  actionCardBtnLabel: { fontSize: FontSize.sm, fontFamily: Font.semiBold, color: '#fff' },
+
 
   card: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
   photoImage: { width: '100%', height: 220 },
@@ -575,5 +563,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     height: 54, borderRadius: 16, gap: 10,
   },
-  footerBtnLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold, color: '#fff' },
+  // No colour here: each call site supplies it from the theme, because the
+  // label sits on a different tone per action (warning / accent / info).
+  footerBtnLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold },
 });

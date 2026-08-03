@@ -38,7 +38,7 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
           <Text style={[styles.cardTitle, { color: c.foreground }]}>
             {material}{weight ? ` · ${weight}` : ''}
           </Text>
-          <Text style={[styles.cardPrice, { color: c.accent }]}>{formatIDR(order.price_idr)}</Text>
+          <Text style={[styles.cardPrice, { color: c.accentInk }]}>{formatIDR(order.price_idr)}</Text>
         </View>
         <OrderStatusBadge status={order.status} size="sm" />
       </View>
@@ -113,7 +113,7 @@ export default function OrdersScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.accentInk} />}
       >
         {error && !loading ? (
           <LoadErrorCard message={error} onRetry={refresh} />
@@ -128,7 +128,7 @@ export default function OrdersScreen() {
           </View>
         ) : orders.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Ionicons name="receipt-outline" size={20} color={c.accent} />
+            <Ionicons name="receipt-outline" size={20} color={c.accentInk} />
             <Text style={[styles.emptyTitle, { color: c.foreground }]}>No orders yet</Text>
             <Text style={[styles.emptyText, { color: c.textMuted }]}>
               {role === 'buying' ? 'Orders you place will appear here.' : 'Orders for your listings will appear here.'}

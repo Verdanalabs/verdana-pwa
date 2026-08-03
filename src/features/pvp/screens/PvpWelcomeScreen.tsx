@@ -23,8 +23,8 @@ export default function PvpWelcomeScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}> 
       <View style={styles.content}>
         <View style={[styles.badge, { backgroundColor: `${c.accent}14`, borderColor: `${c.accent}28` }]}> 
-          <Ionicons name="checkmark-circle" size={18} color={c.accent} />
-          <Text style={[styles.badgeText, { color: c.accent }]}>Account approved</Text>
+          <Ionicons name="checkmark-circle" size={18} color={c.accentInk} />
+          <Text style={[styles.badgeText, { color: c.accentInk }]}>Account approved</Text>
         </View>
 
         <View style={styles.header}>
@@ -35,7 +35,7 @@ export default function PvpWelcomeScreen() {
         <View style={styles.steps}>
           <View style={[styles.stepCard, { backgroundColor: c.surface, borderColor: c.border }]}> 
             <View style={[styles.stepIcon, { backgroundColor: `${c.accent}14` }]}> 
-              <Ionicons name="albums-outline" size={20} color={c.accent} />
+              <Ionicons name="albums-outline" size={20} color={c.accentInk} />
             </View>
             <View style={styles.stepCopy}>
               <Text style={[styles.stepTitle, { color: c.foreground }]}>1. Pantau antrian masuk</Text>
@@ -45,7 +45,7 @@ export default function PvpWelcomeScreen() {
 
           <View style={[styles.stepCard, { backgroundColor: c.surface, borderColor: c.border }]}> 
             <View style={[styles.stepIcon, { backgroundColor: `${c.accent}14` }]}> 
-              <Ionicons name="scale-outline" size={20} color={c.accent} />
+              <Ionicons name="scale-outline" size={20} color={c.accentInk} />
             </View>
             <View style={styles.stepCopy}>
               <Text style={[styles.stepTitle, { color: c.foreground }]}>2. Timbang dan konfirmasi</Text>

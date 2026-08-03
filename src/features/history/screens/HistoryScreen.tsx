@@ -8,6 +8,7 @@ import { BatchCard } from '@/src/shared/ui/BatchCard';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 import { getBatches, type ApiBatch } from '@/src/features/batch/services/batch-api';
 import type { BatchStatus, BatchSummary } from '@/types';
 
@@ -82,7 +83,7 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
       style={[
         styles.chip,
         selected
-          ? { backgroundColor: c.accent, borderColor: c.accent }
+          ? { backgroundColor: c.accent, borderColor: c.accentInk }
           : { backgroundColor: c.surface, borderColor: c.border },
       ]}
       onPress={onPress}
@@ -193,7 +194,7 @@ export default function HistoryRoute() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={() => { void load('refresh'); }}
-            tintColor={c.accent}
+            tintColor={c.accentInk}
           />
         )}
       >
@@ -237,7 +238,7 @@ export default function HistoryRoute() {
                 <Text style={[styles.metricLabel, { color: c.textMuted }]}>In Progress</Text>
               </View>
               <View style={[styles.metricCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-                <Text style={[styles.metricValue, { color: c.accent }]}>{totals.ready}</Text>
+                <Text style={[styles.metricValue, { color: c.accentInk }]}>{totals.ready}</Text>
                 <Text style={[styles.metricLabel, { color: c.textMuted }]}>Asset Ready</Text>
               </View>
             </View>
@@ -248,7 +249,7 @@ export default function HistoryRoute() {
                 <Text style={[styles.filterLabel, { color: c.foreground }]}>Status</Text>
                 {statusFilter !== 'all' && (
                   <TouchableOpacity onPress={() => setStatusFilter('all')} activeOpacity={0.7}>
-                    <Text style={[styles.filterClear, { color: c.accent }]}>Clear</Text>
+                    <Text style={[styles.filterClear, { color: c.accentInk }]}>Clear</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -262,7 +263,7 @@ export default function HistoryRoute() {
                 <Text style={[styles.filterLabel, { color: c.foreground }]}>Material</Text>
                 {materialFilter !== 'all' && (
                   <TouchableOpacity onPress={() => setMaterialFilter('all')} activeOpacity={0.7}>
-                    <Text style={[styles.filterClear, { color: c.accent }]}>Clear</Text>
+                    <Text style={[styles.filterClear, { color: c.accentInk }]}>Clear</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -281,7 +282,7 @@ export default function HistoryRoute() {
               </Text>
               {hasActiveFilters && (
                 <TouchableOpacity onPress={() => { setStatusFilter('all'); setMaterialFilter('all'); }} activeOpacity={0.7}>
-                  <Text style={[styles.filterClear, { color: c.accent }]}>Clear all</Text>
+                  <Text style={[styles.filterClear, { color: c.accentInk }]}>Clear all</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -300,11 +301,11 @@ export default function HistoryRoute() {
                     />
                     {b.apiStatus === 'cosigning' && (
                       <TouchableOpacity
-                        style={[styles.approveBtn, { backgroundColor: '#8b5cf6' }]}
+                        style={[styles.approveBtn, { backgroundColor: c.info }]}
                         onPress={() => router.push(`/batch/approve-cosign?id=${b.batchId}` as never)}
                         activeOpacity={0.85}
                       >
-                        <Ionicons name="checkmark-circle-outline" size={15} color="#fff" />
+                        <Ionicons name="checkmark-circle-outline" size={15} color={c.white} />
                         <Text style={styles.approveBtnText}>Approve Co-sign</Text>
                       </TouchableOpacity>
                     )}
@@ -313,8 +314,8 @@ export default function HistoryRoute() {
               </View>
             ) : batches.length === 0 ? (
               <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-                <View style={[styles.emptyIconWrap, { backgroundColor: c.accent + '15', borderColor: c.accent + '25' }]}>
-                  <Ionicons name="layers-outline" size={22} color={c.accent} />
+                <View style={[styles.emptyIconWrap, { backgroundColor: c.accent + '15', borderColor: c.accentInk + '25' }]}>
+                  <Ionicons name="layers-outline" size={22} color={c.accentInk} />
                 </View>
                 <View style={styles.emptyCopy}>
                   <Text style={[styles.emptyTitle, { color: c.foreground }]}>No batches yet</Text>
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     height: 40, borderRadius: 12, gap: 7,
   },
-  approveBtnText: { fontFamily: Font.semiBold, fontSize: FontSize.sm, color: '#fff' },
+  approveBtnText: { fontFamily: Font.semiBold, fontSize: FontSize.sm, color: t.white },
 
   emptyCard: {
     borderWidth: 1, borderRadius: 18, padding: 24, gap: 14,

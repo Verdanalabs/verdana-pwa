@@ -79,7 +79,7 @@ export default function InventoryListScreen() {
           style={[styles.iconBtn, { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1 }]}
           activeOpacity={0.7}
         >
-          <Ionicons name="bar-chart-outline" size={18} color={c.accent} />
+          <Ionicons name="bar-chart-outline" size={18} color={c.accentInk} />
         </TouchableOpacity>
       </View>
 
@@ -87,7 +87,7 @@ export default function InventoryListScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.accentInk} />}
       >
         {!loading && !error && items.length > 0 ? (
           <InventoryFilterBar
@@ -126,7 +126,7 @@ export default function InventoryListScreen() {
         ) : items.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={[styles.emptyIconWrap, { backgroundColor: c.backgroundElevated }]}>
-              <Ionicons name="cube-outline" size={24} color={c.accent} />
+              <Ionicons name="cube-outline" size={24} color={c.accentInk} />
             </View>
             <Text style={[styles.emptyTitle, { color: c.foreground }]}>No inventory yet</Text>
             <Text style={[styles.emptyText, { color: c.textMuted }]}>
@@ -136,7 +136,7 @@ export default function InventoryListScreen() {
         ) : filtered.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={[styles.emptyIconWrap, { backgroundColor: c.backgroundElevated }]}>
-              <Ionicons name="filter-outline" size={24} color={c.accent} />
+              <Ionicons name="filter-outline" size={24} color={c.accentInk} />
             </View>
             <Text style={[styles.emptyTitle, { color: c.foreground }]}>No matches</Text>
             <Text style={[styles.emptyText, { color: c.textMuted }]}>
@@ -144,11 +144,11 @@ export default function InventoryListScreen() {
             </Text>
             <TouchableOpacity
               onPress={clearFilters}
-              style={[styles.emptyCta, { borderColor: c.accent }]}
+              style={[styles.emptyCta, { borderColor: c.accentInk }]}
               activeOpacity={0.7}
             >
-              <Ionicons name="close-circle" size={16} color={c.accent} />
-              <Text style={[styles.emptyCtaText, { color: c.accent }]}>Clear filters</Text>
+              <Ionicons name="close-circle" size={16} color={c.accentInk} />
+              <Text style={[styles.emptyCtaText, { color: c.accentInk }]}>Clear filters</Text>
             </TouchableOpacity>
           </View>
         ) : (

@@ -107,7 +107,7 @@ export function SupplierHomeScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => { void refresh(); }}
-              tintColor={c.accent}
+              tintColor={c.accentInk}
               colors={[c.accent]}
             />
           )}

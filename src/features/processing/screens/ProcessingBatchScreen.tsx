@@ -82,7 +82,7 @@ export default function ProcessingBatchScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
-        <View style={styles.center}><ActivityIndicator color={c.accent} /></View>
+        <View style={styles.center}><ActivityIndicator color={c.accentInk} /></View>
       </SafeAreaView>
     );
   }
@@ -130,7 +130,7 @@ export default function ProcessingBatchScreen() {
           {batch!.stages && batch!.stages.length > 0 ? (
             batch!.stages.map((s) => (
               <View key={s.id} style={styles.stageRow}>
-                <Ionicons name="checkmark-circle" size={16} color={c.accent} />
+                <Ionicons name="checkmark-circle" size={16} color={c.accentInk} />
                 <Text style={[styles.stageText, { color: c.foreground }]}>{s.stage}</Text>
                 {s.notes ? <Text style={[styles.stageNotes, { color: c.textMuted }]}>· {s.notes}</Text> : null}
               </View>
@@ -168,12 +168,12 @@ export default function ProcessingBatchScreen() {
                 style={[styles.notesInput, { color: c.foreground, borderColor: c.border, backgroundColor: c.background }]}
               />
               <TouchableOpacity
-                style={[styles.secondaryBtn, { borderColor: c.accent }]}
+                style={[styles.secondaryBtn, { borderColor: c.accentInk }]}
                 onPress={handleAddStage}
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.secondaryBtnLabel, { color: c.accent }]}>Add Stage</Text>
+                <Text style={[styles.secondaryBtnLabel, { color: c.accentInk }]}>Add Stage</Text>
               </TouchableOpacity>
             </View>
 

@@ -1,14 +1,13 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 import { Redirect, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_600SemiBold,
-  SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
+  HankenGrotesk_400Regular,
+  HankenGrotesk_500Medium,
+  HankenGrotesk_600SemiBold,
+  HankenGrotesk_700Bold,
+} from '@expo-google-fonts/hanken-grotesk';
 import * as SplashScreen from 'expo-splash-screen';
 import { AppProviders } from '@/src/providers/AppProviders';
 import { useAuth } from '@/src/features/auth/state/auth-context';
@@ -108,18 +107,17 @@ function AppShell() {
 }
 
 export default function RootLayout() {
-  // On web, fonts are loaded via Google Fonts CSS in app/+html.tsx.
-  // Passing an empty object makes useFonts resolve immediately with true.
-  const [fontsLoaded] = useFonts(
-    Platform.OS === 'web'
-      ? {}
-      : {
-          SpaceGrotesk_400Regular,
-          SpaceGrotesk_500Medium,
-          SpaceGrotesk_600SemiBold,
-          SpaceGrotesk_700Bold,
-        }
-  );
+  // Loaded on every platform including web, so the family names in
+  // src/shared/theme/typography.ts resolve identically everywhere. The old web
+  // branch relied on a Google Fonts <link> whose family name ("Space Grotesk")
+  // never matched the names components ask for, so web silently fell back to
+  // the browser's default sans.
+  const [fontsLoaded] = useFonts({
+    HankenGrotesk_400Regular,
+    HankenGrotesk_500Medium,
+    HankenGrotesk_600SemiBold,
+    HankenGrotesk_700Bold,
+  });
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();

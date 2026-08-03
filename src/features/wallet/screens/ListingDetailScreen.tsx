@@ -100,7 +100,7 @@ export default function ListingDetailScreen() {
               <View style={styles.heroTop}>
                 <Text style={[styles.heroTitle, { color: c.foreground }]}>{material}</Text>
                 <View style={[styles.priceTag, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}44` }]}>
-                  <Text style={[styles.priceTagText, { color: c.accent }]}>{formatIDR(listing.price_idr)}</Text>
+                  <Text style={[styles.priceTagText, { color: c.accentInk }]}>{formatIDR(listing.price_idr)}</Text>
                 </View>
               </View>
               <Text style={[styles.heroWeight, { color: c.textSecondary }]}>

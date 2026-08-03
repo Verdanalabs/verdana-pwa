@@ -8,6 +8,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { getMe, type VerdanaUser } from '@/src/features/auth/services/auth-api';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { getBatches, type ApiBatch } from '@/src/features/batch/services/batch-api';
 
@@ -25,12 +26,14 @@ interface AnalyticsSummary {
   last30DaysKg: number;
 }
 
-const TIER_CONFIG = {
-  starter: { label: 'Starter', color: '#c08457' },
-  active: { label: 'Active', color: '#93c5fd' },
-  reliable: { label: 'Reliable', color: '#b5f23d' },
-  top_collector: { label: 'Top Collector', color: '#67e8f9' },
-} as const;
+// Colour comes from the shared `tierFg` record at render time; only the label
+// lives here. Previously this map was duplicated verbatim in DashboardMetrics.
+const TIER_LABEL: Record<string, string> = {
+  starter: 'Starter',
+  active: 'Active',
+  reliable: 'Reliable',
+  top_collector: 'Top Collector',
+};
 
 function useSupplierAnalytics() {
   const { getAccessToken } = usePrivy();
@@ -240,7 +243,9 @@ export default function SupplierAnalyticsScreen() {
   }, [batches]);
 
   const reputation = user?.reputation ?? null;
-  const tierCfg = reputation?.tier ? TIER_CONFIG[reputation.tier as keyof typeof TIER_CONFIG] : null;
+  const tierCfg = reputation?.tier && TIER_LABEL[reputation.tier]
+    ? { label: TIER_LABEL[reputation.tier], color: c.tierFg[reputation.tier] ?? c.accentInk }
+    : null;
   const reputationScore = reputation?.score ?? null;
 
   if (isLoading) {
@@ -270,8 +275,8 @@ export default function SupplierAnalyticsScreen() {
           </View>
         </View>
         <View style={styles.emptyWrap}>
-          <View style={[styles.emptyIconWrap, { backgroundColor: c.accent + '15', borderColor: c.accent + '25' }]}>
-            <Ionicons name="stats-chart-outline" size={30} color={c.accent} />
+          <View style={[styles.emptyIconWrap, { backgroundColor: c.accent + '15', borderColor: c.accentInk + '25' }]}>
+            <Ionicons name="stats-chart-outline" size={30} color={c.accentInk} />
           </View>
           <View style={styles.emptyCopy}>
             <Text style={[styles.emptyHeading, { color: c.foreground }]}>No data yet</Text>
@@ -398,7 +403,7 @@ export default function SupplierAnalyticsScreen() {
             <View style={styles.reputationTopRow}>
               <View style={styles.reputationTitleWrap}>
                 <View style={[styles.reputationIcon, { backgroundColor: `${c.accent}20` }]}>
-                  <Ionicons name="shield-checkmark" size={18} color={c.accent} />
+                  <Ionicons name="shield-checkmark" size={18} color={c.accentInk} />
                 </View>
                 <View style={styles.reputationCopy}>
                   <Text style={[styles.reputationLabel, { color: c.textMuted }]}>Current score</Text>
@@ -590,7 +595,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   heroMetricValue: {
-    color: '#ffffff',
+    color: t.white,
     fontSize: FontSize.xl,
     fontFamily: Font.bold,
   },

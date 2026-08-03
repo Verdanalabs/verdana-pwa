@@ -134,7 +134,7 @@ export default function InventoryDetailScreen() {
                 <Text style={[styles.heroTitle, { color: c.foreground }]}>{material}</Text>
                 <InventoryStatusBadge status={item.status} />
               </View>
-              <Text style={[styles.heroWeight, { color: c.accent }]}>{formatKg(item.weight_grams)}</Text>
+              <Text style={[styles.heroWeight, { color: c.accentInk }]}>{formatKg(item.weight_grams)}</Text>
               <View style={styles.heroBadges}>
                 <MaterialBadge material={material as never} />
                 {item.grade ? (

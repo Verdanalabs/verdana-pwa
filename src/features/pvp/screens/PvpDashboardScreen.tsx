@@ -5,21 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { usePvpBatchFeed } from '@/src/features/pvp/hooks/usePvpBatchFeed';
 import { PushPermissionBanner } from '@/src/features/notifications/components/PushPermissionBanner';
 import { usePushNotifications } from '@/src/features/notifications/hooks/usePushNotifications';
 import type { PvpBatchListItem } from '@/src/features/batch/services/batch-api';
-
-const MATERIAL_COLOR: Record<string, string> = {
-  PET: '#3b82f6',
-  HDPE: '#10b981',
-  LDPE: '#f59e0b',
-  PP: '#f97316',
-  PVC: '#ef4444',
-  PS: '#8b5cf6',
-};
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
@@ -121,7 +113,7 @@ function QuickActionCard({
       activeOpacity={0.86}
     >
       <View style={[styles.quickActionIcon, { backgroundColor: `${c.accent}12` }]}>
-        <Ionicons name={icon} size={18} color={c.accent} />
+        <Ionicons name={icon} size={18} color={c.accentInk} />
       </View>
       <Text style={[styles.quickActionTitle, { color: c.foreground }]}>{title}</Text>
       <Text style={[styles.quickActionSubtitle, { color: c.textMuted }]}>{subtitle}</Text>
@@ -131,7 +123,7 @@ function QuickActionCard({
 
 function PriorityCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
-  const matColor = MATERIAL_COLOR[item.material.toUpperCase()] ?? c.accent;
+  const matColor = c.materialFg[item.material.toUpperCase()] ?? c.accent;
   const isAccepted = item.status === 'accepted';
   const isDispatched = item.status === 'pickup_dispatched';
 
@@ -157,10 +149,10 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
         </View>
 
         <View style={[styles.priorityStatusPill, {
-          backgroundColor: isDispatched ? '#8b5cf618' : isAccepted ? `${c.accent}18` : '#f59e0b18',
-          borderColor: isDispatched ? '#8b5cf635' : isAccepted ? `${c.accent}35` : '#f59e0b35',
+          backgroundColor: isDispatched ? withAlpha(c.info, Alpha.subtle) : isAccepted ? withAlpha(c.accent, Alpha.subtle) : withAlpha(c.warning, Alpha.subtle),
+          borderColor: isDispatched ? withAlpha(c.info, Alpha.medium) : isAccepted ? withAlpha(c.accent, Alpha.medium) : withAlpha(c.warning, Alpha.medium),
         }]}>
-          <Text style={[styles.priorityStatusText, { color: isDispatched ? '#8b5cf6' : isAccepted ? c.accent : '#f59e0b' }]}>
+          <Text style={[styles.priorityStatusText, { color: isDispatched ? c.info : isAccepted ? c.accent : c.warning }]}>
             {isDispatched ? 'EN ROUTE' : isAccepted ? 'ACCEPTED' : 'PENDING'}
           </Text>
         </View>
@@ -186,7 +178,7 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
 function ActivityCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
   const isMinted = item.status === 'minted';
-  const color = isMinted ? '#10b981' : '#8b5cf6';
+  const color = isMinted ? c.success : c.info;
   const activityAt = item.weighed_at ?? item.created_at;
 
   return (
@@ -257,12 +249,12 @@ export default function PvpDashboardTab() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => { void reload(); }}
-              tintColor={c.accent}
+              tintColor={c.accentInk}
             />
           )}
         >
           <View style={styles.header}>
-            <Text style={[styles.eyebrow, { color: c.accent }]}>PVP DASHBOARD</Text>
+            <Text style={[styles.eyebrow, { color: c.accentInk }]}>PVP DASHBOARD</Text>
             <Text style={[styles.pageTitle, { color: c.foreground }]}>Good shift, {operatorFirstName}</Text>
             <Text style={[styles.pageSubtitle, { color: c.textMuted }]}> 
               Keep the queue moving from intake to co-sign with a clean operating view.
@@ -284,12 +276,12 @@ export default function PvpDashboardTab() {
             style={[styles.heroCard, { borderColor: c.border }]}
           >
             <View style={styles.radarWrap} pointerEvents="none">
-              <View style={[styles.radarRingLarge, { borderColor: 'rgba(181,242,61,0.10)' }]} />
-              <View style={[styles.radarRingMedium, { borderColor: 'rgba(181,242,61,0.14)' }]} />
-              <View style={[styles.radarRingSmall, { borderColor: 'rgba(181,242,61,0.18)' }]} />
-              <View style={[styles.radarSweep, { backgroundColor: 'rgba(181,242,61,0.08)' }]} />
-              <View style={[styles.radarCore, { backgroundColor: 'rgba(181,242,61,0.16)', borderColor: 'rgba(181,242,61,0.24)' }]} />
-              <View style={[styles.radarPulse, { backgroundColor: 'rgba(181,242,61,0.18)' }]} />
+              <View style={[styles.radarRingLarge, { borderColor: withAlpha(c.accent, 0.10) }]} />
+              <View style={[styles.radarRingMedium, { borderColor: withAlpha(c.accent, 0.14) }]} />
+              <View style={[styles.radarRingSmall, { borderColor: withAlpha(c.accent, 0.18) }]} />
+              <View style={[styles.radarSweep, { backgroundColor: withAlpha(c.accent, 0.08) }]} />
+              <View style={[styles.radarCore, { backgroundColor: withAlpha(c.accent, 0.16), borderColor: withAlpha(c.accent, 0.24) }]} />
+              <View style={[styles.radarPulse, { backgroundColor: withAlpha(c.accent, 0.18) }]} />
             </View>
 
             <View style={styles.heroTop}>
@@ -361,7 +353,7 @@ export default function PvpDashboardTab() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => router.push('/(pvp-tabs)/pending' as never)} activeOpacity={0.7}>
-                <Text style={[styles.sectionLink, { color: c.accent }]}>View all</Text>
+                <Text style={[styles.sectionLink, { color: c.accentInk }]}>View all</Text>
               </TouchableOpacity>
             </View>
 
@@ -512,10 +504,8 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#16a34a',
   },
   siteStatusText: {
-    color: '#8ff3b2',
     fontFamily: Font.semiBold,
     fontSize: FontSize.xs,
     letterSpacing: 0.4,

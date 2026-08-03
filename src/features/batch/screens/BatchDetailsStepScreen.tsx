@@ -17,7 +17,7 @@ function StepHeader({ step, title, body }: { step: string; title: string; body: 
 
   return (
     <View style={styles.header}>
-      <Text style={[styles.stepText, { color: c.accent }]}>{step}</Text>
+      <Text style={[styles.stepText, { color: c.accentInk }]}>{step}</Text>
       <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
       <Text style={[styles.body, { color: c.textSecondary }]}>{body}</Text>
     </View>
@@ -105,7 +105,7 @@ export default function BatchDetailsRoute() {
               />
               <Text style={[styles.inputUnit, { color: c.textSecondary }]}>kg</Text>
             </View>
-            {weightError ? <Text style={[styles.errorText, { color: '#ff7a7a' }]}>{weightError}</Text> : null}
+            {weightError ? <Text style={[styles.errorText, { color: c.error }]}>{weightError}</Text> : null}
           </View>
 
         </ScrollView>

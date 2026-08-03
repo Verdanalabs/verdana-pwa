@@ -10,6 +10,7 @@ import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { StatusBadge } from '@/src/shared/ui/StatusBadge';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 import { getBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
 import type { BatchStatus } from '@/types';
 
@@ -229,37 +230,37 @@ export default function BatchDetailRoute() {
       title: 'Waiting for a processor',
       body: 'Your batch has been submitted. A processor needs to accept it before the pickup can begin.',
       icon: 'time-outline',
-      color: '#f59e0b',
+      color: c.warning,
     },
     accepted: {
       title: 'Processor accepted',
       body: 'A processor has claimed your batch and will head to your location soon. Keep your batch ready.',
       icon: 'checkmark-circle-outline',
-      color: c.accent,
+      color: c.accentInk,
     },
     pickup_dispatched: {
       title: 'Processor is on the way!',
       body: 'The processor is heading to your location. Have your batch ready for weighing when they arrive. Show the QR code below.',
       icon: 'car-outline',
-      color: '#8b5cf6',
+      color: c.info,
     },
     cosigning: {
       title: 'Approval required',
       body: 'The processor has weighed your batch. Review the actual weight and approve to complete the co-sign.',
       icon: 'hourglass-outline',
-      color: '#8b5cf6',
+      color: c.info,
     },
     cosigned: {
       title: 'Co-signed successfully',
       body: 'Both parties have signed. Your batch is being processed and the cNFT asset will be minted shortly.',
       icon: 'checkmark-done-outline',
-      color: '#10b981',
+      color: c.success,
     },
     minted: {
       title: 'Asset ready!',
       body: 'Your recycling batch has been verified and the cNFT asset has been minted on Solana.',
       icon: 'diamond-outline',
-      color: '#10b981',
+      color: c.success,
     },
   };
 
@@ -458,11 +459,11 @@ export default function BatchDetailRoute() {
       {isCosigning && (
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
           <TouchableOpacity
-            style={[styles.footerButton, { backgroundColor: '#8b5cf6' }]}
+            style={[styles.footerButton, { backgroundColor: c.info }]}
             onPress={() => router.push(`/batch/approve-cosign?id=${batch.id}` as never)}
             activeOpacity={0.85}
           >
-            <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+            <Ionicons name="checkmark-circle-outline" size={20} color={c.white} />
             <Text style={styles.footerButtonLabel}>Approve Co-sign</Text>
           </TouchableOpacity>
         </View>
@@ -474,7 +475,7 @@ export default function BatchDetailRoute() {
             <Image source={{ uri: photoUri }} style={styles.photoModalImage} resizeMode="contain" />
           )}
           <TouchableOpacity style={styles.photoModalClose} onPress={() => setPhotoModalOpen(false)} activeOpacity={0.7}>
-            <Ionicons name="close" size={20} color="#fff" />
+            <Ionicons name="close" size={20} color={c.white} />
           </TouchableOpacity>
         </Pressable>
       </Modal>
@@ -549,7 +550,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     height: 46, borderRadius: 14, gap: 8,
   },
-  approvalCardButtonLabel: { fontSize: FontSize.sm, fontFamily: Font.semiBold, color: '#fff' },
+  approvalCardButtonLabel: { fontSize: FontSize.sm, fontFamily: Font.semiBold, color: t.white },
   statusActionCard: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 10 },
   statusActionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   statusActionTitle: { fontSize: FontSize.md, fontFamily: Font.semiBold },
@@ -587,5 +588,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     height: 54, borderRadius: 16, gap: 10,
   },
-  footerButtonLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold, color: '#fff' },
+  footerButtonLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold, color: t.white },
 });

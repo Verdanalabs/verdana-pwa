@@ -4,10 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardSummary } from '@/types';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 
 // Hero card selalu pakai background gelap di kedua mode
 // jadi teks selalu putih, bukan ngikut theme foreground
-const HERO_TEXT        = '#ffffff';
+const HERO_TEXT        = t.white;
 const HERO_TEXT_MUTED  = 'rgba(255,255,255,0.55)';
 const HERO_DIVIDER     = 'rgba(255,255,255,0.1)';
 
@@ -131,7 +132,7 @@ export function HeroCard({ data, supplierName }: HeroCardProps) {
 const styles = StyleSheet.create({
   shadow: {
     borderRadius: 20,
-    shadowColor: '#000',
+    shadowColor: t.shadowColor,
     shadowOpacity: 0.45,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 6 },

@@ -8,6 +8,7 @@ import { MaterialBadge } from '@/src/shared/ui/MaterialBadge';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 import { useWallet } from '@/src/features/wallet/hooks/useWallet';
 import { useListings } from '@/src/features/wallet/hooks/useListings';
 import { CreateListingModal } from '@/src/features/wallet/components/CreateListingModal';
@@ -174,7 +175,7 @@ export default function WalletRoute() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={reload}
-            tintColor={c.accent}
+            tintColor={c.accentInk}
           />
         )}
       >
@@ -186,7 +187,7 @@ export default function WalletRoute() {
             </Text>
           </View>
           <View style={[styles.headerIcon, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Ionicons name="wallet-outline" size={18} color={c.accent} />
+            <Ionicons name="wallet-outline" size={18} color={c.accentInk} />
           </View>
         </View>
 
@@ -314,11 +315,11 @@ export default function WalletRoute() {
 
                       {isSold ? (
                         <View style={[styles.soldBadge, { backgroundColor: `${c.accent}22` }]}>
-                          <Text style={[styles.soldBadgeText, { color: c.accent }]}>Terjual</Text>
+                          <Text style={[styles.soldBadgeText, { color: c.accentInk }]}>Terjual</Text>
                         </View>
                       ) : isListed ? (
                         <View style={styles.listedActions}>
-                          <Text style={[styles.listedPrice, { color: c.accent }]}>
+                          <Text style={[styles.listedPrice, { color: c.accentInk }]}>
                             {formatIDR(listing.price_idr)}
                           </Text>
                           <TouchableOpacity
@@ -341,8 +342,8 @@ export default function WalletRoute() {
                           }}
                           activeOpacity={0.8}
                         >
-                          <Ionicons name="pricetag-outline" size={13} color={c.accent} />
-                          <Text style={[styles.sellBtnText, { color: c.accent }]}>Jual</Text>
+                          <Ionicons name="pricetag-outline" size={13} color={c.accentInk} />
+                          <Text style={[styles.sellBtnText, { color: c.accentInk }]}>Jual</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -353,7 +354,7 @@ export default function WalletRoute() {
           </View>
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Ionicons name="wallet-outline" size={20} color={c.accent} />
+            <Ionicons name="wallet-outline" size={20} color={c.accentInk} />
             <Text style={[styles.emptyTitle, { color: c.foreground }]}>No minted assets yet.</Text>
             <Text style={[styles.emptyText, { color: c.textMuted }]}>
               Complete a batch until the `minted` status to see it appear in this wallet.
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     padding: 18,
     gap: 10,
-    backgroundColor: '#0b160d',
+    backgroundColor: t.surface,
   },
   heroGlow: {
     position: 'absolute',
@@ -439,7 +440,7 @@ const styles = StyleSheet.create({
     fontFamily: Font.medium,
   },
   heroAddress: {
-    color: '#ffffff',
+    color: t.white,
     fontSize: FontSize['2xl'],
     fontFamily: Font.bold,
     lineHeight: 28,
@@ -465,7 +466,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   heroStatValue: {
-    color: '#ffffff',
+    color: t.white,
     fontSize: FontSize.xl,
     fontFamily: Font.bold,
   },

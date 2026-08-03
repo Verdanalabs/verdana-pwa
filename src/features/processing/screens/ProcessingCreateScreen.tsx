@@ -98,7 +98,7 @@ export default function ProcessingCreateScreen() {
 
       <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
         {isSubmitting ? (
-          <View style={styles.loadingRow}><ActivityIndicator color={c.accent} /></View>
+          <View style={styles.loadingRow}><ActivityIndicator color={c.accentInk} /></View>
         ) : (
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: weightKg.trim() ? c.accent : c.border }]}

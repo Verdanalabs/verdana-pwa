@@ -14,7 +14,7 @@ function StepHeader({ step, title, body }: { step: string; title: string; body: 
   const c = useThemeColors();
   return (
     <View style={styles.header}>
-      <Text style={[styles.stepText, { color: c.accent }]}>{step}</Text>
+      <Text style={[styles.stepText, { color: c.accentInk }]}>{step}</Text>
       <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
       <Text style={[styles.body, { color: c.textSecondary }]}>{body}</Text>
     </View>
@@ -77,7 +77,7 @@ export default function BatchLocationRoute() {
             <View style={[styles.mapCard, { backgroundColor: c.surface, borderColor: c.border }]}>
               <View style={styles.mapTop}>
                 <View style={[styles.mapIcon, { backgroundColor: `${c.accent}16` }]}>
-                  <Ionicons name="location-outline" size={20} color={c.accent} />
+                  <Ionicons name="location-outline" size={20} color={c.accentInk} />
                 </View>
                 <View style={styles.mapCopy}>
                   <Text style={[styles.mapLabel, { color: c.textSecondary }]}>Selected Drop-off Point</Text>
@@ -87,14 +87,14 @@ export default function BatchLocationRoute() {
               <View style={styles.mapMetaRow}>
                 {selected.distanceKm != null && (
                   <View style={[styles.metaPill, { backgroundColor: c.background, borderColor: c.border }]}>
-                    <Ionicons name="navigate-outline" size={14} color={c.accent} />
+                    <Ionicons name="navigate-outline" size={14} color={c.accentInk} />
                     <Text style={[styles.metaText, { color: c.textSecondary }]}>
                       {selected.distanceKm.toFixed(1)} km away
                     </Text>
                   </View>
                 )}
                 <View style={[styles.metaPill, { backgroundColor: c.background, borderColor: c.border }]}>
-                  <Ionicons name="pin-outline" size={14} color={c.accent} />
+                  <Ionicons name="pin-outline" size={14} color={c.accentInk} />
                   <Text style={[styles.metaText, { color: c.textSecondary }]}>
                     {selected.latitude.toFixed(3)}, {selected.longitude.toFixed(3)}
                   </Text>
@@ -106,7 +106,7 @@ export default function BatchLocationRoute() {
           <View style={styles.optionsWrap}>
             {isLoading && (
               <View style={styles.centerState}>
-                <ActivityIndicator color={c.accent} />
+                <ActivityIndicator color={c.accentInk} />
                 <Text style={[styles.stateText, { color: c.textSecondary }]}>Loading drop-off points...</Text>
               </View>
             )}

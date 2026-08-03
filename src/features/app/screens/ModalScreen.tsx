@@ -22,7 +22,7 @@ export default function ModalScreen() {
         onPress={handleLogout}
         activeOpacity={0.8}
       >
-        <Text style={[styles.logoutText, { color: '#fff' }]}>Log Out</Text>
+        <Text style={[styles.logoutText, { color: c.white }]}>Log Out</Text>
       </TouchableOpacity>
     </View>
   );

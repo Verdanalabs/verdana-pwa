@@ -42,8 +42,8 @@ export default function OnboardingProfileRoute() {
         <View style={styles.root}>
 
           {/* Step tag */}
-          <View style={[styles.stepTag, { backgroundColor: c.accent + '18', borderColor: c.accent + '30' }]}>
-            <Text style={[styles.stepText, { color: c.accent }]}>SETUP · STEP 1 OF 1</Text>
+          <View style={[styles.stepTag, { backgroundColor: c.accent + '18', borderColor: c.accentInk + '30' }]}>
+            <Text style={[styles.stepText, { color: c.accentInk }]}>SETUP · STEP 1 OF 1</Text>
           </View>
 
           {/* Heading */}
@@ -79,7 +79,7 @@ export default function OnboardingProfileRoute() {
             {touched && nameError
               ? <Text style={[styles.hint, { color: c.error }]}>{nameError}</Text>
               : name.trim().length >= 3
-                ? <Text style={[styles.hint, { color: c.accent }]}>Looks good!</Text>
+                ? <Text style={[styles.hint, { color: c.accentInk }]}>Looks good!</Text>
                 : <Text style={[styles.hint, { color: c.textFaint }]}>First and last name preferred.</Text>
             }
           </View>

@@ -79,7 +79,7 @@ export default function MaggotBatchScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
-        <View style={styles.center}><ActivityIndicator color={c.accent} /></View>
+        <View style={styles.center}><ActivityIndicator color={c.accentInk} /></View>
       </SafeAreaView>
     );
   }
@@ -159,12 +159,12 @@ export default function MaggotBatchScreen() {
                 <Text style={[styles.unit, { color: c.textSecondary }]}>kg</Text>
               </View>
               <TouchableOpacity
-                style={[styles.secondaryBtn, { borderColor: c.accent }]}
+                style={[styles.secondaryBtn, { borderColor: c.accentInk }]}
                 onPress={handleAddFeeding}
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.secondaryBtnLabel, { color: c.accent }]}>Add Feeding</Text>
+                <Text style={[styles.secondaryBtnLabel, { color: c.accentInk }]}>Add Feeding</Text>
               </TouchableOpacity>
             </View>
 

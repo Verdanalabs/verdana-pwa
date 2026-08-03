@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import jsQR from 'jsqr';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { getBatch, getPvpBatches, dispatchBatch } from '@/src/features/batch/services/batch-api';
 import { ApiError } from '@/src/shared/services/api';
@@ -473,6 +474,8 @@ export default function PvpQrScanRoute() {
           <View style={[styles.scanLine, { backgroundColor: c.accent }]} />
 
           <View style={styles.centerHint}>
+            {/* This overlay sits on the live camera feed — always a dark ground,
+                so Neon is correct here rather than accentInk. */}
             {verificationState === 'verifying' ? (
               <Ionicons name="sync-outline" size={42} color={c.accent} />
             ) : cameraState !== 'live' ? (
@@ -519,13 +522,13 @@ export default function PvpQrScanRoute() {
 
         {__DEV__ && isWeb && (
           <TouchableOpacity
-            style={[styles.manualFallbackBtn, { backgroundColor: '#8b5cf610', borderColor: '#8b5cf640' }]}
+            style={[styles.manualFallbackBtn, { backgroundColor: withAlpha(c.info, Alpha.subtle), borderColor: withAlpha(c.info, Alpha.strong) }]}
             activeOpacity={0.82}
             onPress={handleDevFileUpload}
             disabled={verificationState === 'verifying'}
           >
-            <Ionicons name="image-outline" size={18} color="#8b5cf6" />
-            <Text style={[styles.manualFallbackText, { color: '#8b5cf6' }]}>
+            <Ionicons name="image-outline" size={18} color={c.info} />
+            <Text style={[styles.manualFallbackText, { color: c.info }]}>
               DEV: Upload QR image
             </Text>
           </TouchableOpacity>

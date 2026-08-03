@@ -1,8 +1,11 @@
+// Hanken Grotesk stands in for the brandbook's HK Grotesk — same foundry
+// lineage, freely licensed. See brand.md §5. Loaded in app/_layout.tsx on every
+// platform, so these names resolve on native and web alike.
 export const Font = {
-  regular:   'SpaceGrotesk_400Regular',
-  medium:    'SpaceGrotesk_500Medium',
-  semiBold:  'SpaceGrotesk_600SemiBold',
-  bold:      'SpaceGrotesk_700Bold',
+  regular:   'HankenGrotesk_400Regular',
+  medium:    'HankenGrotesk_500Medium',
+  semiBold:  'HankenGrotesk_600SemiBold',
+  bold:      'HankenGrotesk_700Bold',
 };
 
 export const FontSize = {

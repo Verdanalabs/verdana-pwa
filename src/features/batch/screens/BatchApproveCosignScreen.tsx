@@ -7,6 +7,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import * as Location from 'expo-location';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { useAuth } from '@/src/features/auth/state/auth-context';
 import { getBatch, cosignBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
@@ -162,7 +163,7 @@ export default function BatchApproveCosignScreen() {
       <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top', 'bottom']}>
         <View style={styles.successWrap}>
           <View style={[styles.successIcon, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}25` }]}>
-            <Ionicons name="checkmark-circle" size={52} color={c.accent} />
+            <Ionicons name="checkmark-circle" size={52} color={c.accentInk} />
           </View>
           <Text style={[styles.successTitle, { color: c.foreground }]}>Co-sign Approved!</Text>
           <Text style={[styles.successSub, { color: c.textSecondary }]}>
@@ -192,11 +193,11 @@ export default function BatchApproveCosignScreen() {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
         <View style={styles.centerState}>
-          <Ionicons name="alert-circle-outline" size={36} color={c.error ?? '#ef4444'} />
+          <Ionicons name="alert-circle-outline" size={36} color={c.error ?? c.error} />
           <Text style={[styles.errorTitle, { color: c.foreground }]}>Batch not found</Text>
           <Text style={[styles.errorSub, { color: c.textMuted }]}>{loadError}</Text>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <Text style={[styles.backLink, { color: c.accent }]}>Go Back</Text>
+            <Text style={[styles.backLink, { color: c.accentInk }]}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -229,16 +230,16 @@ export default function BatchApproveCosignScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Status header */}
         <View style={[styles.statusCard, {
-          backgroundColor: isCosigning ? '#8b5cf610' : `${c.surface}`,
-          borderColor: isCosigning ? '#8b5cf640' : c.border,
+          backgroundColor: isCosigning ? withAlpha(c.info, Alpha.subtle) : `${c.surface}`,
+          borderColor: isCosigning ? withAlpha(c.info, Alpha.strong) : c.border,
         }]}>
           <View style={styles.statusRow}>
             <Ionicons
               name={isCosigning ? 'hourglass-outline' : 'information-circle-outline'}
               size={20}
-              color={isCosigning ? '#8b5cf6' : c.textSecondary}
+              color={isCosigning ? c.info : c.textSecondary}
             />
-            <Text style={[styles.statusCardTitle, { color: isCosigning ? '#8b5cf6' : c.foreground }]}>
+            <Text style={[styles.statusCardTitle, { color: isCosigning ? c.info : c.foreground }]}>
               {isCosigning
                 ? 'Processor has weighed your batch'
                 : `Batch status: ${batch.status.replace(/_/g, ' ')}`}
@@ -267,15 +268,15 @@ export default function BatchApproveCosignScreen() {
             <View style={[styles.divider, { backgroundColor: c.border }]} />
             <View style={styles.actualRow}>
               <Text style={[styles.rowLabel, { color: c.textMuted }]}>Processor Measured</Text>
-              <Text style={[styles.actualValue, { color: c.accent }]}>{actualKg} kg</Text>
+              <Text style={[styles.actualValue, { color: c.accentInk }]}>{actualKg} kg</Text>
             </View>
           </View>
         )}
 
         {approveError && (
-          <View style={[styles.errorCard, { backgroundColor: '#ef444412', borderColor: '#ef444425' }]}>
-            <Ionicons name="alert-circle-outline" size={16} color="#ef4444" />
-            <Text style={[styles.errorCardText, { color: '#ef4444' }]}>{approveError}</Text>
+          <View style={[styles.errorCard, { backgroundColor: withAlpha(c.error, Alpha.subtle), borderColor: withAlpha(c.error, Alpha.medium) }]}>
+            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
+            <Text style={[styles.errorCardText, { color: c.error }]}>{approveError}</Text>
           </View>
         )}
 
@@ -292,7 +293,7 @@ export default function BatchApproveCosignScreen() {
         <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
           {isApproving ? (
             <View style={styles.loadingRow}>
-              <ActivityIndicator color={c.accent} />
+              <ActivityIndicator color={c.accentInk} />
               <Text style={[styles.loadingText, { color: c.textSecondary }]}>
                 {approveStep ?? 'Approving…'}
               </Text>
