@@ -46,30 +46,32 @@ const webManifest = {
   orientation: 'portrait',
   background_color: variantConfig.backgroundColor,
   theme_color: variantConfig.themeColor,
+  // PNGs generated from assets/images/logo.png by scripts/build-icons.py. The
+  // previous SVGs were a hand-drawn mark that did not match the real logo.
   icons: [
     {
-      src: '/icon-192.svg',
+      src: '/icon-192.png',
       sizes: '192x192',
-      type: 'image/svg+xml',
+      type: 'image/png',
       purpose: 'any',
     },
     {
-      src: '/icon-512.svg',
+      src: '/icon-512.png',
       sizes: '512x512',
-      type: 'image/svg+xml',
+      type: 'image/png',
       purpose: 'any',
     },
     {
-      src: '/icon-512.svg',
+      src: '/icon-512.png',
       sizes: '512x512',
-      type: 'image/svg+xml',
+      type: 'image/png',
       purpose: 'maskable',
     },
   ],
 };
 
 const serviceWorkerSource = `const CACHE_NAME = '${variantConfig.cacheName}';
-const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.svg', '/icon-512.svg'];
+const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
