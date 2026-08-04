@@ -46,8 +46,8 @@ const webManifest = {
   orientation: 'portrait',
   background_color: variantConfig.backgroundColor,
   theme_color: variantConfig.themeColor,
-  // PNGs generated from assets/images/logo.png by scripts/build-icons.py. The
-  // previous SVGs were a hand-drawn mark that did not match the real logo.
+  // PNGs generated from public/logo.png by scripts/build-icons.py. The previous
+  // SVGs were a hand-drawn mark that did not match the real logo.
   icons: [
     {
       src: '/icon-192.png',

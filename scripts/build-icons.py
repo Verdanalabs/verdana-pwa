@@ -2,8 +2,12 @@
 """
 Build every app icon from the real Verdana logo.
 
-Source of truth: assets/images/logo.png (the leaf mark, with its own gradient).
-Do NOT hand-draw a replacement mark here — earlier icons were a flat traced "V"
+Source of truth: public/logo.png, the V lockup shared with the landing site and
+the admin app, so the tab bar and launcher match across every surface. Note this
+is NOT assets/images/logo.png, which is the leaf mark the in-app login screens
+render; pointing this script back at that file desynchronises the icons again.
+
+Do NOT hand-draw a replacement mark here. Earlier icons were a flat traced "V"
 that read as a plain square at launcher size.
 
 Requires Pillow:  pip install pillow
@@ -22,7 +26,7 @@ except ImportError:
     sys.exit("Pillow is required: pip install pillow")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "assets", "images", "logo.png")
+SRC = os.path.join(ROOT, "public", "logo.png")
 
 DARK_GREEN = (21, 45, 7, 255)      # #152D07
 LUSH_WHITE = (253, 255, 253, 255)  # #FDFFFD
