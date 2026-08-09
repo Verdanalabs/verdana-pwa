@@ -25,12 +25,28 @@ export async function apiRequest<T>(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  console.log(`[API] ${options.method ?? 'GET'} ${path}`, rest.body ?? '');
+  // Request and response bodies carry operator emails, site coordinates and
+  // batch records. Both builds are public web apps, so this stays out of the
+  // production console.
+  if (__DEV__) {
+    console.log(`[API] ${options.method ?? 'GET'} ${path}`, rest.body ?? '');
+  }
 
   const res = await fetch(`${BASE_URL}${path}`, { ...rest, headers });
-  const json = await res.json();
 
-  console.log(`[API] ${res.status} ${path}`, JSON.stringify(json));
+  let json;
+  try {
+    json = await res.json();
+  } catch {
+    // A gateway or tunnel error returns HTML, not the envelope. Surface it as
+    // an ApiError so callers keep their single catch path instead of taking a
+    // raw SyntaxError.
+    throw new ApiError('INVALID_RESPONSE', `Server returned a non-JSON response (${res.status})`, res.status);
+  }
+
+  if (__DEV__) {
+    console.log(`[API] ${res.status} ${path}`, JSON.stringify(json));
+  }
 
   if (json.error) {
     throw new ApiError(json.error.code, json.error.message, res.status);
