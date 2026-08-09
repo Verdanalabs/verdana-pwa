@@ -102,9 +102,9 @@ describe('wallet asset detail linking', () => {
     });
   });
 
-  // BatchDetailScreen no longer offers a "View Asset" action; its only router
-  // push is to /batch/approve-cosign. The reverse link still exists from
-  // WalletScreen and MarketplaceScreen. Left as a todo rather than deleted
-  // because whether that removal was deliberate has not been confirmed.
-  it.todo('navigates from batch detail back to its linked asset, once that action exists again');
+  // BatchDetailScreen offers no "View Asset" action; its only router push is to
+  // /batch/approve-cosign. The reverse link still exists from WalletScreen and
+  // MarketplaceScreen. The wallet surfaces are placeholders until the devnet
+  // phase, so this stays a todo rather than being deleted or back-filled.
+  it.todo('navigates from batch detail back to its linked asset, once the devnet wallet work lands');
 });
