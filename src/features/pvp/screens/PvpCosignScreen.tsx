@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,8 +7,14 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
+import { CameraOverlay } from '@/src/shared/ui/CameraOverlay';
+import { CarbonImpactBadge } from '@/src/shared/ui/CarbonImpactBadge';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
+import { parseWeightKg, sanitizeWeightInput, weightErrorMessage, weightKgToGrams } from '@/src/shared/lib/weight';
+import { dataUriToBlob, sha256HexOfDataUri, watermarkPhoto } from '@/src/shared/lib/photo-watermark';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { getBatch, dispatchBatch, pvpWeighBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
+import { enqueueWeigh } from '@/src/features/pvp/state/pvp-weigh-queue';
+import { createUploadUrl, getBatch, dispatchBatch, pvpWeighBatch, type ApiBatchDetail } from '@/src/features/batch/services/batch-api';
 import { ApiError } from '@/src/shared/services/api';
 
 import { runtimeConfig } from '@/src/shared/config/runtime-config';
@@ -69,10 +75,19 @@ function PvpCosignSkeleton() {
   );
 }
 
+type GpsFix = { latitude: number; longitude: number; accuracy: number };
+type GpsState = 'acquiring' | 'ready' | 'denied' | 'unsupported';
+
+interface ScaleProof {
+  dataUri: string;
+  sha256Hex: string;
+  capturedAt: string;
+}
+
 export default function PvpCosignScreen() {
   const c = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = usePvpAuth();
+  const { token, operator, activeSite } = usePvpAuth();
 
   const [batch, setBatch] = useState<ApiBatchDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +98,13 @@ export default function PvpCosignScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [queuedOffline, setQueuedOffline] = useState(false);
+
+  const [gps, setGps] = useState<GpsFix | null>(null);
+  const [gpsState, setGpsState] = useState<GpsState>('acquiring');
+  const [proof, setProof] = useState<ScaleProof | null>(null);
+  const [proofError, setProofError] = useState<string | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   useEffect(() => {
     if (!id || !token) return;
@@ -103,12 +125,91 @@ export default function PvpCosignScreen() {
     return () => { cancelled = true; };
   }, [id, token]);
 
+  // The watermark burns the coordinates into the photo, so the fix has to exist
+  // before the camera opens rather than being collected at submit time.
+  const acquireGps = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGpsState('unsupported');
+      setGpsError('This device cannot report a location. GPS is required to verify the pickup.');
+      return;
+    }
+
+    setGpsState('acquiring');
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!pos.coords.latitude || !pos.coords.longitude) {
+          setGpsState('denied');
+          setGpsError('GPS coordinates came back invalid. Move outside and try again.');
+          return;
+        }
+        setGps({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy });
+        setGpsState('ready');
+      },
+      () => {
+        setGpsState('denied');
+        setGpsError('Could not get your location. Allow location access — GPS is required to verify proximity with the collector.');
+      },
+      { timeout: 10000, enableHighAccuracy: true },
+    );
+  }, []);
+
+  useEffect(() => { acquireGps(); }, [acquireGps]);
+
+  // A watermark that disagrees with the submitted weight is worse than no
+  // watermark, so changing the weight invalidates the photo taken against it.
+  function handleWeightChange(text: string) {
+    const next = sanitizeWeightInput(text);
+    setActualWeightKg(next);
+    if (proof && next !== actualWeightKg) {
+      setProof(null);
+      setProofError('Weight changed — retake the proof photo so it matches.');
+    }
+  }
+
+  async function processCapture(rawUri: string): Promise<string> {
+    const parsed = parseWeightKg(actualWeightKg);
+    if (!parsed.ok || !gps || !batch) {
+      throw new Error('Enter the weight and wait for GPS before taking the proof photo.');
+    }
+    return watermarkPhoto(rawUri, {
+      timestampIso: new Date().toISOString(),
+      latitude: gps.latitude,
+      longitude: gps.longitude,
+      weightKg: parsed.kg,
+      category: batch.material,
+      operatorId: operator?.id ?? '',
+      stationLabel: activeSite?.name,
+    });
+  }
+
+  async function handleCaptured(watermarkedUri: string) {
+    setIsCameraOpen(false);
+    setProofError(null);
+    try {
+      const sha256Hex = await sha256HexOfDataUri(watermarkedUri);
+      setProof({ dataUri: watermarkedUri, sha256Hex, capturedAt: new Date().toISOString() });
+    } catch (e) {
+      setProofError(e instanceof Error ? e.message : 'Could not fingerprint the proof photo. Retake it.');
+    }
+  }
+
   async function handleWeigh() {
     if (!batch || !token) return;
 
-    const grams = Math.round(parseFloat(actualWeightKg.replace(',', '.')) * 1000);
-    if (!grams || grams <= 0) {
-      setSubmitError('Enter a valid actual weight.');
+    const parsed = parseWeightKg(actualWeightKg);
+    if (!parsed.ok) {
+      setSubmitError(weightErrorMessage(parsed.reason));
+      return;
+    }
+    const grams = weightKgToGrams(parsed.kg);
+
+    if (!proof) {
+      setProofError('A photo of the scale is required before you can submit the weight.');
+      return;
+    }
+    if (!gps) {
+      setGpsError('GPS is required for pickup verification. Enable location access and try again.');
       return;
     }
 
@@ -137,49 +238,96 @@ export default function PvpCosignScreen() {
           }
         }
       }
-      // GPS is mandatory for the pickup model.
-      if (typeof navigator === 'undefined' || !navigator.geolocation) {
-        setGpsError('GPS is required for pickup verification. Please enable location services.');
-        setIsSubmitting(false);
-        return;
-      }
 
-      let lat = 0;
-      let lng = 0;
-      let accuracy = 0;
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, enableHighAccuracy: true })
-        );
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-        accuracy = pos.coords.accuracy;
-      } catch {
-        setGpsError('Could not get your location. GPS is required to verify proximity with the collector.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!lat || !lng) {
-        setGpsError('GPS coordinates are invalid. Please try again.');
-        setIsSubmitting(false);
-        return;
+      // Presigned with the real batch id, which is also what the server checks
+      // the returned storage key against.
+      const upload = await createUploadUrl(token, {
+        batch_id: batch.id,
+        content_type: 'image/jpeg',
+        filename: `scale-proof-${batch.id}.jpg`,
+      });
+      const putRes = await fetch(upload.upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: dataUriToBlob(proof.dataUri),
+      });
+      if (!putRes.ok) {
+        throw new Error(`Could not upload the proof photo (${putRes.status}).`);
       }
 
       await pvpWeighBatch(token, batch.id, {
         actual_weight_grams: grams,
-        latitude: lat,
-        longitude: lng,
-        gps_accuracy_m: accuracy,
+        latitude: gps.latitude,
+        longitude: gps.longitude,
+        gps_accuracy_m: gps.accuracy,
         weighed_at: new Date().toISOString(),
+        media: [{
+          storage_key: upload.storage_key,
+          media_kind: 'scale_proof',
+          mime_type: 'image/jpeg',
+          sha256_hex: proof.sha256Hex,
+          captured_at: proof.capturedAt,
+        }],
       });
 
       setDone(true);
     } catch (e) {
+      // A network-level failure means the request never reached the API, so the
+      // weighing is queued rather than lost. An ApiError means the server did
+      // answer and rejected it, which queueing would only repeat.
+      if (!(e instanceof ApiError)) {
+        try {
+          await enqueueWeigh({
+            batchId: batch.id,
+            actualWeightGrams: grams,
+            latitude: gps.latitude,
+            longitude: gps.longitude,
+            gpsAccuracyM: gps.accuracy,
+            weighedAt: new Date().toISOString(),
+            photoDataUri: proof.dataUri,
+            sha256Hex: proof.sha256Hex,
+            photoCapturedAt: proof.capturedAt,
+          });
+          setQueuedOffline(true);
+          setIsSubmitting(false);
+          return;
+        } catch (queueErr) {
+          setSubmitError(queueErr instanceof Error ? queueErr.message : 'Could not save this weighing offline.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
       setSubmitError(e instanceof Error ? e.message : 'Failed to submit weight. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  // ── Queued offline ─────────────────────────────────────────────────────────
+  // Deliberately distinct from the submitted state: nothing has reached the API
+  // yet, and telling the operator otherwise invites a second weighing.
+  if (queuedOffline) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top', 'bottom']}>
+        <View style={styles.successWrap}>
+          <View style={[styles.successIcon, { backgroundColor: withAlpha(c.info, Alpha.subtle), borderColor: withAlpha(c.info, Alpha.medium) }]}>
+            <Ionicons name="cloud-offline-outline" size={52} color={c.info} />
+          </View>
+          <Text style={[styles.successTitle, { color: c.foreground }]}>Saved offline</Text>
+          <Text style={[styles.successSub, { color: c.textSecondary }]}>
+            No connection right now. The weight and the proof photo are stored on this device and will upload
+            automatically once you are back online.
+          </Text>
+          <TouchableOpacity
+            style={[styles.doneBtn, { backgroundColor: c.accent }]}
+            onPress={() => router.replace('/(pvp-tabs)/dashboard')}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.doneBtnLabel, { color: c.accentContrast }]}>Back to Dashboard</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   // ── Success state ──────────────────────────────────────────────────────────
@@ -240,9 +388,11 @@ export default function PvpCosignScreen() {
   const estimatedKg = batch.estimated_weight_grams != null
     ? (batch.estimated_weight_grams / 1000).toFixed(1)
     : '-';
-  const actualKgNumber = parseFloat(actualWeightKg.replace(',', '.'));
+  const parsedWeight = parseWeightKg(actualWeightKg);
+  const weightError = actualWeightKg.trim() && !parsedWeight.ok ? weightErrorMessage(parsedWeight.reason) : null;
+  const actualKgNumber = parsedWeight.ok ? parsedWeight.kg : NaN;
   const estimatedGrams = batch.estimated_weight_grams ?? 0;
-  const actualGrams = Number.isFinite(actualKgNumber) ? Math.round(actualKgNumber * 1000) : 0;
+  const actualGrams = parsedWeight.ok ? weightKgToGrams(parsedWeight.kg) : 0;
   const diffPercent = estimatedGrams > 0 && actualGrams > 0
     ? ((actualGrams - estimatedGrams) / estimatedGrams) * 100
     : null;
@@ -251,6 +401,11 @@ export default function PvpCosignScreen() {
   const isBlockedDiscrepancy = absDiffPercent > 50;
   const shortId = batch.id.slice(0, 8).toUpperCase();
   const alreadyCosigned = batch.status === 'cosigning' || batch.status === 'cosigned' || batch.status === 'minted' || batch.status === 'mint_pending' || batch.status === 'minting';
+
+  // The photo has to carry the weight and the coordinates, so both must exist
+  // before the camera is any use.
+  const canCapture = parsedWeight.ok && gpsState === 'ready' && gps != null;
+  const canSubmit = canCapture && proof != null && !isBlockedDiscrepancy;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
@@ -317,7 +472,7 @@ export default function PvpCosignScreen() {
               <View style={[styles.inputRow, { borderColor: c.border, backgroundColor: c.background }]}> 
                 <TextInput
                   value={actualWeightKg}
-                  onChangeText={setActualWeightKg}
+                  onChangeText={handleWeightChange}
                   placeholder="0.0"
                   placeholderTextColor={c.textFaint}
                   keyboardType="decimal-pad"
@@ -325,40 +480,120 @@ export default function PvpCosignScreen() {
                 />
                 <Text style={[styles.unitLabel, { color: c.textSecondary }]}>kg</Text>
               </View>
+              {weightError && (
+                <Text style={[styles.fieldError, { color: c.error }]}>{weightError}</Text>
+              )}
               {diffPercent != null && (
                 <View style={[
                   styles.discrepancyCard,
                   {
-                    backgroundColor: isBlockedDiscrepancy ? `${c.error}12` : isHighDiscrepancy ? withAlpha(c.warning, Alpha.subtle) : `${c.accent}10`,
-                    borderColor: isBlockedDiscrepancy ? `${c.error}30` : isHighDiscrepancy ? withAlpha(c.warning, Alpha.medium) : `${c.accent}24`,
+                    backgroundColor: isBlockedDiscrepancy ? c.toneBg.danger : isHighDiscrepancy ? c.toneBg.warning : withAlpha(c.accent, Alpha.subtle),
+                    borderColor: isBlockedDiscrepancy ? c.toneFg.danger : isHighDiscrepancy ? c.toneFg.warning : withAlpha(c.accentInk, Alpha.medium),
                   },
                 ]}>
                   <Ionicons
                     name={isBlockedDiscrepancy ? 'ban-outline' : isHighDiscrepancy ? 'warning-outline' : 'checkmark-circle-outline'}
                     size={17}
-                    color={isBlockedDiscrepancy ? c.error : isHighDiscrepancy ? c.warning : c.accent}
+                    color={isBlockedDiscrepancy ? c.toneFg.danger : isHighDiscrepancy ? c.toneFg.warning : c.accentInk}
                   />
-                  <Text style={[styles.discrepancyText, { color: isBlockedDiscrepancy ? c.error : c.textSecondary }]}> 
+                  <Text style={[styles.discrepancyText, { color: isBlockedDiscrepancy ? c.toneFg.danger : isHighDiscrepancy ? c.toneFg.warning : c.textSecondary }]}>
                     Estimasi {estimatedKg} kg · Aktual {actualKgNumber.toFixed(1)} kg · Selisih {diffPercent > 0 ? '+' : ''}{diffPercent.toFixed(0)}%
                     {isBlockedDiscrepancy ? ' · Requires admin review' : isHighDiscrepancy ? ' · High discrepancy' : ''}
                   </Text>
                 </View>
               )}
+
+              <CarbonImpactBadge weightInput={actualWeightKg} material={batch.material} />
             </View>
 
-            {submitError && (
-              <View style={[styles.errorCard, { backgroundColor: `${c.error}12`, borderColor: `${c.error}25` }]}>
-                <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-                <Text style={[styles.errorCardText, { color: c.error }]}>{submitError}</Text>
-              </View>
-            )}
+            {/* Location — acquired up front because the watermark embeds it */}
+            <View style={[styles.infoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+              <Text style={[styles.sectionTitle, { color: c.foreground }]}>Location</Text>
+              {gpsState === 'acquiring' && (
+                <View style={styles.gpsRow}>
+                  <ActivityIndicator size="small" color={c.accentInk} />
+                  <Text style={[styles.gpsText, { color: c.textMuted }]}>Acquiring GPS fix…</Text>
+                </View>
+              )}
+              {gpsState === 'ready' && gps && (
+                <View style={styles.gpsRow}>
+                  <Ionicons name="location" size={16} color={c.accentInk} />
+                  <Text style={[styles.gpsText, { color: c.textSecondary }]}>
+                    {gps.latitude.toFixed(5)}, {gps.longitude.toFixed(5)} · ±{Math.round(gps.accuracy)} m
+                  </Text>
+                </View>
+              )}
+              {(gpsState === 'denied' || gpsState === 'unsupported') && (
+                <View style={styles.gpsRow}>
+                  <Ionicons name="location-outline" size={16} color={c.error} />
+                  <Text style={[styles.gpsText, { color: c.error, flex: 1 }]}>
+                    {gpsState === 'unsupported'
+                      ? 'This device cannot report a location.'
+                      : 'Location unavailable. Allow location access to continue.'}
+                  </Text>
+                  {gpsState === 'denied' && (
+                    <TouchableOpacity onPress={acquireGps} activeOpacity={0.7} hitSlop={8}>
+                      <Text style={[styles.gpsRetry, { color: c.accentInk }]}>Retry</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
 
-            {gpsError && (
-              <View style={[styles.errorCard, { backgroundColor: `${c.error}12`, borderColor: `${c.error}25` }]}>
-                <Ionicons name="location-outline" size={16} color={c.error} />
-                <Text style={[styles.errorCardText, { color: c.error }]}>{gpsError}</Text>
-              </View>
-            )}
+            {/* Scale proof photo — mandatory dMRV evidence */}
+            <View style={[styles.infoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+              <Text style={[styles.sectionTitle, { color: c.foreground }]}>Scale Proof Photo</Text>
+
+              {proof ? (
+                <>
+                  <Image source={{ uri: proof.dataUri }} style={styles.proofImage} resizeMode="cover" />
+                  <View style={styles.proofFooter}>
+                    <View style={[styles.proofPill, { backgroundColor: withAlpha(c.accent, Alpha.soft), borderColor: withAlpha(c.accentInk, Alpha.medium) }]}>
+                      <Ionicons name="checkmark-circle" size={14} color={c.accentInk} />
+                      <Text style={[styles.proofPillText, { color: c.accentInk }]}>Proof attached</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setIsCameraOpen(true)} activeOpacity={0.7} hitSlop={8}>
+                      <Text style={[styles.gpsRetry, { color: c.accentInk }]}>Retake</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <View style={[styles.proofEmpty, { borderColor: c.borderStrong }]}>
+                  <View style={[styles.proofIconWell, { backgroundColor: withAlpha(c.accent, Alpha.soft) }]}>
+                    <Ionicons name="camera-outline" size={22} color={c.accentInk} />
+                  </View>
+                  <Text style={[styles.proofTitle, { color: c.foreground }]}>Photo of the scale is required</Text>
+                  <Text style={[styles.proofBody, { color: c.textMuted }]}>
+                    The scale reading and the waste pile must both be visible. Time, location, weight and your operator
+                    ID are stamped onto the photo automatically.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.proofBtn, { backgroundColor: canCapture ? c.accent : c.border }]}
+                    onPress={() => setIsCameraOpen(true)}
+                    disabled={!canCapture}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="camera" size={18} color={canCapture ? c.accentContrast : c.textMuted} />
+                    <Text style={[styles.proofBtnLabel, { color: canCapture ? c.accentContrast : c.textMuted }]}>
+                      Take Proof Photo
+                    </Text>
+                  </TouchableOpacity>
+                  {!canCapture && (
+                    <Text style={[styles.proofHint, { color: c.textMuted }]}>
+                      {!parsedWeight.ok
+                        ? 'Enter the weight first — it is stamped onto the photo.'
+                        : 'Waiting for a GPS fix.'}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {proofError && <NoticeCard tone="danger">{proofError}</NoticeCard>}
+            </View>
+
+            {submitError && <NoticeCard tone="danger">{submitError}</NoticeCard>}
+
+            {gpsError && <NoticeCard tone="danger" icon="location-outline">{gpsError}</NoticeCard>}
           </>
         )}
       </ScrollView>
@@ -372,21 +607,27 @@ export default function PvpCosignScreen() {
             </View>
           ) : (
             <TouchableOpacity
-              style={[
-                styles.cosignBtn,
-                { backgroundColor: actualWeightKg.trim() && !isBlockedDiscrepancy ? c.accent : c.border },
-              ]}
+              style={[styles.cosignBtn, { backgroundColor: canSubmit ? c.accent : c.border }]}
               onPress={handleWeigh}
-              disabled={!actualWeightKg.trim() || isSubmitting || isBlockedDiscrepancy}
+              disabled={!canSubmit || isSubmitting}
               activeOpacity={0.85}
             >
-              <Ionicons name="create-outline" size={20} color={actualWeightKg.trim() && !isBlockedDiscrepancy ? c.accentContrast : c.textMuted} />
-              <Text style={[styles.cosignBtnLabel, { color: actualWeightKg.trim() && !isBlockedDiscrepancy ? c.accentContrast : c.textMuted }]}> 
+              <Ionicons name="create-outline" size={20} color={canSubmit ? c.accentContrast : c.textMuted} />
+              <Text style={[styles.cosignBtnLabel, { color: canSubmit ? c.accentContrast : c.textMuted }]}>
                 Tanda Tangan & Konfirmasi
               </Text>
             </TouchableOpacity>
           )}
         </View>
+      )}
+
+      {isCameraOpen && (
+        <CameraOverlay
+          hint="Frame the scale display and the waste pile together"
+          processCapture={processCapture}
+          onCapture={(uri) => { void handleCaptured(uri); }}
+          onClose={() => setIsCameraOpen(false)}
+        />
       )}
     </SafeAreaView>
   );
@@ -430,6 +671,35 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   discrepancyText: { flex: 1, fontSize: FontSize.sm, fontFamily: Font.medium, lineHeight: 20 },
+  fieldError: { fontSize: FontSize.sm, fontFamily: Font.medium, lineHeight: 18, marginTop: -4 },
+  gpsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  gpsText: { fontSize: FontSize.sm, fontFamily: Font.medium, lineHeight: 19 },
+  gpsRetry: { fontSize: FontSize.sm, fontFamily: Font.semiBold },
+  proofEmpty: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  proofIconWell: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  proofTitle: { fontSize: FontSize.md, fontFamily: Font.semiBold, textAlign: 'center' },
+  proofBody: { fontSize: FontSize.sm, fontFamily: Font.regular, lineHeight: 19, textAlign: 'center' },
+  proofBtn: {
+    marginTop: 4,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, height: 48, borderRadius: 14, paddingHorizontal: 20, alignSelf: 'stretch',
+  },
+  proofBtnLabel: { fontSize: FontSize.md, fontFamily: Font.semiBold },
+  proofHint: { fontSize: FontSize.xs, fontFamily: Font.regular, textAlign: 'center', lineHeight: 16 },
+  proofImage: { width: '100%', height: 200, borderRadius: 14 },
+  proofFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  proofPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5,
+  },
+  proofPillText: { fontSize: FontSize.xs, fontFamily: Font.semiBold },
   noticeCard: {
     flexDirection: 'row', gap: 10, borderWidth: 1,
     borderRadius: 14, padding: 14, alignItems: 'flex-start',

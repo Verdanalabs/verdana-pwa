@@ -14,9 +14,18 @@ const VIEWFINDER_BACKDROP = '#000';
 interface CameraOverlayProps {
   onCapture: (uri: string) => void;
   onClose: () => void;
+  /** Replaces the default framing instruction above the viewfinder. */
+  hint?: string;
+  /**
+   * Runs on the raw capture before it is previewed, so what the operator
+   * approves is what gets uploaded. The dMRV flow uses it to burn in the
+   * watermark — reviewing an unmarked photo and shipping a marked one would
+   * mean approving something you never saw.
+   */
+  processCapture?: (uri: string) => Promise<string>;
 }
 
-export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
+export function CameraOverlay({ onCapture, onClose, hint, processCapture }: CameraOverlayProps) {
   const videoRef   = useRef<HTMLVideoElement>(null);
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const streamRef  = useRef<MediaStream | null>(null);
@@ -25,6 +34,7 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
   const [error, setError]           = useState<string | null>(null);
   const [ready, setReady]           = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [scanY, setScanY]           = useState(0);
 
   // ── Start camera ──────────────────────────────────────────────────────────
@@ -73,7 +83,7 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
   }, [ready, previewUri]);
 
   // ── Capture ───────────────────────────────────────────────────────────────
-  function capture() {
+  async function capture() {
     const video  = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
@@ -84,7 +94,20 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
 
     const uri = canvas.toDataURL('image/jpeg', 0.85);
     streamRef.current?.getTracks().forEach((t) => t.stop());
-    setPreviewUri(uri);
+
+    if (!processCapture) {
+      setPreviewUri(uri);
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      setPreviewUri(await processCapture(uri));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not prepare the photo. Try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   function retake() {
@@ -210,13 +233,20 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
           {/* Hint text */}
           {!previewUri && (
             <div style={s.hintWrap}>
-              <p style={s.hintText}>Position the material clearly in the frame</p>
+              <p style={s.hintText}>{hint ?? 'Position the material clearly in the frame'}</p>
+            </div>
+          )}
+
+          {/* Processing the capture (e.g. burning in the dMRV watermark) */}
+          {isProcessing && (
+            <div style={s.processingWrap}>
+              <p style={s.hintText}>Preparing proof photo…</p>
             </div>
           )}
 
           {/* Bottom action */}
           <div style={s.bottomBar}>
-            {previewUri ? (
+            {isProcessing ? null : previewUri ? (
               /* Preview actions */
               <div style={s.previewActions}>
                 <button style={s.retakeBtn} onClick={retake}>Retake</button>
@@ -226,7 +256,7 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
               /* Capture button */
               <button
                 style={{ ...s.captureBtn, opacity: ready ? 1 : 0.5 }}
-                onClick={capture}
+                onClick={() => { void capture(); }}
                 disabled={!ready}
               >
                 <div style={s.captureBtnInner} />
@@ -303,6 +333,14 @@ const s: Record<string, React.CSSProperties> = {
     textAlign: 'center',
     textShadow: '0 1px 4px rgba(0,0,0,0.6)',
     margin: 0,
+  },
+  processingWrap: {
+    position: 'absolute',
+    bottom: 60,
+    zIndex: 11,
+    padding: '10px 18px',
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   bottomBar: {
     position: 'absolute',

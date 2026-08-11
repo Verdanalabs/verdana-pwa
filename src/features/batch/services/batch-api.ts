@@ -105,12 +105,26 @@ export interface PvpBatchListItem {
   weighed_at?: string;
 }
 
+/**
+ * The scale proof accompanying a weighing. Required by the API: the recorded
+ * weight is only evidence if the photo of the scale that produced it travels
+ * with it, and its hash becomes the token's "Proof Image Hash" attribute.
+ */
+export interface ScaleProofMedia {
+  storage_key: string;
+  media_kind: 'scale_proof';
+  mime_type: string;
+  sha256_hex: string;
+  captured_at: string;
+}
+
 export interface PvpWeighPayload {
   actual_weight_grams: number;
   latitude: number;
   longitude: number;
   gps_accuracy_m?: number;
   weighed_at: string;
+  media: ScaleProofMedia[];
 }
 
 export function getBatch(token: string, id: string): Promise<ApiBatchDetail> {
@@ -124,7 +138,10 @@ export function getBatches(token: string, status?: string): Promise<ApiBatch[]> 
 
 export function createUploadUrl(
   token: string,
-  payload: { batch_id: string; content_type: string; filename: string },
+  // `kind` selects the R2 key namespace: omitted or 'batch' keeps `batches/`,
+  // 'maggot' is the organic feeding and harvest proof. batch_id carries the
+  // owning record's id either way.
+  payload: { batch_id: string; content_type: string; filename: string; kind?: 'batch' | 'maggot' },
 ): Promise<UploadUrlResponse> {
   return apiRequest<UploadUrlResponse>('/v1/media/upload-url', {
     method: 'POST',
