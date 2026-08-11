@@ -4,6 +4,12 @@ import WalletAssetDetailScreen from '@/src/features/wallet/screens/WalletAssetDe
 import { getBatch } from '@/src/features/batch/services/batch-api';
 import { renderWithProviders } from './test-utils';
 
+// This suite renders two full screens through the provider tree, which takes a
+// few seconds alone and longer when jest runs it beside eleven other suites on
+// contended workers. At the default five seconds it passed in isolation and
+// failed intermittently in a full run.
+jest.setTimeout(30_000);
+
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockUseLocalSearchParams = jest.fn();
