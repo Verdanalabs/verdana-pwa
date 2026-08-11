@@ -8,11 +8,12 @@ import { usePrivy } from '@privy-io/react-auth';
 import { PrimaryButton } from '@/src/shared/ui/PrimaryButton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { useAuth } from '@/src/features/auth/state/auth-context';
 import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
 import { createUploadUrl, createBatch } from '@/src/features/batch/services/batch-api';
 import NetInfo from '@react-native-community/netinfo';
-import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import { enqueueOfflineBatch } from '../state/offline-queue';
 
 function StepHeader({ step, title, body }: { step: string; title: string; body: string }) {
   const c = useThemeColors();
@@ -45,7 +46,6 @@ export default function BatchReviewRoute() {
   const { draft, resetDraft } = useBatchDraft();
   const { user } = useAuth();
   const { getAccessToken } = usePrivy();
-  const { addToQueue } = useOfflineQueue();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -61,8 +61,11 @@ export default function BatchReviewRoute() {
     try {
       const netInfo = await NetInfo.fetch();
       if (!netInfo.isConnected || !netInfo.isInternetReachable) {
-        // Offline -> save to queue
-        await addToQueue(draft);
+        // Offline -> save to queue. Enqueued directly rather than through
+        // useOfflineQueue: that hook is mounted once at the app root, and a
+        // second instance here would mean two connectivity listeners racing to
+        // sync the same records.
+        await enqueueOfflineBatch(draft);
         resetDraft();
         router.replace('/home' as never); // Go home, the queue will sync in background
         return;
@@ -175,10 +178,7 @@ export default function BatchReviewRoute() {
           </View>
 
           {submitError && (
-            <View style={[styles.errorCard, { backgroundColor: `${c.error}14`, borderColor: `${c.error}30` }]}>
-              <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-              <Text style={[styles.errorText, { color: c.error }]}>{submitError}</Text>
-            </View>
+            <NoticeCard tone="danger">{submitError}</NoticeCard>
           )}
         </ScrollView>
 

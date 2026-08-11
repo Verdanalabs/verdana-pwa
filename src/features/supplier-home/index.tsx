@@ -8,6 +8,8 @@ import { usePrivy } from '@privy-io/react-auth';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
+import { OfflineQueueBanner } from '@/src/shared/ui/OfflineQueueBanner';
+import { useOfflineSync } from '@/src/providers/OfflineSyncProvider';
 import { PushPermissionBanner } from '@/src/features/notifications/components/PushPermissionBanner';
 import { usePushNotifications } from '@/src/features/notifications/hooks/usePushNotifications';
 import { HeroCard } from './components/HeroCard';
@@ -52,6 +54,7 @@ export function SupplierHomeScreen() {
   const c = useThemeColors();
   const { getAccessToken } = usePrivy();
   const { isLoading, isRefreshing, user, batches, dashboard, refresh } = useSupplierHome();
+  const offlineSync = useOfflineSync();
   const push = usePushNotifications({
     userId: user?.id,
     role: 'collector',
@@ -118,6 +121,14 @@ export function SupplierHomeScreen() {
             title="Get batch updates"
             body="Receive alerts when PVP receives your batch, requests your signature, or finishes verification."
             onEnable={() => { void push.requestPermission(); }}
+          />
+          <OfflineQueueBanner
+            pendingCount={offlineSync.pendingCount}
+            failedCount={offlineSync.failedCount}
+            isSyncing={offlineSync.isSyncing}
+            failedMessages={offlineSync.failedMessages}
+            itemLabel={offlineSync.itemLabel}
+            onSyncNow={offlineSync.syncNow}
           />
           <HeroCard data={activeDashboard} supplierName={displayName} />
           <DashboardMetrics data={activeDashboard} />

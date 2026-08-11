@@ -10,6 +10,7 @@ import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { DarkColors as t } from '@/src/shared/theme/tokens';
+import { downscaleDataUri } from '@/src/shared/lib/photo-watermark';
 
 // ── Inline camera — just video feed, no overlays ─────────────────────────────
 
@@ -161,9 +162,18 @@ export default function BatchPhotoRoute() {
     setPreviewUri(uri);
   }, []);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     if (!previewUri) return;
-    setPhoto({ photoUri: previewUri, capturedAt: new Date().toISOString() });
+    // Downscaled before it enters the draft: a full 1920x1080 capture is a
+    // ~400 KB data URI, and an offline batch carries it into localStorage,
+    // which has about 5 MB for the whole origin.
+    let photoUri = previewUri;
+    try {
+      photoUri = await downscaleDataUri(previewUri);
+    } catch {
+      // Keep the original rather than losing the photo over a resize failure.
+    }
+    setPhoto({ photoUri, capturedAt: new Date().toISOString() });
     setPreviewUri(null);
   }, [previewUri, setPhoto]);
 
@@ -273,7 +283,7 @@ export default function BatchPhotoRoute() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.primaryBtn, { backgroundColor: c.foreground }]}
-                    onPress={handleConfirm}
+                    onPress={() => { void handleConfirm(); }}
                     activeOpacity={0.85}
                   >
                     <Ionicons name="checkmark" size={18} color={c.background} />
