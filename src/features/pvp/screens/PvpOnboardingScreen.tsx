@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
 export default function PvpOnboardingRoute() {
@@ -103,10 +104,7 @@ export default function PvpOnboardingRoute() {
         </View>
 
         {submitError && (
-          <View style={[styles.errorCard, { backgroundColor: `${c.error}10`, borderColor: `${c.error}22` }]}> 
-            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-            <Text style={[styles.submitError, { color: c.error }]}>{submitError}</Text>
-          </View>
+          <NoticeCard tone="danger">{submitError}</NoticeCard>
         )}
 
         <TouchableOpacity

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { createProcessingBatch } from '@/src/features/processing/services/processing-api';
 
@@ -89,10 +90,7 @@ export default function ProcessingCreateScreen() {
         </View>
 
         {error && (
-          <View style={[styles.errorCard, { backgroundColor: `${c.error}12`, borderColor: `${c.error}25` }]}>
-            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-            <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
-          </View>
+          <NoticeCard tone="danger">{error}</NoticeCard>
         )}
       </ScrollView>
 

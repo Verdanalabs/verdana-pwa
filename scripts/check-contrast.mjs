@@ -149,6 +149,46 @@ const PAIRS = [
   ["panel-fg", "panel-bg", "text on panel"],
 ];
 
+/**
+ * Tinted notice cards — `withAlpha(tone, a)` over a surface, with text on top.
+ *
+ * These grounds are composited at runtime and so never appear in the token
+ * table, which meant the alert, warning and proof-photo cards were the one part
+ * of the UI the gate could not see. A tone laid over a surface at 10% shifts
+ * that surface, and in dark mode it shifts it *lighter*, which is exactly where
+ * muted text runs out of headroom.
+ *
+ * Alphas mirror `Alpha` in src/shared/theme/color.ts.
+ */
+// Only the combinations the UI actually renders. Asserting every token against
+// every tint invents failures for pairings no screen uses.
+//
+// Deliberately absent: a tone's own colour as text on a tint of itself
+// (`--error` on a 10% `--error` wash). That reads as the obvious way to build an
+// alert card and it fails — the wash lightens the ground in dark mode, leaving
+// #ff6b6b at 3.89:1. Notice cards use the `toneBg`/`toneFg` pair instead, via
+// `src/shared/ui/NoticeCard.tsx`, and the tone pairs are asserted below.
+const ALPHA = { faint: 0.05, subtle: 0.1, soft: 0.18, medium: 0.3 };
+const TINTED_CARDS = [
+  // Neutral copy laid over a tone wash (surrounding text in a tinted section).
+  ["error", ALPHA.subtle, ["foreground", "text-muted"]],
+  ["warning", ALPHA.subtle, ["foreground", "text-muted"]],
+  ["info", ALPHA.subtle, ["foreground", "text-muted"]],
+  ["success", ALPHA.subtle, ["foreground", "text-muted"]],
+  // Accent tints back icon wells and pills, which carry accent-ink labels only.
+  ["accent", ALPHA.soft, ["accent-ink"]],
+  ["accent", ALPHA.subtle, ["accent-ink"]],
+];
+
+/** Composite `fg` over `bg` at `alpha`, the way a translucent fill renders. */
+function blend(fgHex, bgHex, alpha) {
+  const fg = parseHex(fgHex);
+  const bg = parseHex(bgHex);
+  if (!fg || !bg) return null;
+  const mix = fg.map((c, i) => Math.round(c * alpha + bg[i] * (1 - alpha)));
+  return "#" + mix.map((c) => c.toString(16).padStart(2, "0")).join("");
+}
+
 /* ── detect this repo's token source ──────────────────────────────────────── */
 
 const cssFile = join(ROOT, "src", "app", "globals.css");
@@ -213,6 +253,33 @@ for (const [theme, [reader, selector]] of Object.entries(target.themes)) {
     console.log(
       `    ${ok ? "ok  " : "FAIL"}  ${pad(label, 34)} ${pad(tokens[fg], 9)} ${(ratio ?? 0).toFixed(2).padStart(5)}:1`
     );
+  }
+
+  // Tinted notice cards: text on a tone laid over each surface at low alpha.
+  {
+    let bad = 0;
+    for (const [tone, alpha, textTokens] of TINTED_CARDS) {
+      if (!(tone in tokens)) continue;
+      for (const surface of SURFACES) {
+        if (!(surface in tokens)) continue;
+        const ground = blend(tokens[tone], tokens[surface], alpha);
+        if (!ground) continue;
+        for (const fg of textTokens) {
+          if (!(fg in tokens)) continue;
+          const ratio = contrast(tokens[fg], ground);
+          checks++;
+          if (!(ratio !== null && ratio >= AA)) {
+            failures++;
+            bad++;
+            console.log(
+              `    FAIL  ${pad(`${fg} on ${tone} tint / ${surface}`, 34)} ${pad(tokens[fg], 9)} ` +
+                `${(ratio ?? 0).toFixed(2).padStart(5)}:1`
+            );
+          }
+        }
+      }
+    }
+    if (!bad) console.log(`    ok    ${pad("tinted notice cards (all tones)", 34)}`);
   }
 
   // Paired records (status badges, material chips, tone) — PWA only.

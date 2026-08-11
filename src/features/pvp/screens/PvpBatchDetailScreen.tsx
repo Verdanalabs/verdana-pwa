@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import type { ThemeColors } from '@/src/shared/theme/tokens';
 import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import type { BatchStatus } from '@/types';
@@ -304,10 +305,7 @@ export default function PvpBatchDetailScreen() {
 
         {/* Action error */}
         {actionError && (
-          <View style={[styles.errorBanner, { backgroundColor: `${c.error}10`, borderColor: `${c.error}24` }]}>
-            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-            <Text style={[styles.errorBannerText, { color: c.error }]}>{actionError}</Text>
-          </View>
+          <NoticeCard tone="danger">{actionError}</NoticeCard>
         )}
 
         {/* Status-appropriate call-to-action card */}

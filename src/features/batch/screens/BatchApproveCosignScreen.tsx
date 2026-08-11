@@ -7,6 +7,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import * as Location from 'expo-location';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { useAuth } from '@/src/features/auth/state/auth-context';
@@ -274,10 +275,7 @@ export default function BatchApproveCosignScreen() {
         )}
 
         {approveError && (
-          <View style={[styles.errorCard, { backgroundColor: withAlpha(c.error, Alpha.subtle), borderColor: withAlpha(c.error, Alpha.medium) }]}>
-            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-            <Text style={[styles.errorCardText, { color: c.error }]}>{approveError}</Text>
-          </View>
+          <NoticeCard tone="danger">{approveError}</NoticeCard>
         )}
 
         {!isCosigning && (

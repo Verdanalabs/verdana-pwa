@@ -1,7 +1,7 @@
 # Verdana Brand & Design System
 
 Single source of truth for the visual identity across `verdana-frontend`, `verdana-admin`, and `verdana-pwa`.
-Derived from `Brandbook.pdf`. This file is vendored into each app repo so PRs and CI are self-contained; keep the three copies in sync. Where the brandbook is silent, this document decides — and says so.
+Derived from `Brandbook.pdf` (workspace root). Where the brandbook is silent, this document decides — and says so.
 
 Every contrast figure below is measured (WCAG 2.1 relative luminance), not estimated. Re-verify with `scripts/check-contrast.mjs`.
 
@@ -105,6 +105,36 @@ The light ramp is Dark Green mixed toward Lush White; the dark ramp is Dark Gree
 Ratios above are quoted against `--background`, but every text token is verified against **all three** surface levels. That matters in dark mode: `--surface-strong` is the lightest ground, so a value that passes on the page background can still fail on an elevated card. The dark muted/faint values are set from that constraint, not from the page background.
 
 ---
+
+## 3a. The mark
+
+**Source of truth: `verdana-frontend/public/logo.png`.** Every favicon, app icon
+and in-app mark derives from it via `scripts/build-favicons.py`.
+
+**Never re-trace it into SVG paths.** That was tried and the traced outline was
+visibly not the mark: the slab read blockier, the blade geometry differed, and
+the `currentColor` variant collapsed the duotone gradient into one flat colour,
+which renders as a plain dark square at small sizes. The traced files have been
+deleted; do not reintroduce them.
+
+The mark carries its own dark-green-to-lime gradient on a transparent
+background, so it sits correctly on both the light canvas and the dark green
+panel with no recolouring. Use `logo.png` for in-app marks. `icon-192.png` and
+`icon-512.png` bake in a white tile and belong only in favicons and launcher
+icons, never on the dark panel.
+
+## 3b. Notice cards
+
+An alert, warning or confirmation card uses the **`toneBg` / `toneFg` pair**,
+never a low-alpha tint of the raw tone.
+
+Tinting the tone against its own colour is the obvious construction and it
+fails: a 10% wash *lightens* the ground in dark mode, and `--danger` `#FF6B6B`
+on that ground measures **3.89:1**, under AA. The tone pairs are designed
+together and clear AA on all three surface levels.
+
+In the PWA this is `src/shared/ui/NoticeCard.tsx`. The contrast gate asserts the
+tone pairs and the tinted grounds that remain in use.
 
 ## 4. Semantic & data-viz
 

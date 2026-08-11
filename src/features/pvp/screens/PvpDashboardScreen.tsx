@@ -5,13 +5,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
-import { withAlpha, Alpha } from '@/src/shared/theme/color';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
+import { withAlpha } from '@/src/shared/theme/color';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { usePvpBatchFeed } from '@/src/features/pvp/hooks/usePvpBatchFeed';
 import { PushPermissionBanner } from '@/src/features/notifications/components/PushPermissionBanner';
+import { OfflineQueueBanner } from '@/src/shared/ui/OfflineQueueBanner';
+import { useOfflineSync } from '@/src/providers/OfflineSyncProvider';
 import { usePushNotifications } from '@/src/features/notifications/hooks/usePushNotifications';
 import type { PvpBatchListItem } from '@/src/features/batch/services/batch-api';
+import type { Tone } from '@/src/shared/theme/tokens';
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
@@ -126,6 +130,7 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
   const matColor = c.materialFg[item.material.toUpperCase()] ?? c.accent;
   const isAccepted = item.status === 'accepted';
   const isDispatched = item.status === 'pickup_dispatched';
+  const priorityTone: Tone = isDispatched ? 'info' : isAccepted ? 'accent' : 'warning';
 
   return (
     <TouchableOpacity
@@ -148,11 +153,13 @@ function PriorityCard({ item }: { item: PvpBatchListItem }) {
           </View>
         </View>
 
+        {/* Tone pair, not a tint of the raw tone: neon as text measures 1.42:1
+            on the light canvas, and a 10% tint leaves the ground near-white. */}
         <View style={[styles.priorityStatusPill, {
-          backgroundColor: isDispatched ? withAlpha(c.info, Alpha.subtle) : isAccepted ? withAlpha(c.accent, Alpha.subtle) : withAlpha(c.warning, Alpha.subtle),
-          borderColor: isDispatched ? withAlpha(c.info, Alpha.medium) : isAccepted ? withAlpha(c.accent, Alpha.medium) : withAlpha(c.warning, Alpha.medium),
+          backgroundColor: c.toneBg[priorityTone],
+          borderColor: c.toneFg[priorityTone],
         }]}>
-          <Text style={[styles.priorityStatusText, { color: isDispatched ? c.info : isAccepted ? c.accent : c.warning }]}>
+          <Text style={[styles.priorityStatusText, { color: c.toneFg[priorityTone] }]}>
             {isDispatched ? 'EN ROUTE' : isAccepted ? 'ACCEPTED' : 'PENDING'}
           </Text>
         </View>
@@ -206,6 +213,7 @@ export default function PvpDashboardTab() {
   const c = useThemeColors();
   const { operator, activeSite, token } = usePvpAuth();
   const { batches, isLoading, isRefreshing, error, reload } = usePvpBatchFeed();
+  const offlineSync = useOfflineSync();
   const push = usePushNotifications({
     userId: operator?.id,
     role: 'processor',
@@ -267,6 +275,15 @@ export default function PvpDashboardTab() {
             title="Enable PVP alerts"
             body="Get notified when collectors send batches to your site and when approval status changes."
             onEnable={() => { void push.requestPermission(); }}
+          />
+
+          <OfflineQueueBanner
+            pendingCount={offlineSync.pendingCount}
+            failedCount={offlineSync.failedCount}
+            isSyncing={offlineSync.isSyncing}
+            failedMessages={offlineSync.failedMessages}
+            itemLabel={offlineSync.itemLabel}
+            onSyncNow={offlineSync.syncNow}
           />
 
           <LinearGradient
@@ -338,10 +355,7 @@ export default function PvpDashboardTab() {
           </View>
 
           {error && (
-            <View style={[styles.errorCard, { backgroundColor: `${c.error}10`, borderColor: `${c.error}24` }]}>
-              <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-              <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
-            </View>
+            <NoticeCard tone="danger">{error}</NoticeCard>
           )}
 
           <View style={styles.section}>
