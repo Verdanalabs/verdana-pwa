@@ -1,21 +1,57 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
-import { addFeeding, addHarvest, getMaggotBatch, type MaggotBatch } from '@/src/features/maggot/services/maggot-api';
+import { addFeeding, addHarvest, getMaggotBatch, type MaggotBatch, type ProofPhoto } from '@/src/features/maggot/services/maggot-api';
+import { ProofPhotoField, type CapturedProof } from '@/src/shared/ui/ProofPhotoField';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
+import { createUploadUrl } from '@/src/features/batch/services/batch-api';
+import { dataUriToBlob, type WatermarkMeta } from '@/src/shared/lib/photo-watermark';
+import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
+import { runtimeConfig } from '@/src/shared/config/runtime-config';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function mediaUrl(storageKey: string) {
+  return `${runtimeConfig.apiBaseUrl}/v1/media/${storageKey}`;
+}
+
+/**
+ * Best-effort fix for the watermark. The facility is fixed and the photo is
+ * optional, so a denied or slow GPS drops the coordinate line rather than
+ * blocking the operator from logging a feeding.
+ */
+function useBestEffortGps() {
+  const [gps, setGps] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (cancelled || !pos.coords.latitude || !pos.coords.longitude) return;
+        setGps({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      },
+      () => { /* no fix; the watermark omits the coordinate line */ },
+      { timeout: 10000, enableHighAccuracy: true },
+    );
+    return () => { cancelled = true; };
+  }, []);
+
+  return gps;
+}
+
 export default function MaggotBatchScreen() {
   const c = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = usePvpAuth();
+  const { token, operator, activeSite } = usePvpAuth();
+  const gps = useBestEffortGps();
 
   const [batch, setBatch] = useState<MaggotBatch | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +61,43 @@ export default function MaggotBatchScreen() {
   const [feedKg, setFeedKg] = useState('');
   const [maggotKg, setMaggotKg] = useState('');
   const [frassKg, setFrassKg] = useState('');
+  const [feedProof, setFeedProof] = useState<CapturedProof | null>(null);
+  const [harvestProof, setHarvestProof] = useState<CapturedProof | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function watermarkMeta(weightKg: number, step: string): WatermarkMeta {
+    return {
+      timestampIso: new Date().toISOString(),
+      latitude: gps?.latitude,
+      longitude: gps?.longitude,
+      weightKg,
+      category: step,
+      operatorId: operator?.id ?? '',
+      stationLabel: activeSite?.name,
+    };
+  }
+
+  // Uploaded only on submit, so a photo the operator retakes or removes never
+  // reaches R2.
+  async function uploadProof(proof: CapturedProof): Promise<ProofPhoto> {
+    const upload = await createUploadUrl(token!, {
+      batch_id: id,
+      kind: 'maggot',
+      content_type: 'image/jpeg',
+      filename: `maggot-proof-${id}.jpg`,
+    });
+    const res = await fetch(upload.upload_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: dataUriToBlob(proof.dataUri),
+    });
+    if (!res.ok) throw new Error(`Could not upload the proof photo (${res.status}).`);
+    return {
+      storage_key: upload.storage_key,
+      sha256_hex: proof.sha256Hex,
+      captured_at: proof.capturedAt,
+    };
+  }
 
   const load = useCallback(async () => {
     if (!id || !token) return;
@@ -43,14 +115,20 @@ export default function MaggotBatchScreen() {
 
   async function handleAddFeeding() {
     if (!token || !id) return;
-    const grams = Math.round(parseFloat(feedKg) * 1000);
-    if (!grams || grams <= 0) { setError('Enter a valid feeding quantity.'); return; }
+    const parsed = parseWeightKg(feedKg);
+    if (!parsed.ok) { setError(weightErrorMessage(parsed.reason)); return; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fedOn)) { setError('Date must be YYYY-MM-DD.'); return; }
     setBusy(true);
     setError(null);
     try {
-      await addFeeding(token, id, { fed_on: fedOn, quantity_grams: grams });
+      const proof = feedProof ? await uploadProof(feedProof) : undefined;
+      await addFeeding(token, id, {
+        fed_on: fedOn,
+        quantity_grams: Math.round(parsed.kg * 1000),
+        proof,
+      });
       setFeedKg('');
+      setFeedProof(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to add feeding.');
@@ -61,13 +139,23 @@ export default function MaggotBatchScreen() {
 
   async function handleHarvest() {
     if (!token || !id) return;
-    const mg = Math.round(parseFloat(maggotKg) * 1000);
-    const fr = Math.round(parseFloat(frassKg) * 1000);
-    if (Number.isNaN(mg) || Number.isNaN(fr) || mg < 0 || fr < 0) { setError('Enter valid harvest weights.'); return; }
+    // Either weight may legitimately be zero — a run can yield frass and no
+    // usable maggot — so an empty field reads as zero rather than an error.
+    const maggot = maggotKg.trim() ? parseWeightKg(maggotKg) : ({ ok: true, kg: 0 } as const);
+    const frass = frassKg.trim() ? parseWeightKg(frassKg) : ({ ok: true, kg: 0 } as const);
+    if (!maggot.ok) { setError(`Maggot weight: ${weightErrorMessage(maggot.reason)}`); return; }
+    if (!frass.ok) { setError(`Frass weight: ${weightErrorMessage(frass.reason)}`); return; }
+
     setBusy(true);
     setError(null);
     try {
-      await addHarvest(token, id, { maggot_weight_grams: mg, frass_weight_grams: fr });
+      const proof = harvestProof ? await uploadProof(harvestProof) : undefined;
+      await addHarvest(token, id, {
+        maggot_weight_grams: Math.round(maggot.kg * 1000),
+        frass_weight_grams: Math.round(frass.kg * 1000),
+        proof,
+      });
+      setHarvestProof(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to record harvest.');
@@ -118,6 +206,17 @@ export default function MaggotBatchScreen() {
           {batch!.harvest && <Row label="Maggot" value={`${(batch!.harvest.maggot_weight_grams / 1000).toFixed(1)} kg`} />}
           {batch!.harvest && <Row label="Frass" value={`${(batch!.harvest.frass_weight_grams / 1000).toFixed(1)} kg`} />}
           {batch!.yield_percent != null && <Row label="Yield" value={`${batch!.yield_percent}%`} />}
+          {batch!.harvest?.proof && (
+            <>
+              <Text style={[styles.fieldLabel, { color: c.textMuted }]}>Harvest proof photo</Text>
+              <Image
+                source={{ uri: mediaUrl(batch!.harvest.proof.storage_key) }}
+                style={styles.proofImage}
+                resizeMode="cover"
+                accessibilityLabel="Harvest proof photo"
+              />
+            </>
+          )}
         </View>
 
         {/* Feeding history */}
@@ -127,7 +226,17 @@ export default function MaggotBatchScreen() {
             batch!.feedings.map((f) => (
               <View key={f.id} style={styles.row}>
                 <Text style={[styles.rowLabel, { color: c.textMuted }]}>{f.fed_on}</Text>
-                <Text style={[styles.rowValue, { color: c.foreground }]}>{(f.quantity_grams / 1000).toFixed(1)} kg</Text>
+                <View style={styles.logValueRow}>
+                  {f.proof && (
+                    <Image
+                      source={{ uri: mediaUrl(f.proof.storage_key) }}
+                      style={[styles.logThumb, { borderColor: c.border }]}
+                      resizeMode="cover"
+                      accessibilityLabel="Proof photo"
+                    />
+                  )}
+                  <Text style={[styles.logValue, { color: c.foreground }]}>{(f.quantity_grams / 1000).toFixed(1)} kg</Text>
+                </View>
               </View>
             ))
           ) : (
@@ -150,7 +259,7 @@ export default function MaggotBatchScreen() {
               <View style={[styles.inputRow, { borderColor: c.border, backgroundColor: c.background }]}>
                 <TextInput
                   value={feedKg}
-                  onChangeText={setFeedKg}
+                  onChangeText={(t) => setFeedKg(sanitizeWeightInput(t))}
                   placeholder="0.0"
                   placeholderTextColor={c.textFaint}
                   keyboardType="decimal-pad"
@@ -158,13 +267,31 @@ export default function MaggotBatchScreen() {
                 />
                 <Text style={[styles.unit, { color: c.textSecondary }]}>kg</Text>
               </View>
+
+              <ProofPhotoField
+                label="Scale proof photo"
+                hint="Frame the scale display and the organic feed together"
+                helper="Photograph the scale reading. Time, location, quantity and your operator ID are stamped onto the photo."
+                proof={feedProof}
+                onChange={setFeedProof}
+                buildMeta={() => {
+                  const parsed = parseWeightKg(feedKg);
+                  return parsed.ok ? watermarkMeta(parsed.kg, 'ORGANIC FEEDING') : null;
+                }}
+                disabledReason="Enter the feeding quantity first — it is stamped onto the photo."
+              />
+
               <TouchableOpacity
                 style={[styles.secondaryBtn, { borderColor: c.accentInk }]}
                 onPress={handleAddFeeding}
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.secondaryBtnLabel, { color: c.accentInk }]}>Add Feeding</Text>
+                {busy ? (
+                  <ActivityIndicator size="small" color={c.accentInk} />
+                ) : (
+                  <Text style={[styles.secondaryBtnLabel, { color: c.accentInk }]}>Add Feeding</Text>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -187,7 +314,7 @@ export default function MaggotBatchScreen() {
               <View style={[styles.inputRow, { borderColor: c.border, backgroundColor: c.background }]}>
                 <TextInput
                   value={frassKg}
-                  onChangeText={setFrassKg}
+                  onChangeText={(t) => setFrassKg(sanitizeWeightInput(t))}
                   placeholder="0.0"
                   placeholderTextColor={c.textFaint}
                   keyboardType="decimal-pad"
@@ -195,24 +322,37 @@ export default function MaggotBatchScreen() {
                 />
                 <Text style={[styles.unit, { color: c.textSecondary }]}>kg</Text>
               </View>
+
+              <ProofPhotoField
+                label="Scale proof photo"
+                hint="Frame the scale display and the harvested maggot together"
+                helper="Photograph the final weighing. Time, location, weight and your operator ID are stamped onto the photo."
+                proof={harvestProof}
+                onChange={setHarvestProof}
+                buildMeta={() => {
+                  const parsed = parseWeightKg(maggotKg.trim() ? maggotKg : frassKg);
+                  return parsed.ok ? watermarkMeta(parsed.kg, 'ORGANIC HARVEST') : null;
+                }}
+                disabledReason="Enter the harvest weight first — it is stamped onto the photo."
+              />
+
               <TouchableOpacity
                 style={[styles.primaryBtn, { backgroundColor: maggotKg.trim() || frassKg.trim() ? c.accent : c.border }]}
                 onPress={handleHarvest}
                 disabled={(!maggotKg.trim() && !frassKg.trim()) || busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.primaryBtnLabel, { color: maggotKg.trim() || frassKg.trim() ? c.accentContrast : c.textMuted }]}>Record Harvest</Text>
+                {busy ? (
+                  <ActivityIndicator size="small" color={c.accentContrast} />
+                ) : (
+                  <Text style={[styles.primaryBtnLabel, { color: maggotKg.trim() || frassKg.trim() ? c.accentContrast : c.textMuted }]}>Record Harvest</Text>
+                )}
               </TouchableOpacity>
             </View>
           </>
         )}
 
-        {error && batch && (
-          <View style={[styles.errorCard, { backgroundColor: `${c.error}12`, borderColor: `${c.error}25` }]}>
-            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-            <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
-          </View>
-        )}
+        {error && batch && <NoticeCard tone="danger">{error}</NoticeCard>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -242,6 +382,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   rowLabel: { fontSize: FontSize.sm, fontFamily: Font.regular, flex: 1 },
   rowValue: { fontSize: FontSize.sm, fontFamily: Font.medium, flex: 2, textAlign: 'right' },
+  logValueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, flex: 2 },
+  logValue: { fontSize: FontSize.sm, fontFamily: Font.medium, textAlign: 'right' },
+  logThumb: { width: 30, height: 30, borderRadius: 8, borderWidth: 1 },
+  proofImage: { width: '100%', height: 180, borderRadius: 14 },
   textInput: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, height: 48, fontSize: FontSize.md, fontFamily: Font.medium },
   inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14, paddingHorizontal: 16, height: 56 },
   input: { flex: 1, fontSize: FontSize['2xl'], fontFamily: Font.bold },
