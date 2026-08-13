@@ -28,6 +28,8 @@ export interface MaggotBatch {
   organic_weight_grams: number;
   status: string;
   created_at: string;
+  /** Photo of the organic intake weighing that opened the cycle. */
+  proof?: ProofPhoto;
   feedings?: FeedingLog[];
   harvest?: Harvest;
   yield_percent?: number;
@@ -43,7 +45,7 @@ export function getMaggotBatch(token: string, id: string): Promise<MaggotBatch> 
 
 export function createMaggotBatch(
   token: string,
-  payload: { organic_weight_grams: number },
+  payload: { organic_weight_grams: number; proof?: ProofPhoto },
 ): Promise<MaggotBatch> {
   return apiRequest<MaggotBatch>('/v1/maggot/batches', {
     method: 'POST',

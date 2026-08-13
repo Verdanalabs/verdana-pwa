@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { createUploadUrl } from '@/src/features/batch/services/batch-api';
 import { dataUriToBlob, type WatermarkMeta } from '@/src/shared/lib/photo-watermark';
 import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
+import { useBestEffortGps } from '@/src/shared/hooks/useBestEffortGps';
 import { runtimeConfig } from '@/src/shared/config/runtime-config';
 
 function today() {
@@ -20,31 +21,6 @@ function today() {
 
 function mediaUrl(storageKey: string) {
   return `${runtimeConfig.apiBaseUrl}/v1/media/${storageKey}`;
-}
-
-/**
- * Best-effort fix for the watermark. The facility is fixed and the photo is
- * optional, so a denied or slow GPS drops the coordinate line rather than
- * blocking the operator from logging a feeding.
- */
-function useBestEffortGps() {
-  const [gps, setGps] = useState<{ latitude: number; longitude: number } | null>(null);
-
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
-    let cancelled = false;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (cancelled || !pos.coords.latitude || !pos.coords.longitude) return;
-        setGps({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-      },
-      () => { /* no fix; the watermark omits the coordinate line */ },
-      { timeout: 10000, enableHighAccuracy: true },
-    );
-    return () => { cancelled = true; };
-  }, []);
-
-  return gps;
 }
 
 export default function MaggotBatchScreen() {
@@ -206,6 +182,17 @@ export default function MaggotBatchScreen() {
           {batch!.harvest && <Row label="Maggot" value={`${(batch!.harvest.maggot_weight_grams / 1000).toFixed(1)} kg`} />}
           {batch!.harvest && <Row label="Frass" value={`${(batch!.harvest.frass_weight_grams / 1000).toFixed(1)} kg`} />}
           {batch!.yield_percent != null && <Row label="Yield" value={`${batch!.yield_percent}%`} />}
+          {batch!.proof && (
+            <>
+              <Text style={[styles.fieldLabel, { color: c.textMuted }]}>Intake proof photo</Text>
+              <Image
+                source={{ uri: mediaUrl(batch!.proof.storage_key) }}
+                style={styles.proofImage}
+                resizeMode="cover"
+                accessibilityLabel="Intake proof photo"
+              />
+            </>
+          )}
           {batch!.harvest?.proof && (
             <>
               <Text style={[styles.fieldLabel, { color: c.textMuted }]}>Harvest proof photo</Text>
