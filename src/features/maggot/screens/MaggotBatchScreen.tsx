@@ -9,8 +9,9 @@ import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { addFeeding, addHarvest, getMaggotBatch, type MaggotBatch, type ProofPhoto } from '@/src/features/maggot/services/maggot-api';
 import { ProofPhotoField, type CapturedProof } from '@/src/shared/ui/ProofPhotoField';
 import { NoticeCard } from '@/src/shared/ui/NoticeCard';
-import { createUploadUrl } from '@/src/features/batch/services/batch-api';
-import { dataUriToBlob, type WatermarkMeta } from '@/src/shared/lib/photo-watermark';
+import { PhotoLightbox } from '@/src/shared/ui/PhotoLightbox';
+import type { WatermarkMeta } from '@/src/shared/lib/photo-watermark';
+import { uploadProofPhoto } from '@/src/shared/lib/upload-proof';
 import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
 import { useBestEffortGps } from '@/src/shared/hooks/useBestEffortGps';
 import { runtimeConfig } from '@/src/shared/config/runtime-config';
@@ -40,6 +41,9 @@ export default function MaggotBatchScreen() {
   const [feedProof, setFeedProof] = useState<CapturedProof | null>(null);
   const [harvestProof, setHarvestProof] = useState<CapturedProof | null>(null);
   const [busy, setBusy] = useState(false);
+  // The open proof photo. A watermark that cannot be read is not evidence, and
+  // the thumbnails are far too small for the burned-in band.
+  const [viewer, setViewer] = useState<{ uri: string; title: string; caption?: string } | null>(null);
 
   function watermarkMeta(weightKg: number, step: string): WatermarkMeta {
     return {
@@ -55,24 +59,8 @@ export default function MaggotBatchScreen() {
 
   // Uploaded only on submit, so a photo the operator retakes or removes never
   // reaches R2.
-  async function uploadProof(proof: CapturedProof): Promise<ProofPhoto> {
-    const upload = await createUploadUrl(token!, {
-      batch_id: id,
-      kind: 'maggot',
-      content_type: 'image/jpeg',
-      filename: `maggot-proof-${id}.jpg`,
-    });
-    const res = await fetch(upload.upload_url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'image/jpeg' },
-      body: dataUriToBlob(proof.dataUri),
-    });
-    if (!res.ok) throw new Error(`Could not upload the proof photo (${res.status}).`);
-    return {
-      storage_key: upload.storage_key,
-      sha256_hex: proof.sha256Hex,
-      captured_at: proof.capturedAt,
-    };
+  function uploadProof(proof: CapturedProof): Promise<ProofPhoto> {
+    return uploadProofPhoto(token!, 'maggot', proof, id);
   }
 
   const load = useCallback(async () => {
@@ -185,23 +173,33 @@ export default function MaggotBatchScreen() {
           {batch!.proof && (
             <>
               <Text style={[styles.fieldLabel, { color: c.textMuted }]}>Intake proof photo</Text>
-              <Image
-                source={{ uri: mediaUrl(batch!.proof.storage_key) }}
-                style={styles.proofImage}
-                resizeMode="cover"
-                accessibilityLabel="Intake proof photo"
-              />
+              <TouchableOpacity
+                onPress={() => setViewer({
+                  uri: mediaUrl(batch!.proof!.storage_key),
+                  title: 'Intake proof',
+                  caption: `${(batch!.organic_weight_grams / 1000).toFixed(1)} kg organic in`,
+                })}
+                activeOpacity={0.85}
+                accessibilityLabel="View the intake proof photo"
+              >
+                <Image source={{ uri: mediaUrl(batch!.proof.storage_key) }} style={styles.proofImage} resizeMode="cover" />
+              </TouchableOpacity>
             </>
           )}
           {batch!.harvest?.proof && (
             <>
               <Text style={[styles.fieldLabel, { color: c.textMuted }]}>Harvest proof photo</Text>
-              <Image
-                source={{ uri: mediaUrl(batch!.harvest.proof.storage_key) }}
-                style={styles.proofImage}
-                resizeMode="cover"
-                accessibilityLabel="Harvest proof photo"
-              />
+              <TouchableOpacity
+                onPress={() => setViewer({
+                  uri: mediaUrl(batch!.harvest!.proof!.storage_key),
+                  title: 'Harvest proof',
+                  caption: `${(batch!.harvest!.maggot_weight_grams / 1000).toFixed(1)} kg maggot · ${(batch!.harvest!.frass_weight_grams / 1000).toFixed(1)} kg frass`,
+                })}
+                activeOpacity={0.85}
+                accessibilityLabel="View the harvest proof photo"
+              >
+                <Image source={{ uri: mediaUrl(batch!.harvest.proof.storage_key) }} style={styles.proofImage} resizeMode="cover" />
+              </TouchableOpacity>
             </>
           )}
         </View>
@@ -215,12 +213,21 @@ export default function MaggotBatchScreen() {
                 <Text style={[styles.rowLabel, { color: c.textMuted }]}>{f.fed_on}</Text>
                 <View style={styles.logValueRow}>
                   {f.proof && (
-                    <Image
-                      source={{ uri: mediaUrl(f.proof.storage_key) }}
-                      style={[styles.logThumb, { borderColor: c.border }]}
-                      resizeMode="cover"
-                      accessibilityLabel="Proof photo"
-                    />
+                    <TouchableOpacity
+                      onPress={() => setViewer({
+                        uri: mediaUrl(f.proof!.storage_key),
+                        title: `Feeding proof · ${f.fed_on}`,
+                        caption: `${(f.quantity_grams / 1000).toFixed(1)} kg fed`,
+                      })}
+                      activeOpacity={0.7}
+                      accessibilityLabel={`View the proof photo for the feeding on ${f.fed_on}`}
+                    >
+                      <Image
+                        source={{ uri: mediaUrl(f.proof.storage_key) }}
+                        style={[styles.logThumb, { borderColor: c.border }]}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
                   )}
                   <Text style={[styles.logValue, { color: c.foreground }]}>{(f.quantity_grams / 1000).toFixed(1)} kg</Text>
                 </View>
@@ -341,6 +348,15 @@ export default function MaggotBatchScreen() {
 
         {error && batch && <NoticeCard tone="danger">{error}</NoticeCard>}
       </ScrollView>
+
+      {viewer && (
+        <PhotoLightbox
+          uri={viewer.uri}
+          title={viewer.title}
+          caption={viewer.caption}
+          onClose={() => setViewer(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

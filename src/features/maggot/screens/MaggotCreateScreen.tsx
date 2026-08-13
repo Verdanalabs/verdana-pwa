@@ -9,8 +9,7 @@ import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { createMaggotBatch, type ProofPhoto } from '@/src/features/maggot/services/maggot-api';
 import { ProofPhotoField, type CapturedProof } from '@/src/shared/ui/ProofPhotoField';
-import { createUploadUrl } from '@/src/features/batch/services/batch-api';
-import { dataUriToBlob } from '@/src/shared/lib/photo-watermark';
+import { uploadProofPhoto } from '@/src/shared/lib/upload-proof';
 import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
 import { useBestEffortGps } from '@/src/shared/hooks/useBestEffortGps';
 
@@ -28,24 +27,8 @@ export default function MaggotCreateScreen() {
   // The batch has no id until the server creates it, so the upload key is
   // namespaced by a client-side uuid, as the collector batch flow does. The
   // server checks the maggot/<uuid>/ shape rather than tying it to a record.
-  async function uploadProof(captured: CapturedProof): Promise<ProofPhoto> {
-    const upload = await createUploadUrl(token!, {
-      batch_id: crypto.randomUUID(),
-      kind: 'maggot',
-      content_type: 'image/jpeg',
-      filename: 'maggot-intake-proof.jpg',
-    });
-    const res = await fetch(upload.upload_url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'image/jpeg' },
-      body: dataUriToBlob(captured.dataUri),
-    });
-    if (!res.ok) throw new Error(`Could not upload the proof photo (${res.status}).`);
-    return {
-      storage_key: upload.storage_key,
-      sha256_hex: captured.sha256Hex,
-      captured_at: captured.capturedAt,
-    };
+  function uploadProof(captured: CapturedProof): Promise<ProofPhoto> {
+    return uploadProofPhoto(token!, 'maggot', captured);
   }
 
   async function handleCreate() {
