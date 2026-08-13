@@ -16,7 +16,8 @@ interface Co2FactorsResponse {
 const CACHE_KEY = '@verdana:co2_factors';
 
 /**
- * The dMRV LCA table, mirroring migration 000033 in database-migrations.
+ * The dMRV LCA table, mirroring migrations 000033 and 000036 in
+ * database-migrations. Every plastic carries one conservative factor.
  *
  * Bundled so an operator at a site with no signal still sees an offset estimate.
  * The figure of record is the one the server computes at metadata time, so a
@@ -25,8 +26,8 @@ const CACHE_KEY = '@verdana:co2_factors';
  */
 export const DEFAULT_FACTORS: CarbonFactors = {
   organic: 0.65,
-  pet: 2.10,
-  hdpe: 2.10,
+  pet: 1.80,
+  hdpe: 1.80,
   ldpe: 1.80,
   pp: 1.80,
   mix: 1.80,

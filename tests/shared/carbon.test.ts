@@ -10,7 +10,7 @@ describe('computeOffsetKg', () => {
   });
 
   it.each([
-    [12.5, DEFAULT_FACTORS.pet, 26.25],
+    [12.5, DEFAULT_FACTORS.pet, 22.5],
     [3.33, DEFAULT_FACTORS.cardboard, 4.33],
     [0.25, DEFAULT_FACTORS.mix, 0.45],
   ])('computes %p kg at factor %p as %p', (kg, factor, want) => {
@@ -76,11 +76,12 @@ describe('rowsToFactors', () => {
 // The bundled table is the offline fallback and must not drift from the
 // migration, otherwise an offline operator sees a figure the mint contradicts.
 describe('DEFAULT_FACTORS', () => {
-  it('matches migration 000033', () => {
+  it('matches migrations 000033 and 000036', () => {
     expect(DEFAULT_FACTORS).toEqual({
       organic: 0.65,
-      pet: 2.10,
-      hdpe: 2.10,
+      // One conservative factor across every polymer, per 000036.
+      pet: 1.80,
+      hdpe: 1.80,
       ldpe: 1.80,
       pp: 1.80,
       mix: 1.80,

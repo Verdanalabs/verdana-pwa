@@ -19,7 +19,7 @@ const mockReadCache = readCachedCo2Factors as jest.MockedFunction<typeof readCac
 
 const LIVE_ROWS = [
   { material: 'organic', kg_co2e_per_kg: 0.65, methodology: 'IPCC 2006 Vol.5 Waste' },
-  { material: 'pet', kg_co2e_per_kg: 2.1, methodology: 'US EPA WARM' },
+  { material: 'pet', kg_co2e_per_kg: 1.8, methodology: 'US EPA WARM' },
 ];
 
 beforeEach(() => {
@@ -50,7 +50,7 @@ describe('CarbonImpactBadge', () => {
   it('reads the comma decimal separator an Indonesian keyboard produces', async () => {
     renderWithProviders(<CarbonImpactBadge weightInput="2,5" material="pet" />);
 
-    expect(await screen.findByText('+5.25 kg CO2e')).toBeTruthy();
+    expect(await screen.findByText('+4.50 kg CO2e')).toBeTruthy();
   });
 
   it('always shows two decimals, including a whole result', async () => {
