@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -13,14 +13,25 @@ import {
   getProcessingBatch,
   type ProcessingBatch,
 } from '@/src/features/processing/services/processing-api';
+import { ProofPhotoField, type CapturedProof } from '@/src/shared/ui/ProofPhotoField';
+import { PhotoLightbox } from '@/src/shared/ui/PhotoLightbox';
+import { uploadProofPhoto } from '@/src/shared/lib/upload-proof';
+import { useBestEffortGps } from '@/src/shared/hooks/useBestEffortGps';
+import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
+import { runtimeConfig } from '@/src/shared/config/runtime-config';
 
 const STAGES = ['sorting', 'washing', 'shredding', 'drying'];
 const GRADES = ['A', 'B', 'C'];
 
+function mediaUrl(storageKey: string) {
+  return `${runtimeConfig.apiBaseUrl}/v1/media/${storageKey}`;
+}
+
 export default function ProcessingBatchScreen() {
   const c = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = usePvpAuth();
+  const { token, operator, activeSite } = usePvpAuth();
+  const gps = useBestEffortGps();
 
   const [batch, setBatch] = useState<ProcessingBatch | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,9 +39,24 @@ export default function ProcessingBatchScreen() {
 
   const [stage, setStage] = useState('sorting');
   const [stageNotes, setStageNotes] = useState('');
+  const [stageProof, setStageProof] = useState<CapturedProof | null>(null);
   const [finalKg, setFinalKg] = useState('');
   const [finalGrade, setFinalGrade] = useState('A');
+  const [finalProof, setFinalProof] = useState<CapturedProof | null>(null);
   const [busy, setBusy] = useState(false);
+  const [viewer, setViewer] = useState<{ uri: string; title: string; caption?: string } | null>(null);
+
+  function watermarkMeta(weightKg: number, step: string) {
+    return {
+      timestampIso: new Date().toISOString(),
+      latitude: gps?.latitude,
+      longitude: gps?.longitude,
+      weightKg,
+      category: step,
+      operatorId: operator?.id ?? '',
+      stationLabel: activeSite?.name,
+    };
+  }
 
   const load = useCallback(async () => {
     if (!id || !token) return;
@@ -51,8 +77,10 @@ export default function ProcessingBatchScreen() {
     setBusy(true);
     setError(null);
     try {
-      await addProcessingStage(token, id, { stage, notes: stageNotes || undefined });
+      const proof = stageProof ? await uploadProofPhoto(token, 'processing', stageProof, id) : undefined;
+      await addProcessingStage(token, id, { stage, notes: stageNotes || undefined, proof });
       setStageNotes('');
+      setStageProof(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to add stage.');
@@ -63,15 +91,21 @@ export default function ProcessingBatchScreen() {
 
   async function handleComplete() {
     if (!token || !id) return;
-    const grams = Math.round(parseFloat(finalKg) * 1000);
-    if (grams < 0 || Number.isNaN(grams)) {
-      setError('Enter a valid final weight.');
+    const parsed = parseWeightKg(finalKg);
+    if (!parsed.ok) {
+      setError(weightErrorMessage(parsed.reason));
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      await completeProcessing(token, id, { final_weight_grams: grams, final_grade: finalGrade });
+      const proof = finalProof ? await uploadProofPhoto(token, 'processing', finalProof, id) : undefined;
+      await completeProcessing(token, id, {
+        final_weight_grams: Math.round(parsed.kg * 1000),
+        final_grade: finalGrade,
+        proof,
+      });
+      setFinalProof(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to complete.');
@@ -123,6 +157,31 @@ export default function ProcessingBatchScreen() {
           {batch!.yield_percent != null && <Row label="Yield" value={`${batch!.yield_percent}%`} />}
           {batch!.final_grade && <Row label="Final Grade" value={batch!.final_grade} />}
           <Row label="Status" value={batch!.status.replace(/_/g, ' ')} />
+
+          {batch!.intake_proof && (
+            <ProofThumbRow
+              label="Intake proof"
+              uri={mediaUrl(batch!.intake_proof.storage_key)}
+              onPress={() => setViewer({
+                uri: mediaUrl(batch!.intake_proof!.storage_key),
+                title: 'Intake proof',
+                caption: `${(batch!.initial_weight_grams / 1000).toFixed(1)} kg in`,
+              })}
+            />
+          )}
+          {batch!.final_proof && (
+            <ProofThumbRow
+              label="Final proof"
+              uri={mediaUrl(batch!.final_proof.storage_key)}
+              onPress={() => setViewer({
+                uri: mediaUrl(batch!.final_proof!.storage_key),
+                title: 'Final weighing proof',
+                caption: batch!.final_weight_grams != null
+                  ? `${(batch!.final_weight_grams / 1000).toFixed(1)} kg out`
+                  : undefined,
+              })}
+            />
+          )}
         </View>
 
         {/* Stage history */}
@@ -134,6 +193,23 @@ export default function ProcessingBatchScreen() {
                 <Ionicons name="checkmark-circle" size={16} color={c.accentInk} />
                 <Text style={[styles.stageText, { color: c.foreground }]}>{s.stage}</Text>
                 {s.notes ? <Text style={[styles.stageNotes, { color: c.textMuted }]}>· {s.notes}</Text> : null}
+                {s.proof && (
+                  <TouchableOpacity
+                    onPress={() => setViewer({
+                      uri: mediaUrl(s.proof!.storage_key),
+                      title: `${s.stage} proof`,
+                      caption: new Date(s.recorded_at).toLocaleString(),
+                    })}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`View the proof photo for the ${s.stage} stage`}
+                  >
+                    <Image
+                      source={{ uri: mediaUrl(s.proof.storage_key) }}
+                      style={[styles.stageThumb, { borderColor: c.border }]}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
             ))
           ) : (
@@ -168,13 +244,29 @@ export default function ProcessingBatchScreen() {
                 placeholderTextColor={c.textFaint}
                 style={[styles.notesInput, { color: c.foreground, borderColor: c.border, backgroundColor: c.background }]}
               />
+
+              <ProofPhotoField
+                label="Stage proof photo"
+                hint={`Frame the material at the ${stage} stage`}
+                helper="Photograph the material at this stage. Time, location and your operator ID are stamped onto the photo."
+                proof={stageProof}
+                onChange={setStageProof}
+                // A stage is a checkpoint, not a weighing, so the batch's intake
+                // weight is stamped for reference rather than a fresh reading.
+                buildMeta={() => watermarkMeta(batch!.initial_weight_grams / 1000, `${stage.toUpperCase()} STAGE`)}
+              />
+
               <TouchableOpacity
                 style={[styles.secondaryBtn, { borderColor: c.accentInk }]}
                 onPress={handleAddStage}
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.secondaryBtnLabel, { color: c.accentInk }]}>Add Stage</Text>
+                {busy ? (
+                  <ActivityIndicator size="small" color={c.accentInk} />
+                ) : (
+                  <Text style={[styles.secondaryBtnLabel, { color: c.accentInk }]}>Add Stage</Text>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -184,7 +276,7 @@ export default function ProcessingBatchScreen() {
               <View style={[styles.inputRow, { borderColor: c.border, backgroundColor: c.background }]}>
                 <TextInput
                   value={finalKg}
-                  onChangeText={setFinalKg}
+                  onChangeText={(t) => setFinalKg(sanitizeWeightInput(t))}
                   placeholder="0.0"
                   placeholderTextColor={c.textFaint}
                   keyboardType="decimal-pad"
@@ -207,13 +299,30 @@ export default function ProcessingBatchScreen() {
                   );
                 })}
               </View>
+              <ProofPhotoField
+                label="Final weighing proof photo"
+                hint="Frame the scale display and the processed output together"
+                helper="Photograph the final weighing. The yield is calculated from this number, so it carries its own evidence."
+                proof={finalProof}
+                onChange={setFinalProof}
+                buildMeta={() => {
+                  const parsed = parseWeightKg(finalKg);
+                  return parsed.ok ? watermarkMeta(parsed.kg, 'PROCESSING OUTPUT') : null;
+                }}
+                disabledReason="Enter the final weight first — it is stamped onto the photo."
+              />
+
               <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: finalKg.trim() ? c.accent : c.border }]}
+                style={[styles.primaryBtn, { backgroundColor: parseWeightKg(finalKg).ok ? c.accent : c.border }]}
                 onPress={handleComplete}
-                disabled={!finalKg.trim() || busy}
+                disabled={!parseWeightKg(finalKg).ok || busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.primaryBtnLabel, { color: finalKg.trim() ? c.accentContrast : c.textMuted }]}>Complete Processing</Text>
+                {busy ? (
+                  <ActivityIndicator size="small" color={c.accentContrast} />
+                ) : (
+                  <Text style={[styles.primaryBtnLabel, { color: parseWeightKg(finalKg).ok ? c.accentContrast : c.textMuted }]}>Complete Processing</Text>
+                )}
               </TouchableOpacity>
             </View>
           </>
@@ -223,7 +332,28 @@ export default function ProcessingBatchScreen() {
           <NoticeCard tone="danger">{error}</NoticeCard>
         )}
       </ScrollView>
+
+      {viewer && (
+        <PhotoLightbox
+          uri={viewer.uri}
+          title={viewer.title}
+          caption={viewer.caption}
+          onClose={() => setViewer(null)}
+        />
+      )}
     </SafeAreaView>
+  );
+}
+
+function ProofThumbRow({ label, uri, onPress }: { label: string; uri: string; onPress: () => void }) {
+  const c = useThemeColors();
+  return (
+    <View style={styles.row}>
+      <Text style={[styles.rowLabel, { color: c.textMuted }]}>{label}</Text>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityLabel={`View the ${label.toLowerCase()} photo`}>
+        <Image source={{ uri }} style={[styles.stageThumb, { borderColor: c.border }]} resizeMode="cover" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -252,6 +382,7 @@ const styles = StyleSheet.create({
   rowValue: { fontSize: FontSize.sm, fontFamily: Font.medium, flex: 2, textAlign: 'right' },
   stageRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stageText: { fontSize: FontSize.sm, fontFamily: Font.semiBold, textTransform: 'capitalize' },
+  stageThumb: { width: 30, height: 30, borderRadius: 8, borderWidth: 1 },
   stageNotes: { fontSize: FontSize.sm, fontFamily: Font.regular, flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
