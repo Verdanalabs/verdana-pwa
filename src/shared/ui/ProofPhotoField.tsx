@@ -27,6 +27,7 @@ export interface ProofPhotoFieldProps {
    * disabled with `disabledReason` shown.
    */
   buildMeta: () => WatermarkMeta | null;
+  /** Copy explaining why the camera is disabled. Shown only while it is. */
   disabledReason?: string;
   optional?: boolean;
 }
@@ -54,8 +55,12 @@ export function ProofPhotoField({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // buildMeta returning null is the only thing that blocks capture: the weight
+  // has to exist before it can be stamped. disabledReason is the copy shown
+  // while that is true, not a second condition -- treating it as one left the
+  // button permanently grey, since callers always pass it.
   const meta = buildMeta();
-  const canCapture = meta != null && !disabledReason;
+  const canCapture = meta != null;
 
   async function processCapture(rawUri: string): Promise<string> {
     const current = buildMeta();
