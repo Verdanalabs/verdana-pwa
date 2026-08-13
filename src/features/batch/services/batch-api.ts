@@ -139,9 +139,9 @@ export function getBatches(token: string, status?: string): Promise<ApiBatch[]> 
 export function createUploadUrl(
   token: string,
   // `kind` selects the R2 key namespace: omitted or 'batch' keeps `batches/`,
-  // 'maggot' is the organic feeding and harvest proof. batch_id carries the
-  // owning record's id either way.
-  payload: { batch_id: string; content_type: string; filename: string; kind?: 'batch' | 'maggot' },
+  // 'maggot' and 'processing' are the operations proofs. batch_id carries the
+  // owning record's id in every case.
+  payload: { batch_id: string; content_type: string; filename: string; kind?: 'batch' | 'maggot' | 'processing' },
 ): Promise<UploadUrlResponse> {
   return apiRequest<UploadUrlResponse>('/v1/media/upload-url', {
     method: 'POST',
