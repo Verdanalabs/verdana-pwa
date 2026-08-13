@@ -7,6 +7,8 @@ import { PrimaryButton } from '@/src/shared/ui/PrimaryButton';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { useBatchDraft } from '@/src/features/batch/state/batch-draft-context';
+import { CarbonImpactBadge } from '@/src/shared/ui/CarbonImpactBadge';
+import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
 import type { BatchGrade, MaterialType } from '@/types';
 
 const MATERIAL_OPTIONS: MaterialType[] = ['PET', 'HDPE', 'LDPE', 'PP', 'MIX', 'ORGANIC'];
@@ -17,7 +19,7 @@ function StepHeader({ step, title, body }: { step: string; title: string; body: 
 
   return (
     <View style={styles.header}>
-      <Text style={[styles.stepText, { color: c.accent }]}>{step}</Text>
+      <Text style={[styles.stepText, { color: c.accentInk }]}>{step}</Text>
       <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
       <Text style={[styles.body, { color: c.textSecondary }]}>{body}</Text>
     </View>
@@ -35,10 +37,8 @@ export default function BatchDetailsRoute() {
   const normalizedWeight = estimatedWeightKg.replace(',', '.');
 
   const weightError = useMemo(() => {
-    if (!estimatedWeightKg.trim()) return 'Add the estimated weight before you continue.';
-    const parsed = Number(estimatedWeightKg.replace(',', '.'));
-    if (Number.isNaN(parsed) || parsed < 0) return 'Use a valid weight in kilograms.';
-    return null;
+    const parsed = parseWeightKg(estimatedWeightKg);
+    return parsed.ok ? null : weightErrorMessage(parsed.reason);
   }, [estimatedWeightKg]);
 
   return (
@@ -97,7 +97,7 @@ export default function BatchDetailsRoute() {
             <View style={[styles.inputWrap, { backgroundColor: c.surface, borderColor: c.border }]}>
               <TextInput
                 value={estimatedWeightKg}
-                onChangeText={setEstimatedWeightKg}
+                onChangeText={(text) => setEstimatedWeightKg(sanitizeWeightInput(text))}
                 placeholder="Enter weight in kg"
                 placeholderTextColor={c.textMuted}
                 keyboardType="decimal-pad"
@@ -105,7 +105,11 @@ export default function BatchDetailsRoute() {
               />
               <Text style={[styles.inputUnit, { color: c.textSecondary }]}>kg</Text>
             </View>
-            {weightError ? <Text style={[styles.errorText, { color: '#ff7a7a' }]}>{weightError}</Text> : null}
+            {weightError ? <Text style={[styles.errorText, { color: c.error }]}>{weightError}</Text> : null}
+          </View>
+
+          <View style={styles.section}>
+            <CarbonImpactBadge weightInput={estimatedWeightKg} material={materialType} />
           </View>
 
         </ScrollView>

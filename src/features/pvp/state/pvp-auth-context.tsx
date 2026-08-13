@@ -134,12 +134,15 @@ export function PvpAuthProvider({ children }: { children: ReactNode }) {
     setToken(accessToken);
     setWalletAddress(getSolanaWalletAddress(privyUser) ?? null);
 
-    try {
-      const user = await processorSync(accessToken, {});
+    const applyUser = (user: PvpLoginResponse) => {
       setOperator(user);
       setActiveSite(user.active_site ?? null);
       setState(stateFromUser(user));
       syncedRef.current = true;
+    };
+
+    try {
+      applyUser(await processorSync(accessToken, {}));
     } catch (err) {
       if (err instanceof ApiError && err.code === 'MISSING_FIELDS') {
         setState('authenticated');
@@ -147,6 +150,24 @@ export function PvpAuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (err instanceof ApiError && err.status === 401) {
+        // Privy can still be handing out the previous session's token when this
+        // runs, so a reopened tab hits the API a beat before the fresh token
+        // exists. Ask once more before logging the operator out - getAccessToken
+        // refreshes internally, so a different token means it is worth retrying.
+        try {
+          const retryToken = await getAccessToken();
+          if (retryToken && retryToken !== accessToken) {
+            setToken(retryToken);
+            applyUser(await processorSync(retryToken, {}));
+            return;
+          }
+        } catch (retryErr) {
+          if (retryErr instanceof ApiError && retryErr.code === 'MISSING_FIELDS') {
+            setState('authenticated');
+            syncedRef.current = true;
+            return;
+          }
+        }
         logout();
       }
       syncedRef.current = false;

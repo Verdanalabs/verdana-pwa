@@ -5,11 +5,14 @@ import { DashboardSummary } from '@/types';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 
-const TIER_CONFIG = {
-  starter:       { label: 'Starter',       color: '#c08457' },
-  active:        { label: 'Active',        color: '#93c5fd' },
-  reliable:      { label: 'Reliable',      color: '#b5f23d' },
-  top_collector: { label: 'Top Collector', color: '#67e8f9' },
+// Colour comes from the shared `tierFg` record at render time; only the label
+// lives here. Previously this map was duplicated verbatim in
+// SupplierAnalyticsScreen.
+const TIER_LABEL: Record<string, string> = {
+  starter:       'Starter',
+  active:        'Active',
+  reliable:      'Reliable',
+  top_collector: 'Top Collector',
 };
 
 function getScoreLabel(score: number) {
@@ -27,7 +30,9 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
   const c = useThemeColors();
   const score = data.reputationScore ?? null;
   const pct = score == null ? 0 : Math.min(score / 100, 1);
-  const tierCfg = data.reputationTier ? TIER_CONFIG[data.reputationTier] : null;
+  const tierCfg = data.reputationTier && TIER_LABEL[data.reputationTier]
+    ? { label: TIER_LABEL[data.reputationTier], color: c.tierFg[data.reputationTier] ?? c.accentInk }
+    : null;
 
   const barAnim = useRef(new Animated.Value(0)).current;
 
@@ -55,7 +60,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
       <View style={styles.topRow}>
         <View style={styles.iconLabelRow}>
           <View style={[styles.iconWrap, { backgroundColor: `${c.accent}20` }]}>
-            <Ionicons name="shield-checkmark" size={18} color={c.accent} />
+            <Ionicons name="shield-checkmark" size={18} color={c.accentInk} />
           </View>
           <Text style={[styles.label, { color: c.textMuted }]}>Reputation Score</Text>
         </View>
@@ -108,7 +113,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
             <Text style={[styles.scoreLabel, { color: c.textFaint }]}>
               {getScoreLabel(score)}
             </Text>
-            <Text style={[styles.pctText, { color: c.accent }]}>
+            <Text style={[styles.pctText, { color: c.accentInk }]}>
               {Math.round(pct * 100)}%
             </Text>
           </View>

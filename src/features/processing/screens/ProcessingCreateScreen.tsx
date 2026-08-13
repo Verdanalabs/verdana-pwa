@@ -5,32 +5,44 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { createProcessingBatch } from '@/src/features/processing/services/processing-api';
+import { ProofPhotoField, type CapturedProof } from '@/src/shared/ui/ProofPhotoField';
+import { uploadProofPhoto } from '@/src/shared/lib/upload-proof';
+import { useBestEffortGps } from '@/src/shared/hooks/useBestEffortGps';
+import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
+import { CarbonImpactBadge } from '@/src/shared/ui/CarbonImpactBadge';
 
 const MATERIALS = ['PET', 'HDPE', 'LDPE', 'PP', 'MIX', 'CARDBOARD', 'METAL', 'GLASS'];
 
 export default function ProcessingCreateScreen() {
   const c = useThemeColors();
-  const { token } = usePvpAuth();
+  const { token, operator, activeSite } = usePvpAuth();
+  const gps = useBestEffortGps();
   const [material, setMaterial] = useState('PET');
   const [weightKg, setWeightKg] = useState('');
+  const [proof, setProof] = useState<CapturedProof | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const parsed = parseWeightKg(weightKg);
+
   async function handleCreate() {
     if (!token) return;
-    const grams = Math.round(parseFloat(weightKg) * 1000);
-    if (!grams || grams <= 0) {
-      setError('Enter a valid initial weight.');
+    if (!parsed.ok) {
+      setError(weightErrorMessage(parsed.reason));
       return;
     }
     setIsSubmitting(true);
     setError(null);
     try {
+      // No id exists yet, so the key is namespaced by a client-side uuid.
+      const uploaded = proof ? await uploadProofPhoto(token, 'processing', proof) : undefined;
       const batch = await createProcessingBatch(token, {
         material: material.toLowerCase(),
-        initial_weight_grams: grams,
+        initial_weight_grams: Math.round(parsed.kg * 1000),
+        proof: uploaded,
       });
       router.replace(`/processing/${batch.id}`);
     } catch (e) {
@@ -78,7 +90,7 @@ export default function ProcessingCreateScreen() {
           <View style={[styles.inputRow, { borderColor: c.border, backgroundColor: c.background }]}>
             <TextInput
               value={weightKg}
-              onChangeText={setWeightKg}
+              onChangeText={(t) => setWeightKg(sanitizeWeightInput(t))}
               placeholder="0.0"
               placeholderTextColor={c.textFaint}
               keyboardType="decimal-pad"
@@ -86,27 +98,48 @@ export default function ProcessingCreateScreen() {
             />
             <Text style={[styles.unit, { color: c.textSecondary }]}>kg</Text>
           </View>
+
+          <CarbonImpactBadge weightInput={weightKg} material={material} />
+
+          <ProofPhotoField
+            label="Intake proof photo"
+            hint="Frame the scale display and the material together"
+            helper="Photograph the intake weighing. Time, location, weight and your operator ID are stamped onto the photo."
+            proof={proof}
+            onChange={setProof}
+            buildMeta={() =>
+              parsed.ok
+                ? {
+                    timestampIso: new Date().toISOString(),
+                    latitude: gps?.latitude,
+                    longitude: gps?.longitude,
+                    weightKg: parsed.kg,
+                    category: `${material} INTAKE`,
+                    operatorId: operator?.id ?? '',
+                    stationLabel: activeSite?.name,
+                  }
+                : null
+            }
+            disabledReason="Enter the intake weight first — it is stamped onto the photo."
+          />
         </View>
 
         {error && (
-          <View style={[styles.errorCard, { backgroundColor: `${c.error}12`, borderColor: `${c.error}25` }]}>
-            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-            <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
-          </View>
+          <NoticeCard tone="danger">{error}</NoticeCard>
         )}
       </ScrollView>
 
       <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
         {isSubmitting ? (
-          <View style={styles.loadingRow}><ActivityIndicator color={c.accent} /></View>
+          <View style={styles.loadingRow}><ActivityIndicator color={c.accentInk} /></View>
         ) : (
           <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: weightKg.trim() ? c.accent : c.border }]}
+            style={[styles.primaryBtn, { backgroundColor: parsed.ok ? c.accent : c.border }]}
             onPress={handleCreate}
-            disabled={!weightKg.trim()}
+            disabled={!parsed.ok}
             activeOpacity={0.85}
           >
-            <Text style={[styles.primaryBtnLabel, { color: weightKg.trim() ? c.accentContrast : c.textMuted }]}>Create Batch</Text>
+            <Text style={[styles.primaryBtnLabel, { color: parsed.ok ? c.accentContrast : c.textMuted }]}>Create Batch</Text>
           </TouchableOpacity>
         )}
       </View>

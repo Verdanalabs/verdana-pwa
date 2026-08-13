@@ -5,6 +5,7 @@ import { PvpAuthProvider } from '@/src/features/pvp/state/pvp-auth-context';
 import { appVariant } from '@/src/shared/config/app-variant';
 import { runtimeConfig } from '@/src/shared/config/runtime-config';
 import { ThemeProvider } from '@/src/shared/theme/theme-context';
+import { OfflineSyncProvider } from '@/src/providers/OfflineSyncProvider';
 
 function CollectorProviders({ children }: { children: ReactNode }) {
   return (
@@ -20,7 +21,9 @@ function CollectorProviders({ children }: { children: ReactNode }) {
       }}
     >
       <ThemeProvider>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <OfflineSyncProvider>{children}</OfflineSyncProvider>
+        </AuthProvider>
       </ThemeProvider>
     </PrivyProvider>
   );
@@ -40,7 +43,9 @@ function PvpProviders({ children }: { children: ReactNode }) {
       }}
     >
       <ThemeProvider>
-        <PvpAuthProvider>{children}</PvpAuthProvider>
+        <PvpAuthProvider>
+          <OfflineSyncProvider>{children}</OfflineSyncProvider>
+        </PvpAuthProvider>
       </ThemeProvider>
     </PrivyProvider>
   );

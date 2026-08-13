@@ -104,11 +104,11 @@ export default function InventoryAnalyticsScreen() {
           <>
             <View style={styles.totalsRow}>
               <View style={[styles.totalCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-                <Text style={[styles.totalValue, { color: c.accent }]}>{data.total_items}</Text>
+                <Text style={[styles.totalValue, { color: c.accentInk }]}>{data.total_items}</Text>
                 <Text style={[styles.totalLabel, { color: c.textMuted }]}>Total Items</Text>
               </View>
               <View style={[styles.totalCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-                <Text style={[styles.totalValue, { color: c.accent }]}>{formatKg(data.total_grams)}</Text>
+                <Text style={[styles.totalValue, { color: c.accentInk }]}>{formatKg(data.total_grams)}</Text>
                 <Text style={[styles.totalLabel, { color: c.textMuted }]}>Total Weight</Text>
               </View>
             </View>

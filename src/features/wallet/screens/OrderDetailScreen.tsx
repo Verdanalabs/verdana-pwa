@@ -126,7 +126,7 @@ export default function OrderDetailScreen() {
                 <Text style={[styles.heroTitle, { color: c.foreground }]}>{material}</Text>
                 <OrderStatusBadge status={order.status} />
               </View>
-              <Text style={[styles.price, { color: c.accent }]}>{formatIDR(order.price_idr)}</Text>
+              <Text style={[styles.price, { color: c.accentInk }]}>{formatIDR(order.price_idr)}</Text>
               <View style={styles.badgeRow}>
                 {order.material ? <MaterialBadge material={material as never} /> : null}
                 {order.weight_grams ? (
@@ -140,9 +140,9 @@ export default function OrderDetailScreen() {
 
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.sectionTitle, { color: c.foreground }]}>Timeline</Text>
-              <TimelineRow label="Ordered" value={order.created_at} color={c.accent} />
+              <TimelineRow label="Ordered" value={order.created_at} color={c.accentInk} />
               <TimelineRow label="Confirmed" value={order.confirmed_at} color={c.info} />
-              <TimelineRow label="Completed" value={order.completed_at} color={c.accent} />
+              <TimelineRow label="Completed" value={order.completed_at} color={c.accentInk} />
               <TimelineRow label="Cancelled" value={order.cancelled_at} color={c.error} />
             </View>
 

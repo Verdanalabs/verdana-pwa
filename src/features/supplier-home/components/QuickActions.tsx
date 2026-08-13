@@ -21,7 +21,7 @@ function ActionItem({ icon, label, onPress }: ActionItemProps) {
           { backgroundColor: c.surface, borderColor: c.border, shadowColor: c.shadowColor },
         ]}
       >
-        <Ionicons name={icon} size={22} color={c.accent} />
+        <Ionicons name={icon} size={22} color={c.accentInk} />
       </View>
       <Text style={[styles.label, { color: c.textSecondary }]}>{label}</Text>
     </TouchableOpacity>

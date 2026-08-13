@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Font, FontSize } from '@/src/shared/theme/typography';
-import { useTheme } from '@/src/shared/theme/theme-context';
+import { useThemeColors } from '@/src/shared/theme/theme-context';
+import type { Tone } from '@/src/shared/theme/tokens';
 import type { InventoryStatus } from '@/src/features/inventory/services/inventory-api';
 
 const LABEL: Record<InventoryStatus, string> = {
@@ -10,23 +11,22 @@ const LABEL: Record<InventoryStatus, string> = {
   depleted: 'Depleted',
 };
 
-const DARK: Record<InventoryStatus, { bg: string; fg: string }> = {
-  in_stock: { bg: '#162a10', fg: '#b5f23d' },
-  reserved: { bg: '#2a1f08', fg: '#fbbf24' },
-  sold: { bg: '#b5f23d', fg: '#070e07' },
-  depleted: { bg: '#2a0808', fg: '#f87171' },
-};
-
-const LIGHT: Record<InventoryStatus, { bg: string; fg: string }> = {
-  in_stock: { bg: '#dcfce7', fg: '#166534' },
-  reserved: { bg: '#fef3c7', fg: '#92400e' },
-  sold: { bg: '#96cc2e', fg: '#091406' },
-  depleted: { bg: '#fee2e2', fg: '#991b1b' },
+// Statuses map to shared tones rather than carrying their own palette.
+const TONE: Record<InventoryStatus, Tone> = {
+  in_stock: 'success',
+  reserved: 'warning',
+  sold: 'accent',
+  depleted: 'danger',
 };
 
 export function useInventoryStatusPalette(): Record<InventoryStatus, { bg: string; fg: string }> {
-  const { isDark } = useTheme();
-  return isDark ? DARK : LIGHT;
+  const c = useThemeColors();
+  return Object.fromEntries(
+    (Object.keys(TONE) as InventoryStatus[]).map((s) => [
+      s,
+      { bg: c.toneBg[TONE[s]], fg: c.toneFg[TONE[s]] },
+    ])
+  ) as Record<InventoryStatus, { bg: string; fg: string }>;
 }
 
 interface InventoryStatusBadgeProps {
@@ -35,9 +35,10 @@ interface InventoryStatusBadgeProps {
 }
 
 export function InventoryStatusBadge({ status, size = 'md' }: InventoryStatusBadgeProps) {
-  const { isDark } = useTheme();
-  const palette = isDark ? DARK : LIGHT;
-  const { bg, fg } = palette[status] ?? palette.in_stock;
+  const c = useThemeColors();
+  const tone = TONE[status] ?? 'neutral';
+  const bg = c.toneBg[tone];
+  const fg = c.toneFg[tone];
 
   return (
     <View style={[styles.badge, { backgroundColor: bg }, size === 'sm' && styles.sm]}>

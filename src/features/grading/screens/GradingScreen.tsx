@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { createUploadUrl } from '@/src/features/batch/services/batch-api';
 import { createGrading, listBatchGradings, type Grading, type GradingMedia } from '@/src/features/grading/services/grading-api';
@@ -199,27 +200,24 @@ export default function GradingScreen() {
                     onPress={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="close" size={12} color="#fff" />
+                    <Ionicons name="close" size={12} color={c.white} />
                   </TouchableOpacity>
                 </View>
               ))}
             </View>
           )}
           <TouchableOpacity
-            style={[styles.addPhotoBtn, { borderColor: c.accent }]}
+            style={[styles.addPhotoBtn, { borderColor: c.accentInk }]}
             onPress={handleAddPhoto}
             activeOpacity={0.85}
           >
-            <Ionicons name="camera-outline" size={18} color={c.accent} />
-            <Text style={[styles.addPhotoLabel, { color: c.accent }]}>Add Photo</Text>
+            <Ionicons name="camera-outline" size={18} color={c.accentInk} />
+            <Text style={[styles.addPhotoLabel, { color: c.accentInk }]}>Add Photo</Text>
           </TouchableOpacity>
         </View>
 
         {error && (
-          <View style={[styles.errorCard, { backgroundColor: `${c.error}12`, borderColor: `${c.error}25` }]}>
-            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-            <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
-          </View>
+          <NoticeCard tone="danger">{error}</NoticeCard>
         )}
 
         {history.length > 0 && (
@@ -239,7 +237,7 @@ export default function GradingScreen() {
 
       <View style={[styles.footer, { borderTopColor: c.border, backgroundColor: c.background }]}>
         {busy ? (
-          <View style={styles.loadingRow}><ActivityIndicator color={c.accent} /></View>
+          <View style={styles.loadingRow}><ActivityIndicator color={c.accentInk} /></View>
         ) : (
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: c.accent }]}

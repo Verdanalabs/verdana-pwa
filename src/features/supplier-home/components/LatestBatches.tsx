@@ -38,7 +38,7 @@ export function LatestBatches({ batches, isLoading = false }: LatestBatchesProps
             style={[styles.seeAllBtn, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}30`, borderWidth: 1 }]}
             onPress={() => router.push('/(supplier-tabs)/history')}
           >
-            <Text style={[styles.seeAllText, { color: c.accent }]}>See all</Text>
+            <Text style={[styles.seeAllText, { color: c.accentInk }]}>See all</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -51,8 +51,8 @@ export function LatestBatches({ batches, isLoading = false }: LatestBatchesProps
         </>
       ) : visible.length === 0 ? (
         <View style={[styles.empty, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <View style={[styles.emptyIconWrap, { backgroundColor: c.accent + '15', borderColor: c.accent + '25' }]}>
-            <Ionicons name="layers-outline" size={28} color={c.accent} />
+          <View style={[styles.emptyIconWrap, { backgroundColor: c.accent + '15', borderColor: c.accentInk + '25' }]}>
+            <Ionicons name="layers-outline" size={28} color={c.accentInk} />
           </View>
           <View style={styles.emptyCopy}>
             <Text style={[styles.emptyTitle, { color: c.foreground }]}>No batches yet</Text>

@@ -40,7 +40,7 @@ export default function DesktopBlockedScreen() {
           <View style={styles.headingBlock}>
             <View style={[styles.pill, { backgroundColor: `${c.accent}20`, borderColor: `${c.accent}30` }]}>
               <View style={[styles.pillDot, { backgroundColor: c.accent }]} />
-              <Text style={[styles.pillText, { color: c.accent }]}>Hey there 👋</Text>
+              <Text style={[styles.pillText, { color: c.accentInk }]}>Hey there 👋</Text>
             </View>
             <Text style={[styles.title, { color: c.foreground }]}> 
               {"Looks like you're\non a desktop."}
@@ -57,7 +57,7 @@ export default function DesktopBlockedScreen() {
             {steps.map((step) => (
               <View key={step.num} style={styles.stepRow}>
                 <View style={[styles.stepNum, { backgroundColor: `${c.accent}15`, borderColor: `${c.accent}25` }]}>
-                  <Text style={[styles.stepNumText, { color: c.accent }]}>{step.num}</Text>
+                  <Text style={[styles.stepNumText, { color: c.accentInk }]}>{step.num}</Text>
                 </View>
                 <Text style={[styles.stepText, { color: c.textSecondary }]}>{step.text}</Text>
               </View>

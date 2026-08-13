@@ -3,16 +3,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpBatchFeed } from '@/src/features/pvp/hooks/usePvpBatchFeed';
 import type { PvpBatchListItem } from '@/src/features/batch/services/batch-api';
+import type { BatchStatus } from '@/types';
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  cosigning: { label: 'Awaiting Sign', color: '#8b5cf6', icon: 'hourglass-outline' },
-  cosigned: { label: 'Co-signed', color: '#06b6d4', icon: 'checkmark-done-outline' },
-  minted: { label: 'Asset Minted', color: '#10b981', icon: 'leaf-outline' },
-  mint_pending: { label: 'Minting', color: '#84cc16', icon: 'sync-outline' },
-  mint_failed: { label: 'Mint Failed', color: '#ef4444', icon: 'alert-circle-outline' },
+// Colour is resolved from the shared statusFg record at render time, so this
+// screen can't drift from the badges elsewhere. Only label + icon live here.
+const STATUS_CONFIG: Record<string, { label: string; icon: string }> = {
+  cosigning: { label: 'Awaiting Sign', icon: 'hourglass-outline' },
+  cosigned: { label: 'Co-signed', icon: 'checkmark-done-outline' },
+  minted: { label: 'Asset Minted', icon: 'leaf-outline' },
+  mint_pending: { label: 'Minting', icon: 'sync-outline' },
+  mint_failed: { label: 'Mint Failed', icon: 'alert-circle-outline' },
 };
 
 const LOG_STATUSES = new Set(['cosigning', 'cosigned', 'minted', 'mint_pending', 'mint_failed']);
@@ -63,7 +67,8 @@ function LogSkeleton() {
 
 function LogCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
-  const cfg = STATUS_CONFIG[item.status] ?? { label: item.status, color: c.textMuted, icon: 'ellipse-outline' };
+  const cfg = STATUS_CONFIG[item.status] ?? { label: item.status, icon: 'ellipse-outline' };
+  const statusColor = c.statusFg[item.status as BatchStatus] ?? c.textMuted;
   const activityAt = item.weighed_at ?? item.created_at;
   const isActual = !!item.actual_weight_grams;
 
@@ -71,9 +76,9 @@ function LogCard({ item }: { item: PvpBatchListItem }) {
     <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
       <View style={styles.cardHeader}>
         <Text style={[styles.batchMeta, { color: c.textMuted }]}>#{shortId(item.id)}</Text>
-        <View style={[styles.statusPill, { backgroundColor: `${cfg.color}14`, borderColor: `${cfg.color}28` }]}>
-          <Ionicons name={cfg.icon as never} size={12} color={cfg.color} />
-          <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
+        <View style={[styles.statusPill, { backgroundColor: withAlpha(statusColor, Alpha.subtle), borderColor: withAlpha(statusColor, Alpha.soft) }]}>
+          <Ionicons name={cfg.icon as never} size={12} color={statusColor} />
+          <Text style={[styles.statusText, { color: statusColor }]}>{cfg.label}</Text>
         </View>
       </View>
 
@@ -130,7 +135,7 @@ export default function PvpLogScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => { void reload(); }}
-              tintColor={c.accent}
+              tintColor={c.accentInk}
             />
           )}
         >

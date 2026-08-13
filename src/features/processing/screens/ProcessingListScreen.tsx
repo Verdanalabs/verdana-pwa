@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { listProcessingBatches, type ProcessingBatch } from '@/src/features/processing/services/processing-api';
 
@@ -43,7 +44,7 @@ export default function ProcessingListScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.center}><ActivityIndicator color={c.accent} /></View>
+        <View style={styles.center}><ActivityIndicator color={c.accentInk} /></View>
       ) : error ? (
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={32} color={c.error} />
@@ -68,8 +69,8 @@ export default function ProcessingListScreen() {
             >
               <View style={styles.cardRow}>
                 <Text style={[styles.cardTitle, { color: c.foreground }]}>{item.material.toUpperCase()}</Text>
-                <View style={[styles.pill, { backgroundColor: item.status === 'completed' ? `${c.accent}18` : '#f59e0b20' }]}>
-                  <Text style={[styles.pillText, { color: item.status === 'completed' ? c.accent : '#f59e0b' }]}>
+                <View style={[styles.pill, { backgroundColor: item.status === 'completed' ? withAlpha(c.accent, Alpha.subtle) : withAlpha(c.warning, Alpha.soft) }]}>
+                  <Text style={[styles.pillText, { color: item.status === 'completed' ? c.accent : c.warning }]}>
                     {item.status.replace(/_/g, ' ')}
                   </Text>
                 </View>

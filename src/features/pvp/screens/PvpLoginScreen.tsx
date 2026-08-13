@@ -8,6 +8,9 @@ import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
+/** WhatsApp's own brand colour — deliberately not a Verdana token. */
+const WHATSAPP_BRAND_GREEN = '#25D366';
+
 export default function PvpLoginRoute() {
   const c = useThemeColors();
   const { invite: inviteParam } = useLocalSearchParams<{ invite?: string }>();
@@ -63,7 +66,7 @@ export default function PvpLoginRoute() {
             <View style={[styles.inviteCard, { backgroundColor: c.surface, borderColor: inviteError ? c.error : c.border }]}>
               {!invite && !inviteError ? (
                 <View style={styles.loadingRow}>
-                  <ActivityIndicator color={c.accent} size="small" />
+                  <ActivityIndicator color={c.accentInk} size="small" />
                   <Text style={[styles.inviteText, { color: c.textSecondary }]}>Checking invite link...</Text>
                 </View>
               ) : inviteError ? (
@@ -76,7 +79,7 @@ export default function PvpLoginRoute() {
                 </>
               ) : invite ? (
                 <>
-                  <Ionicons name="business-outline" size={18} color={c.accent} />
+                  <Ionicons name="business-outline" size={18} color={c.accentInk} />
                   <View style={styles.inviteCopy}>
                     <Text style={[styles.inviteTitle, { color: c.foreground }]}>{invite.pvp_site.name}</Text>
                     <Text style={[styles.inviteText, { color: c.textMuted }]}>Invited email: {invite.email}</Text>
@@ -86,7 +89,7 @@ export default function PvpLoginRoute() {
             </View>
           ) : (
             <View style={[styles.inviteCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Ionicons name="information-circle-outline" size={18} color={c.accent} />
+              <Ionicons name="information-circle-outline" size={18} color={c.accentInk} />
               <View style={styles.inviteCopy}>
                 <Text style={[styles.inviteTitle, { color: c.foreground }]}>Already a processor?</Text>
                 <Text style={[styles.inviteText, { color: c.textMuted }]}>
@@ -115,8 +118,8 @@ export default function PvpLoginRoute() {
               <Text style={[styles.waTitle, { color: c.textSecondary }]}>No invite link?</Text>
               <Text style={[styles.waSub, { color: c.textMuted }]}>Contact Verdana admin via WhatsApp.</Text>
             </View>
-            <View style={[styles.waIcon, { backgroundColor: '#25D366' }]}>
-              <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+            <View style={[styles.waIcon, { backgroundColor: WHATSAPP_BRAND_GREEN }]}>
+              <Ionicons name="logo-whatsapp" size={18} color={c.white} />
             </View>
           </TouchableOpacity>
         </View>

@@ -1,9 +1,14 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import WalletAssetDetailScreen from '@/src/features/wallet/screens/WalletAssetDetailScreen';
-import BatchDetailScreen from '@/src/features/batch/screens/BatchDetailScreen';
+import { getBatch } from '@/src/features/batch/services/batch-api';
 import { renderWithProviders } from './test-utils';
+
+// This suite renders two full screens through the provider tree, which takes a
+// few seconds alone and longer when jest runs it beside eleven other suites on
+// contended workers. At the default five seconds it passed in isolation and
+// failed intermittently in a full run.
+jest.setTimeout(30_000);
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
@@ -17,29 +22,95 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseLocalSearchParams(),
 }));
 
-describe('wallet and batch detail linking', () => {
+// Both screens were rewritten from fixture data to live API calls, so the old
+// version of this suite rendered an error state and asserted copy that no longer
+// exists anywhere. The screen needs a token and a batch before it renders
+// anything to press.
+// The value is built once in the factory rather than per call. The screen's
+// load effect depends on getAccessToken, so handing back a fresh jest.fn each
+// render re-runs the effect on every render and the screen never leaves its
+// loading state. jest.setup.ts has the same shape, which is why the shared mock
+// is not reused here.
+jest.mock('@privy-io/react-auth', () => {
+  const privy = {
+    ready: true,
+    authenticated: true,
+    user: null,
+    login: jest.fn(),
+    logout: jest.fn(),
+    getAccessToken: jest.fn(async () => 'test-token'),
+  };
+  return { usePrivy: () => privy };
+});
+
+jest.mock('@/src/features/batch/services/batch-api', () => ({
+  getBatch: jest.fn(),
+}));
+
+const mockGetBatch = getBatch as jest.Mock;
+
+const BATCH_ID = '9f1c5b02-1f4a-4f0e-9a3d-2b8c7d6e5f40';
+
+function mintedBatch() {
+  return {
+    id: BATCH_ID,
+    status: 'minted',
+    material: 'pet',
+    collector_user_id: 'collector-1',
+    estimated_weight_grams: 12000,
+    actual_weight_grams: 11500,
+    created_at: '2026-01-02T03:04:05Z',
+    updated_at: '2026-01-02T03:04:05Z',
+    media: [],
+    cnft_record: {
+      asset_id: 'AsSeT1111111111111111111111111111111111111',
+      tx_signature: 'SiG1111111111111111111111111111111111111111',
+      minted_at: '2026-01-02T04:00:00Z',
+      merkle_tree: 'TrEE111111111111111111111111111111111111111',
+      leaf_index: 7,
+    },
+  };
+}
+
+describe('wallet asset detail linking', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseLocalSearchParams.mockReturnValue({ id: BATCH_ID });
+    mockGetBatch.mockResolvedValue(mintedBatch());
   });
 
-  it('navigates from wallet asset detail to its linked batch', () => {
-    mockUseLocalSearchParams.mockReturnValue({ id: 'asset_001' });
+  it('loads the asset for the id in the route', async () => {
+    renderWithProviders(<WalletAssetDetailScreen />);
+
+    await waitFor(() => {
+      expect(mockGetBatch).toHaveBeenCalledWith('test-token', BATCH_ID);
+    });
+  });
+
+  it('navigates from the asset menu to its linked batch', async () => {
+    renderWithProviders(<WalletAssetDetailScreen />);
+
+    // The Ionicons mock renders the icon name as text, so the header menu
+    // button is reachable by its glyph name.
+    fireEvent.press(await screen.findByText('ellipsis-horizontal'));
+    fireEvent.press(await screen.findByText('View Batch'));
+
+    expect(mockPush).toHaveBeenCalledWith(`/batch/${BATCH_ID}`);
+  });
+
+  it('shows the not-found state when the batch has never been minted', async () => {
+    mockGetBatch.mockResolvedValue({ ...mintedBatch(), cnft_record: undefined });
 
     renderWithProviders(<WalletAssetDetailScreen />);
 
-    fireEvent.press(screen.getByText('Open the original batch record and follow the full timeline.'));
-
-    expect(mockPush).toHaveBeenCalledWith('/batch/B-0046');
+    await waitFor(() => {
+      expect(screen.getByText('Asset not found')).toBeTruthy();
+    });
   });
 
-  it('navigates from batch detail menu to its linked asset', () => {
-    mockUseLocalSearchParams.mockReturnValue({ id: 'B-0046' });
-
-    const view = renderWithProviders(<BatchDetailScreen />);
-
-    fireEvent.press(view.UNSAFE_getAllByType(TouchableOpacity)[1]);
-    fireEvent.press(screen.getByText('View Asset'));
-
-    expect(mockPush).toHaveBeenCalledWith('/wallet/cnft/asset_001');
-  });
+  // BatchDetailScreen offers no "View Asset" action; its only router push is to
+  // /batch/approve-cosign. The reverse link still exists from WalletScreen and
+  // MarketplaceScreen. The wallet surfaces are placeholders until the devnet
+  // phase, so this stays a todo rather than being deleted or back-filled.
+  it.todo('navigates from batch detail back to its linked asset, once the devnet wallet work lands');
 });

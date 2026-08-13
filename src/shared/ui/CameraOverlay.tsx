@@ -1,11 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
+import { Modal } from 'react-native';
+import { DarkColors } from '@/src/shared/theme/tokens';
+
+/**
+ * The viewfinder is always a dark surface regardless of the app theme, so this
+ * reads the dark palette directly instead of using `useThemeColors()`. That also
+ * makes the tokens available at module scope, where hooks can't reach.
+ */
+const t = DarkColors;
+
+/** True black behind the camera preview — a tinted backdrop would cast the feed. */
+const VIEWFINDER_BACKDROP = '#000';
 
 interface CameraOverlayProps {
   onCapture: (uri: string) => void;
   onClose: () => void;
+  /** Replaces the default framing instruction above the viewfinder. */
+  hint?: string;
+  /**
+   * Runs on the raw capture before it is previewed, so what the operator
+   * approves is what gets uploaded. The dMRV flow uses it to burn in the
+   * watermark — reviewing an unmarked photo and shipping a marked one would
+   * mean approving something you never saw.
+   */
+  processCapture?: (uri: string) => Promise<string>;
 }
 
-export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
+export function CameraOverlay({ onCapture, onClose, hint, processCapture }: CameraOverlayProps) {
   const videoRef   = useRef<HTMLVideoElement>(null);
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const streamRef  = useRef<MediaStream | null>(null);
@@ -14,7 +35,18 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
   const [error, setError]           = useState<string | null>(null);
   const [ready, setReady]           = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [scanY, setScanY]           = useState(0);
+
+  // Freeze the page behind the viewfinder. Without this the form keeps
+  // scrolling under the overlay, so dismissing the camera can leave the
+  // operator somewhere other than the field they were filling in.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, []);
 
   // ── Start camera ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -62,7 +94,7 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
   }, [ready, previewUri]);
 
   // ── Capture ───────────────────────────────────────────────────────────────
-  function capture() {
+  async function capture() {
     const video  = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
@@ -73,7 +105,20 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
 
     const uri = canvas.toDataURL('image/jpeg', 0.85);
     streamRef.current?.getTracks().forEach((t) => t.stop());
-    setPreviewUri(uri);
+
+    if (!processCapture) {
+      setPreviewUri(uri);
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      setPreviewUri(await processCapture(uri));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not prepare the photo. Try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   function retake() {
@@ -110,8 +155,19 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
   const CORNER_R   = 10;
 
   // ── Render ────────────────────────────────────────────────────────────────
+  // Wrapped in a Modal, which react-native-web renders through a portal at the
+  // app root rather than in place.
+  //
+  // The overlay is `position: fixed`, which resolves against the viewport only
+  // while no ancestor establishes a containing block. RNW puts a transform on
+  // scroll containers and animated views, and any one of those traps the
+  // overlay inside the card that opened it — it then draws over the surrounding
+  // form instead of covering the screen, which is what made the maggot camera
+  // look like it was overlapping the layout. z-index cannot fix that: a nested
+  // stacking context clips regardless of the value.
   return (
-    <div style={s.overlay}>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <div style={s.overlay}>
       {/* Error state */}
       {error && (
         <div style={s.errorBox}>
@@ -164,13 +220,13 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
                 transform: 'translate(-50%, -50%)',
               }}>
                 {/* Top-left */}
-                <div style={{ ...s.corner, top: 0, left: 0, borderTop: `${CORNER_W}px solid #fff`, borderLeft: `${CORNER_W}px solid #fff`, borderTopLeftRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
+                <div style={{ ...s.corner, top: 0, left: 0, borderTop: `${CORNER_W}px solid ${t.white}`, borderLeft: `${CORNER_W}px solid ${t.white}`, borderTopLeftRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
                 {/* Top-right */}
-                <div style={{ ...s.corner, top: 0, right: 0, borderTop: `${CORNER_W}px solid #fff`, borderRight: `${CORNER_W}px solid #fff`, borderTopRightRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
+                <div style={{ ...s.corner, top: 0, right: 0, borderTop: `${CORNER_W}px solid ${t.white}`, borderRight: `${CORNER_W}px solid ${t.white}`, borderTopRightRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
                 {/* Bottom-left */}
-                <div style={{ ...s.corner, bottom: 0, left: 0, borderBottom: `${CORNER_W}px solid #fff`, borderLeft: `${CORNER_W}px solid #fff`, borderBottomLeftRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
+                <div style={{ ...s.corner, bottom: 0, left: 0, borderBottom: `${CORNER_W}px solid ${t.white}`, borderLeft: `${CORNER_W}px solid ${t.white}`, borderBottomLeftRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
                 {/* Bottom-right */}
-                <div style={{ ...s.corner, bottom: 0, right: 0, borderBottom: `${CORNER_W}px solid #fff`, borderRight: `${CORNER_W}px solid #fff`, borderBottomRightRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
+                <div style={{ ...s.corner, bottom: 0, right: 0, borderBottom: `${CORNER_W}px solid ${t.white}`, borderRight: `${CORNER_W}px solid ${t.white}`, borderBottomRightRadius: CORNER_R, width: CORNER_LEN, height: CORNER_LEN }} />
 
                 {/* Scan line */}
                 {ready && (
@@ -181,7 +237,7 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
                     top: scanY * (VF_SIZE - 4),
                     height: 2.5,
                     borderRadius: 99,
-                    background: 'linear-gradient(90deg, transparent, #4ade80, #4ade80, transparent)',
+                    background: `linear-gradient(90deg, transparent, ${t.accent}, ${t.accent}, transparent)`,
                     boxShadow: '0 0 8px 2px rgba(74,222,128,0.5)',
                   }} />
                 )}
@@ -199,13 +255,20 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
           {/* Hint text */}
           {!previewUri && (
             <div style={s.hintWrap}>
-              <p style={s.hintText}>Position the material clearly in the frame</p>
+              <p style={s.hintText}>{hint ?? 'Position the material clearly in the frame'}</p>
+            </div>
+          )}
+
+          {/* Processing the capture (e.g. burning in the dMRV watermark) */}
+          {isProcessing && (
+            <div style={s.processingWrap}>
+              <p style={s.hintText}>Preparing proof photo…</p>
             </div>
           )}
 
           {/* Bottom action */}
           <div style={s.bottomBar}>
-            {previewUri ? (
+            {isProcessing ? null : previewUri ? (
               /* Preview actions */
               <div style={s.previewActions}>
                 <button style={s.retakeBtn} onClick={retake}>Retake</button>
@@ -215,7 +278,7 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
               /* Capture button */
               <button
                 style={{ ...s.captureBtn, opacity: ready ? 1 : 0.5 }}
-                onClick={capture}
+                onClick={() => { void capture(); }}
                 disabled={!ready}
               >
                 <div style={s.captureBtnInner} />
@@ -224,7 +287,8 @@ export function CameraOverlay({ onCapture, onClose }: CameraOverlayProps) {
           </div>
         </>
       )}
-    </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -232,7 +296,7 @@ const s: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: '#000',
+    backgroundColor: VIEWFINDER_BACKDROP,
     zIndex: 9999,
     display: 'flex',
     flexDirection: 'column',
@@ -276,7 +340,7 @@ const s: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  iconText: { color: '#fff', fontSize: 18, lineHeight: '1' },
+  iconText: { color: t.white, fontSize: 18, lineHeight: '1' },
   hintWrap: {
     position: 'absolute',
     top: '50%',
@@ -286,12 +350,20 @@ const s: Record<string, React.CSSProperties> = {
     textAlign: 'center',
   } as React.CSSProperties,
   hintText: {
-    color: '#fff',
+    color: t.white,
     fontSize: 15,
     fontWeight: '500',
     textAlign: 'center',
     textShadow: '0 1px 4px rgba(0,0,0,0.6)',
     margin: 0,
+  },
+  processingWrap: {
+    position: 'absolute',
+    bottom: 60,
+    zIndex: 11,
+    padding: '10px 18px',
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   bottomBar: {
     position: 'absolute',
@@ -308,14 +380,14 @@ const s: Record<string, React.CSSProperties> = {
   captureBtn: {
     width: 72, height: 72, borderRadius: 36,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    border: '3.5px solid #fff',
+    border: `3.5px solid ${t.white}`,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     transition: 'transform 0.1s',
   },
   captureBtnInner: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#fff',
+    backgroundColor: t.white,
   },
   previewActions: {
     display: 'flex',
@@ -329,7 +401,7 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.15)',
     border: '1.5px solid rgba(255,255,255,0.35)',
-    color: '#fff',
+    color: t.white,
     fontSize: 16,
     fontWeight: '600',
     cursor: 'pointer',
@@ -338,9 +410,9 @@ const s: Record<string, React.CSSProperties> = {
     flex: 1,
     padding: '14px 0',
     borderRadius: 16,
-    backgroundColor: '#4ade80',
+    backgroundColor: t.accent,
     border: 'none',
-    color: '#0a1a0a',
+    color: t.accentContrast,
     fontSize: 16,
     fontWeight: '700',
     cursor: 'pointer',
@@ -350,11 +422,11 @@ const s: Record<string, React.CSSProperties> = {
     alignItems: 'center', gap: 16, padding: 24, zIndex: 10,
   },
   errorText: {
-    color: '#fff', textAlign: 'center', fontSize: 16, maxWidth: 280, margin: 0,
+    color: t.white, textAlign: 'center', fontSize: 16, maxWidth: 280, margin: 0,
   },
   btn: {
     padding: '10px 24px', borderRadius: 12,
-    backgroundColor: '#fff', border: 'none',
+    backgroundColor: t.white, border: 'none',
     cursor: 'pointer', fontSize: 16, fontWeight: '600',
   },
 };

@@ -15,7 +15,7 @@ export default function BatchSuccessScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.iconWrap, { backgroundColor: `${c.accent}18`, borderColor: `${c.accent}25` }]}>
-          <Ionicons name="checkmark-circle" size={52} color={c.accent} />
+          <Ionicons name="checkmark-circle" size={52} color={c.accentInk} />
         </View>
 
         <View style={styles.headingBlock}>
@@ -27,7 +27,7 @@ export default function BatchSuccessScreen() {
 
         <View style={[styles.noticeCard, { backgroundColor: c.surface, borderColor: c.border }]}>
           <View style={[styles.noticeIcon, { backgroundColor: `${c.accent}16` }]}>
-            <Ionicons name="time-outline" size={22} color={c.accent} />
+            <Ionicons name="time-outline" size={22} color={c.accentInk} />
           </View>
           <View style={styles.noticeCopy}>
             <Text style={[styles.noticeTitle, { color: c.foreground }]}>Pending PVP review</Text>

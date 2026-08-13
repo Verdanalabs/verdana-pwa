@@ -9,9 +9,6 @@ import { useRouter } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useTheme, useThemeColors } from '@/src/shared/theme/theme-context';
 
-const FAB_GRADIENT_DARK:  [string, string, string] = ['#e8ff7a', '#b5f23d', '#5a9e10'];
-const FAB_GRADIENT_LIGHT: [string, string, string] = ['#d4f06a', '#96cc2e', '#3d7010'];
-
 const LEFT_TABS  = [
   { name: 'home', path: '/(supplier-tabs)/home', label: 'Home', icon: 'home-outline' as const, active: 'home' as const },
   { name: 'history', path: '/(supplier-tabs)/history', label: 'History', icon: 'time-outline' as const, active: 'time' as const },
@@ -25,7 +22,6 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets     = useSafeAreaInsets();
   const router     = useRouter(); // used by FAB
   const c          = useThemeColors();
-  const { isDark } = useTheme();
   const routes = state.routes.map((r) => r.name);
 
   const focused = (name: string) => routes[state.index] === name;
@@ -104,7 +100,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={isDark ? FAB_GRADIENT_DARK : FAB_GRADIENT_LIGHT}
+            colors={c.fabGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.fabGradient}

@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
 export default function PvpOnboardingRoute() {
@@ -42,7 +43,7 @@ export default function PvpOnboardingRoute() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={[styles.heroBadge, { borderColor: `${c.accent}26`, backgroundColor: `${c.accent}10` }]}> 
-            <Text style={[styles.heroBadgeText, { color: c.accent }]}>PVP REGISTRATION</Text>
+            <Text style={[styles.heroBadgeText, { color: c.accentInk }]}>PVP REGISTRATION</Text>
           </View>
 
           <Text style={[styles.title, { color: c.foreground }]}>Lengkapi profil operator</Text>
@@ -52,7 +53,7 @@ export default function PvpOnboardingRoute() {
         {invite && (
           <View style={[styles.siteCard, { backgroundColor: c.surface, borderColor: c.border }]}> 
             <View style={[styles.siteIcon, { backgroundColor: `${c.accent}14` }]}> 
-              <Ionicons name="business-outline" size={18} color={c.accent} />
+              <Ionicons name="business-outline" size={18} color={c.accentInk} />
             </View>
             <View style={styles.siteCopy}>
               <Text style={[styles.siteLabel, { color: c.textMuted }]}>Assigned PVP site</Text>
@@ -103,10 +104,7 @@ export default function PvpOnboardingRoute() {
         </View>
 
         {submitError && (
-          <View style={[styles.errorCard, { backgroundColor: `${c.error}10`, borderColor: `${c.error}22` }]}> 
-            <Ionicons name="alert-circle-outline" size={16} color={c.error} />
-            <Text style={[styles.submitError, { color: c.error }]}>{submitError}</Text>
-          </View>
+          <NoticeCard tone="danger">{submitError}</NoticeCard>
         )}
 
         <TouchableOpacity

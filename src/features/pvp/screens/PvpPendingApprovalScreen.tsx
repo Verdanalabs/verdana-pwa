@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { PushPermissionBanner } from '@/src/features/notifications/components/PushPermissionBanner';
 import { usePushNotifications } from '@/src/features/notifications/hooks/usePushNotifications';
@@ -35,7 +36,7 @@ export default function PvpPendingApprovalRoute() {
 
         <View style={styles.body}>
           <View style={[styles.iconWrap, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Ionicons name="hourglass-outline" size={36} color={c.accent} />
+            <Ionicons name="hourglass-outline" size={36} color={c.accentInk} />
           </View>
 
           <View style={styles.copyBlock}>
@@ -61,7 +62,7 @@ export default function PvpPendingApprovalRoute() {
 
           <View style={[styles.statusCard, { backgroundColor: c.surface, borderColor: c.border }]}> 
             <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: '#f59e0b' }]} />
+              <View style={[styles.statusDot, { backgroundColor: c.warning }]} />
               <Text style={[styles.statusText, { color: c.textSecondary }]}>
                 {isRejected ? 'Rejected' : 'Pending admin review'}
               </Text>
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
   devBtnText: {
     fontFamily: Font.semiBold,
     fontSize: FontSize.md,
-    color: '#fff',
+    color: t.white,
   },
   footer: {
     textAlign: 'center',

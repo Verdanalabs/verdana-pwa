@@ -1,3 +1,11 @@
+// AsyncStorage's native module is null outside a running app, so any module that
+// imports it fails at import time rather than at first use. The package ships an
+// in-memory implementation for exactly this.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
 jest.mock('expo-image', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');

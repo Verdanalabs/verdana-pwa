@@ -7,6 +7,9 @@ import { usePrivy } from '@privy-io/react-auth';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useAuth } from '@/src/features/auth/state/auth-context';
 import { useTheme, useThemeColors } from '@/src/shared/theme/theme-context';
+import { withAlpha, Alpha } from '@/src/shared/theme/color';
+// Hero card stays dark in both themes, and StyleSheet.create has no hook access.
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 
 function dicebearUrl(name: string) {
   return `https://api.dicebear.com/9.x/avataaars-neutral/png?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
@@ -134,7 +137,7 @@ export default function ProfileRoute() {
             icon="storefront-outline"
             label="Open Marketplace"
             hint="Browse listings, sell your assets, and manage your listings"
-            iconColor={c.accent}
+            iconColor={c.accentInk}
             iconBg={`${c.accent}16`}
             onPress={() => router.push('/(supplier-tabs)/wallet')}
           />
@@ -147,8 +150,8 @@ export default function ProfileRoute() {
             icon={isDark ? 'moon' : 'sunny'}
             label={isDark ? 'Dark Mode' : 'Light Mode'}
             hint={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-            iconColor={c.accent}
-            iconBg={isDark ? 'rgba(181,242,61,0.12)' : 'rgba(150,204,46,0.12)'}
+            iconColor={c.accentInk}
+            iconBg={withAlpha(c.accent, Alpha.subtle)}
             onPress={toggle}
           />
         </View>
@@ -182,7 +185,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     padding: 18,
-    backgroundColor: '#0b160d',
+    backgroundColor: t.surface,
   },
   heroGlow: {
     position: 'absolute',
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
   avatarWrap: { width: 74, height: 74, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
   avatar: { width: 74, height: 74 },
   heroCopy: { flex: 1, gap: 4 },
-  heroName: { color: '#ffffff', fontSize: FontSize.xl, fontFamily: Font.bold },
+  heroName: { color: t.white, fontSize: FontSize.xl, fontFamily: Font.bold },
   heroMeta: { color: 'rgba(255,255,255,0.72)', fontSize: FontSize.sm, fontFamily: Font.medium },
   heroHint: { color: 'rgba(255,255,255,0.50)', fontSize: FontSize.sm, fontFamily: Font.regular },
   sectionCard: { borderWidth: 1, borderRadius: 20, padding: 16, gap: 14 },

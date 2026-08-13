@@ -1,7 +1,21 @@
+const os = require('os');
 const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
+const { FileStore } = require('metro-cache');
 
 const config = getDefaultConfig(__dirname);
+
+// Give each variant its own Metro cache.
+//
+// Both variants build from this one directory, so with the default shared cache
+// a second `expo start` reuses whatever the first compiled: the PVP server
+// silently serves the collector bundle, app.json name and all, and the only
+// clue is the wrong <title>. Keying the cache directory off the variant lets
+// collector and pvp run side by side on different ports.
+const appVariant = process.env.EXPO_PUBLIC_APP_VARIANT || 'collector';
+config.cacheStores = [
+  new FileStore({ root: path.join(os.tmpdir(), `metro-verdana-${appVariant}`) }),
+];
 
 // Enable package.json "exports" field resolution.
 config.resolver.unstable_enablePackageExports = true;

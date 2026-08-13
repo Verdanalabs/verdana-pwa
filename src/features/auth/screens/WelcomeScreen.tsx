@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { DarkColors as t } from '@/src/shared/theme/tokens';
 
 
 const CAROUSEL_SLIDES = [
@@ -139,7 +140,7 @@ export default function WelcomeRoute() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#050805',
+    backgroundColor: t.background,
   },
   carouselContent: {
     alignItems: 'stretch',
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontFamily: Font.bold,
     fontSize: FontSize.xl,
-    color: '#ffffff',
+    color: t.white,
     letterSpacing: -0.4,
   },
   bottom: {
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    color: '#ffffff',
+    color: t.white,
     fontSize: 34,
     lineHeight: 40,
     fontFamily: Font.bold,
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
   progressDotActive: {
     width: 22,
     height: 5,
-    backgroundColor: '#ffffff',
+    backgroundColor: t.white,
   },
   progressDotIdle: {
     width: 5,
@@ -223,7 +224,8 @@ const styles = StyleSheet.create({
   ctaLabel: {
     fontSize: FontSize.xl,
     fontFamily: Font.bold,
-    color: '#ffffff',
+    // Sits on a Neon fill: must be accentContrast (10.47:1), not white (1.42:1).
+    color: t.accentContrast,
     letterSpacing: 0.2,
   },
   footerText: {

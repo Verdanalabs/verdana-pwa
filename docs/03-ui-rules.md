@@ -31,7 +31,7 @@ UI Verdana harus terasa operasional, terpercaya, dan cepat dipahami oleh user la
 
 ### Typography
 
-- Font utama: **Space Grotesk** (via `@expo-google-fonts/space-grotesk`)
+- Font utama: **Hanken Grotesk** (via `@expo-google-fonts/hanken-grotesk`)
 - Scale: `xs(11)` `sm(12)` `base(14)` `md(15)` `lg(16)` `xl(18)` `2xl(22)` `3xl(28)` `4xl(36)`
 - Import baru selalu dari `@/src/shared/theme/typography` — jangan hardcode fontFamily
 - Heading harus ringkas
@@ -39,15 +39,28 @@ UI Verdana harus terasa operasional, terpercaya, dan cepat dipahami oleh user la
 
 ```ts
 // @/src/shared/theme/typography
-Font.regular   = 'SpaceGrotesk_400Regular'
-Font.medium    = 'SpaceGrotesk_500Medium'
-Font.semiBold  = 'SpaceGrotesk_600SemiBold'
-Font.bold      = 'SpaceGrotesk_700Bold'
+Font.regular   = 'HankenGrotesk_400Regular'
+Font.medium    = 'HankenGrotesk_500Medium'
+Font.semiBold  = 'HankenGrotesk_600SemiBold'
+Font.bold      = 'HankenGrotesk_700Bold'
 ```
 
-### Color System — Dark / Light Mode
+### Color System — Light / Dark Mode
 
-Warna dikelola via **ThemeContext** (`@/src/shared/theme/theme-context`). Default: **dark mode**.
+> **Sumber kebenaran: [`brand.md`](../brand.md) di root repo ini**, diturunkan
+> dari `Brandbook.pdf`. Tabel warna di bawah ini sudah usang — implementasinya ada
+> di `src/shared/theme/tokens.ts`. Jangan menyalin nilai hex dari dokumen ini.
+>
+> Yang berubah:
+> - Default sekarang **light mode**, bukan dark.
+> - Accent adalah **`#85F23D`**, bukan `#b5f23d` (yang kini jadi `accentStrong`).
+> - Ground gelap adalah **Dark Green `#152D07`**, bukan `#070e07`.
+> - Neon **tidak boleh** jadi warna teks di atas latar terang (1.42:1).
+>   Gunakan `accentInk` untuk teks, `accentContrast` untuk label di atas fill neon.
+> - Warna material dan status kini satu sistem: `materialBg`/`materialFg`,
+>   `statusBg`/`statusFg`, dan `toneBg`/`toneFg`. Jangan bikin peta warna baru.
+
+Warna dikelola via **ThemeContext** (`@/src/shared/theme/theme-context`). Default: **light mode**.
 
 Jangan pernah hardcode warna langsung di komponen — selalu gunakan `useThemeColors()`.
 

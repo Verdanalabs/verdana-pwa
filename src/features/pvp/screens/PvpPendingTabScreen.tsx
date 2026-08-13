@@ -10,15 +10,6 @@ import { SkeletonBox } from '@/src/shared/ui/Skeleton';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { getPvpBatches, type PvpBatchListItem } from '@/src/features/batch/services/batch-api';
 
-const MATERIAL_COLOR: Record<string, string> = {
-  PET: '#3b82f6',
-  HDPE: '#10b981',
-  LDPE: '#f59e0b',
-  PP: '#f97316',
-  PVC: '#ef4444',
-  PS: '#8b5cf6',
-};
-
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
@@ -94,10 +85,10 @@ function BatchCard({ item }: { item: PvpBatchListItem }) {
   const c = useThemeColors();
   const isPending = item.status === 'pending';
   const isDispatched = item.status === 'pickup_dispatched';
-  const matColor = MATERIAL_COLOR[item.material.toUpperCase()] ?? c.accent;
+  const matColor = c.materialFg[item.material.toUpperCase()] ?? c.accent;
 
   const statusLabel = isPending ? 'PENDING' : isDispatched ? 'EN ROUTE' : 'READY TO WEIGH';
-  const statusColor = isPending ? '#f59e0b' : isDispatched ? '#8b5cf6' : c.accent;
+  const statusColor = isPending ? c.warning : isDispatched ? c.info : c.accent;
   const nextStep = isPending ? 'Review' : isDispatched ? 'Scan & weigh' : 'Dispatch';
   const navigateTo = isPending
     ? `/pvp/batch-detail?id=${item.id}`
@@ -249,7 +240,7 @@ export default function PvpPendingTab() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: c.accent }]}>QUEUE</Text>
+        <Text style={[styles.eyebrow, { color: c.accentInk }]}>QUEUE</Text>
         <Text style={[styles.pageTitle, { color: c.foreground }]}>Pending Operations</Text>
         <Text style={[styles.pageSub, { color: c.textMuted }]}>
           Review incoming requests, move ready batches into weigh-in, and track supplier confirmation.
@@ -263,7 +254,7 @@ export default function PvpPendingTab() {
           <Ionicons name="alert-circle-outline" size={40} color={c.textMuted} />
           <Text style={[styles.stateText, { color: c.textMuted }]}>{error}</Text>
           <TouchableOpacity onPress={() => { void load('initial'); }} activeOpacity={0.7}>
-            <Text style={[styles.retryText, { color: c.accent }]}>Retry</Text>
+            <Text style={[styles.retryText, { color: c.accentInk }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -275,7 +266,7 @@ export default function PvpPendingTab() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => { void load('refresh'); }}
-              tintColor={c.accent}
+              tintColor={c.accentInk}
             />
           )}
           showsVerticalScrollIndicator={false}

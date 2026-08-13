@@ -106,7 +106,7 @@ export function CreateListingModal({ asset, visible, onClose, onSubmit }: Create
           {/* Price input */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>Asking Price (IDR)</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: c.background, borderColor: error && !priceRaw ? c.error ?? '#ef4444' : c.border }]}>
+            <View style={[styles.inputWrapper, { backgroundColor: c.background, borderColor: error && !priceRaw ? c.error ?? c.error : c.border }]}>
               <Text style={[styles.inputPrefix, { color: c.textMuted }]}>Rp</Text>
               <TextInput
                 style={[styles.input, { color: c.foreground }]}
@@ -140,7 +140,7 @@ export function CreateListingModal({ asset, visible, onClose, onSubmit }: Create
 
           {/* Error */}
           {error ? (
-            <Text style={[styles.errorText, { color: c.error ?? '#ef4444' }]}>{error}</Text>
+            <Text style={[styles.errorText, { color: c.error ?? c.error }]}>{error}</Text>
           ) : null}
 
           {/* Submit */}
