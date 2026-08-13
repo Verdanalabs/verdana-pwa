@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Modal } from 'react-native';
 import { DarkColors } from '@/src/shared/theme/tokens';
 
 /**
@@ -36,6 +37,16 @@ export function CameraOverlay({ onCapture, onClose, hint, processCapture }: Came
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanY, setScanY]           = useState(0);
+
+  // Freeze the page behind the viewfinder. Without this the form keeps
+  // scrolling under the overlay, so dismissing the camera can leave the
+  // operator somewhere other than the field they were filling in.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, []);
 
   // ── Start camera ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -144,8 +155,19 @@ export function CameraOverlay({ onCapture, onClose, hint, processCapture }: Came
   const CORNER_R   = 10;
 
   // ── Render ────────────────────────────────────────────────────────────────
+  // Wrapped in a Modal, which react-native-web renders through a portal at the
+  // app root rather than in place.
+  //
+  // The overlay is `position: fixed`, which resolves against the viewport only
+  // while no ancestor establishes a containing block. RNW puts a transform on
+  // scroll containers and animated views, and any one of those traps the
+  // overlay inside the card that opened it — it then draws over the surrounding
+  // form instead of covering the screen, which is what made the maggot camera
+  // look like it was overlapping the layout. z-index cannot fix that: a nested
+  // stacking context clips regardless of the value.
   return (
-    <div style={s.overlay}>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <div style={s.overlay}>
       {/* Error state */}
       {error && (
         <div style={s.errorBox}>
@@ -265,7 +287,8 @@ export function CameraOverlay({ onCapture, onClose, hint, processCapture }: Came
           </div>
         </>
       )}
-    </div>
+      </div>
+    </Modal>
   );
 }
 
