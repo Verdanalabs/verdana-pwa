@@ -14,6 +14,8 @@ import type { WatermarkMeta } from '@/src/shared/lib/photo-watermark';
 import { uploadProofPhoto } from '@/src/shared/lib/upload-proof';
 import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
 import { useBestEffortGps } from '@/src/shared/hooks/useBestEffortGps';
+import { useCo2Factors } from '@/src/shared/hooks/useCo2Factors';
+import { computeOffsetKg, factorFor, formatOffsetKg } from '@/src/shared/lib/carbon';
 import { runtimeConfig } from '@/src/shared/config/runtime-config';
 
 function today() {
@@ -29,6 +31,7 @@ export default function MaggotBatchScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token, operator, activeSite } = usePvpAuth();
   const gps = useBestEffortGps();
+  const { factors } = useCo2Factors();
 
   const [batch, setBatch] = useState<MaggotBatch | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -149,6 +152,15 @@ export default function MaggotBatchScreen() {
 
   const harvested = !!batch?.harvest;
 
+  // Emissions avoided by diverting this intake from landfill. Calculated from
+  // the organic factor, the same table core-api uses when it mints, so the
+  // figure here and the one on the token agree.
+  const organicFactor = factorFor(factors, 'organic');
+  const carbonAvoidedKg =
+    batch && organicFactor
+      ? computeOffsetKg(batch.organic_weight_grams / 1000, organicFactor)
+      : null;
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
       <View style={styles.topBar}>
@@ -166,6 +178,9 @@ export default function MaggotBatchScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
           <Row label="Organic input" value={`${(batch!.organic_weight_grams / 1000).toFixed(1)} kg`} />
+          {carbonAvoidedKg != null && (
+            <Row label="Carbon avoided" value={`${formatOffsetKg(carbonAvoidedKg)} kg CO2e`} />
+          )}
           <Row label="Status" value={harvested ? 'harvested' : 'feeding'} />
           {batch!.harvest && <Row label="Maggot" value={`${(batch!.harvest.maggot_weight_grams / 1000).toFixed(1)} kg`} />}
           {batch!.harvest && <Row label="Frass" value={`${(batch!.harvest.frass_weight_grams / 1000).toFixed(1)} kg`} />}

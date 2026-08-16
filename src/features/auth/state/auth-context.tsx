@@ -21,6 +21,19 @@ interface AuthContextValue {
   user: VerdanaUser | null;
   isReady: boolean;
   isAuthenticated: boolean;
+  /**
+   * Privy holds a session, whatever the Verdana account did.
+   *
+   * Distinct from `isAuthenticated`, which also requires the account sync to
+   * have succeeded. The gap between the two is a real state: a signed-in
+   * identity this app cannot use, which happens when the same identity is
+   * registered against another role. A login screen that only knows
+   * `isAuthenticated` offers a sign-in button there, and Privy rejects it
+   * because a session already exists.
+   */
+  hasSession: boolean;
+  /** Why the account sync failed for good. Null while it can still succeed. */
+  authError: string | null;
   needsOnboarding: boolean;
   loginWithGoogle: () => void;
   loginWithEmail: () => void;
@@ -33,6 +46,8 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   isReady: false,
   isAuthenticated: false,
+  hasSession: false,
+  authError: null,
   needsOnboarding: false,
   loginWithGoogle: () => {},
   loginWithEmail: () => {},
@@ -47,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [user, setUser] = useState<VerdanaUser | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Prevent double-syncing on re-renders
   const syncedRef = useRef(false);
@@ -56,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!authenticated) {
         setUser(null);
         setNeedsOnboarding(false);
+        setAuthError(null);
         syncedRef.current = false;
       }
       return;
@@ -90,13 +107,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(verdanaUser);
         setNeedsOnboarding(verdanaUser.is_new);
+        setAuthError(null);
       } catch (err) {
+        // A stale token is recoverable by signing out and back in.
         if (err instanceof ApiError && err.status === 401) {
           logout();
-        } else {
-          // Network error — allow retry on next render
-          syncedRef.current = false;
+          return;
         }
+
+        // Any other 4xx is the server refusing this identity, not a blip. The
+        // common one is 409 ACCOUNT_ROLE_CONFLICT: the identity is registered
+        // against the other role, so retrying cannot change the answer.
+        // Leaving syncedRef set stops the loop; the message tells the operator
+        // what happened instead of leaving the screen silently stuck.
+        if (err instanceof ApiError && err.status && err.status >= 400 && err.status < 500) {
+          setAuthError(err.message);
+          return;
+        }
+
+        // 5xx or a network failure — genuinely worth another attempt.
+        syncedRef.current = false;
       }
     }
 
@@ -124,20 +154,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isReady: ready,
       isAuthenticated: authenticated && user !== null,
+      hasSession: authenticated,
+      authError,
       needsOnboarding,
-      loginWithGoogle: () => login({ loginMethods: ["google"] }),
-      loginWithEmail: () => login({ loginMethods: ["email"] }),
-      loginWithSms: () => login({ loginMethods: ["sms"] }),
+      // Privy throws if login() is called while a session exists, so these
+      // no-op in that case. The caller should be showing the signed-in-but-
+      // unusable state rather than a sign-in button; this keeps a stray tap
+      // from surfacing an SDK error the operator cannot act on.
+      loginWithGoogle: () => { if (!authenticated) login({ loginMethods: ["google"] }); },
+      loginWithEmail: () => { if (!authenticated) login({ loginMethods: ["email"] }); },
+      loginWithSms: () => { if (!authenticated) login({ loginMethods: ["sms"] }); },
       completeOnboarding,
       signOut: () => {
         setUser(null);
         setNeedsOnboarding(false);
+        setAuthError(null);
         syncedRef.current = false;
         void logoutOneSignalUser();
         logout();
       },
     }),
-    [user, ready, authenticated, needsOnboarding, login, completeOnboarding, logout],
+    [user, ready, authenticated, authError, needsOnboarding, login, completeOnboarding, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -29,6 +29,11 @@ interface PvpAuthContextValue {
   walletAddress: string | null;
   invite: ProcessorInvite | null;
   inviteError: string | null;
+  /**
+   * Why the processor sync failed for good, such as the identity already being
+   * registered as a supplier. Null while a retry could still succeed.
+   */
+  sessionError: string | null;
   inviteToken: string | null;
   operator: PvpLoginResponse | null;
   activeSite: PvpActiveSite | null;
@@ -49,6 +54,7 @@ const PvpAuthContext = createContext<PvpAuthContextValue>({
   walletAddress: null,
   invite: null,
   inviteError: null,
+  sessionError: null,
   inviteToken: null,
   operator: null,
   activeSite: null,
@@ -89,6 +95,7 @@ export function PvpAuthProvider({ children }: { children: ReactNode }) {
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [invite, setInvite] = useState<ProcessorInvite | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [operator, setOperator] = useState<PvpLoginResponse | null>(null);
   const [activeSite, setActiveSite] = useState<PvpActiveSite | null>(null);
   const syncedRef = useRef(false);
@@ -124,6 +131,7 @@ export function PvpAuthProvider({ children }: { children: ReactNode }) {
       setActiveSite(null);
       setToken(null);
       setWalletAddress(null);
+      setSessionError(null);
       setState('idle');
       syncedRef.current = false;
       return;
@@ -169,7 +177,20 @@ export function PvpAuthProvider({ children }: { children: ReactNode }) {
           }
         }
         logout();
+        syncedRef.current = false;
+        return;
       }
+
+      // Any other 4xx is the server refusing this identity rather than a blip.
+      // The common one is 409 ACCOUNT_ROLE_CONFLICT, where the identity is
+      // registered as a supplier. Retrying cannot change that, so stop and say
+      // so instead of spinning silently.
+      if (err instanceof ApiError && err.status && err.status >= 400 && err.status < 500) {
+        setSessionError(err.message);
+        syncedRef.current = true;
+        return;
+      }
+
       syncedRef.current = false;
     }
   }, [authenticated, getAccessToken, logout, privyUser]);
@@ -181,6 +202,7 @@ export function PvpAuthProvider({ children }: { children: ReactNode }) {
       setActiveSite(null);
       setToken(null);
       setWalletAddress(null);
+      setSessionError(null);
       setState('idle');
       syncedRef.current = false;
       return;
@@ -196,12 +218,15 @@ export function PvpAuthProvider({ children }: { children: ReactNode }) {
     walletAddress,
     invite,
     inviteError,
+    sessionError,
     inviteToken,
     operator,
     activeSite,
     setInviteToken,
-    loginWithGoogle: () => login({ loginMethods: ['google'] }),
-    loginWithEmail: () => login({ loginMethods: ['email'] }),
+    // Privy throws if login() runs over a live session. The login screen shows
+    // the signed-in-but-unusable state instead, so this only guards a stray tap.
+    loginWithGoogle: () => { if (!authenticated) login({ loginMethods: ['google'] }); },
+    loginWithEmail: () => { if (!authenticated) login({ loginMethods: ['email'] }); },
     connectWallet: () => {
       setWalletAddress('7xKf2mk9...4nR8mQ');
       setState('pending');
@@ -232,12 +257,13 @@ export function PvpAuthProvider({ children }: { children: ReactNode }) {
       setActiveSite(null);
       setToken(null);
       setWalletAddress(null);
+      setSessionError(null);
       setState('idle');
       syncedRef.current = false;
       void logoutOneSignalUser();
       logout();
     },
-  }), [state, ready, token, walletAddress, invite, inviteError, inviteToken, operator, activeSite, login, getAccessToken, privyUser, refreshSession, logout]);
+  }), [state, ready, authenticated, token, walletAddress, invite, inviteError, sessionError, inviteToken, operator, activeSite, login, getAccessToken, privyUser, refreshSession, logout]);
 
   return <PvpAuthContext.Provider value={value}>{children}</PvpAuthContext.Provider>;
 }
