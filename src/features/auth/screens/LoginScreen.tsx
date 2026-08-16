@@ -1,6 +1,7 @@
 import { Font, FontSize } from "@/src/shared/theme/typography";
 import { useAuth } from "@/src/features/auth/state/auth-context";
 import { useThemeColors } from "@/src/shared/theme/theme-context";
+import { NoticeCard } from "@/src/shared/ui/NoticeCard";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect } from "react";
@@ -15,7 +16,16 @@ const LOGIN_OPTIONS = [
 
 export default function LoginRoute() {
   const c = useThemeColors();
-  const { loginWithGoogle, loginWithEmail, loginWithSms, isAuthenticated, needsOnboarding } = useAuth();
+  const {
+    loginWithGoogle,
+    loginWithEmail,
+    loginWithSms,
+    isAuthenticated,
+    hasSession,
+    authError,
+    needsOnboarding,
+    signOut,
+  } = useAuth();
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -27,6 +37,11 @@ export default function LoginRoute() {
     else if (provider === "whatsapp") loginWithSms();
     else loginWithEmail();
   }
+
+  // Signed in, but the account cannot be used here. Offering a sign-in button
+  // would be a dead end: Privy refuses to log in over a live session, so the
+  // only way forward is out.
+  const isBlockedSession = hasSession && !isAuthenticated;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
@@ -54,37 +69,57 @@ export default function LoginRoute() {
 
           {/* Copy */}
           <View style={styles.copy}>
-            <Text style={[styles.heading, { color: c.foreground }]}>Sign in</Text>
-            <Text style={[styles.sub, { color: c.textMuted }]}> 
-              {"Choose how you'd like to continue."}
+            <Text style={[styles.heading, { color: c.foreground }]}>
+              {isBlockedSession ? "Already signed in" : "Sign in"}
+            </Text>
+            <Text style={[styles.sub, { color: c.textMuted }]}>
+              {isBlockedSession
+                ? "This account is signed in but cannot be used for collection."
+                : "Choose how you'd like to continue."}
             </Text>
           </View>
 
-          {/* Buttons */}
-          <View style={styles.options}>
-            {LOGIN_OPTIONS.map((opt, i) => (
+          {isBlockedSession ? (
+            <View style={styles.options}>
+              {authError && <NoticeCard tone="warning">{authError}</NoticeCard>}
+
               <TouchableOpacity
-                key={opt.id}
-                style={[
-                  styles.btn,
-                  i === 0
-                    ? { backgroundColor: c.foreground }
-                    : { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
-                ]}
-                onPress={() => handleLogin(opt.id)}
+                style={[styles.btn, { backgroundColor: c.foreground }]}
+                onPress={signOut}
                 activeOpacity={0.82}
               >
-                <Ionicons
-                  name={opt.icon}
-                  size={17}
-                  color={i === 0 ? c.background : c.textSecondary}
-                />
-                <Text style={[styles.btnLabel, { color: i === 0 ? c.background : c.foreground }]}>
-                  {opt.label}
+                <Ionicons name="log-out-outline" size={17} color={c.background} />
+                <Text style={[styles.btnLabel, { color: c.background }]}>
+                  Sign out and use another account
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
+          ) : (
+            <View style={styles.options}>
+              {LOGIN_OPTIONS.map((opt, i) => (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[
+                    styles.btn,
+                    i === 0
+                      ? { backgroundColor: c.foreground }
+                      : { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+                  ]}
+                  onPress={() => handleLogin(opt.id)}
+                  activeOpacity={0.82}
+                >
+                  <Ionicons
+                    name={opt.icon}
+                    size={17}
+                    color={i === 0 ? c.background : c.textSecondary}
+                  />
+                  <Text style={[styles.btnLabel, { color: i === 0 ? c.background : c.foreground }]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Footer */}

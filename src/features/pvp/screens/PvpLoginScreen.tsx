@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getCounterpartAppUrl } from '@/src/shared/config/app-variant';
 import { Font, FontSize } from '@/src/shared/theme/typography';
 import { useThemeColors } from '@/src/shared/theme/theme-context';
+import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 
 /** WhatsApp's own brand colour — deliberately not a Verdana token. */
@@ -19,9 +20,11 @@ export default function PvpLoginRoute() {
     isReady,
     invite,
     inviteError,
+    sessionError,
     setInviteToken,
     loginWithGoogle,
     loginWithEmail,
+    signOut,
   } = usePvpAuth();
 
   useEffect(() => {
@@ -43,6 +46,11 @@ export default function PvpLoginRoute() {
   // Invite is only required during onboarding (new registrations).
   // Existing processors must always be able to log in, so only gate on Privy being ready.
   const canLogin = isReady;
+
+  // The processor sync refused this identity for good, usually because it is
+  // already registered as a supplier. Privy will not log in over the live
+  // session, so signing out is the only way forward.
+  const isBlockedSession = sessionError !== null;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
@@ -100,15 +108,31 @@ export default function PvpLoginRoute() {
           )}
 
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.secondaryBtn, { borderColor: c.border }]}
-              onPress={loginWithEmail}
-              activeOpacity={0.85}
-              disabled={!canLogin}
-            >
-              <Ionicons name="mail-outline" size={18} color={canLogin ? c.foreground : c.textMuted} />
-              <Text style={[styles.secondaryBtnLabel, { color: canLogin ? c.foreground : c.textMuted }]}>Continue with Email</Text>
-            </TouchableOpacity>
+            {isBlockedSession ? (
+              <>
+                {sessionError && <NoticeCard tone="warning">{sessionError}</NoticeCard>}
+                <TouchableOpacity
+                  style={[styles.secondaryBtn, { borderColor: c.border }]}
+                  onPress={signOut}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="log-out-outline" size={18} color={c.foreground} />
+                  <Text style={[styles.secondaryBtnLabel, { color: c.foreground }]}>
+                    Sign out and use another account
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={[styles.secondaryBtn, { borderColor: c.border }]}
+                onPress={loginWithEmail}
+                activeOpacity={0.85}
+                disabled={!canLogin}
+              >
+                <Ionicons name="mail-outline" size={18} color={canLogin ? c.foreground : c.textMuted} />
+                <Text style={[styles.secondaryBtnLabel, { color: canLogin ? c.foreground : c.textMuted }]}>Continue with Email</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={[styles.divider, { backgroundColor: c.border }]} />
