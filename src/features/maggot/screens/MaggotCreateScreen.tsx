@@ -9,6 +9,7 @@ import { NoticeCard } from '@/src/shared/ui/NoticeCard';
 import { usePvpAuth } from '@/src/features/pvp/state/pvp-auth-context';
 import { createMaggotBatch, type ProofPhoto } from '@/src/features/maggot/services/maggot-api';
 import { ProofPhotoField, type CapturedProof } from '@/src/shared/ui/ProofPhotoField';
+import { CarbonImpactBadge } from '@/src/shared/ui/CarbonImpactBadge';
 import { uploadProofPhoto } from '@/src/shared/lib/upload-proof';
 import { parseWeightKg, sanitizeWeightInput, weightErrorMessage } from '@/src/shared/lib/weight';
 import { useBestEffortGps } from '@/src/shared/hooks/useBestEffortGps';
@@ -80,6 +81,9 @@ export default function MaggotCreateScreen() {
             />
             <Text style={[styles.unit, { color: c.textSecondary }]}>kg</Text>
           </View>
+
+          {/* A maggot cycle is organic by definition, so the category is fixed. */}
+          <CarbonImpactBadge weightInput={weightKg} material="organic" />
 
           <ProofPhotoField
             label="Intake proof photo"
