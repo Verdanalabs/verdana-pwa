@@ -312,9 +312,17 @@ const s: Record<string, React.CSSProperties> = {
   },
   previewImg: {
     position: 'absolute',
-    top: 0, left: 0,
-    width: '100%', height: '100%',
-    objectFit: 'cover',
+    top: 0,
+    left: 0,
+    width: '100%',
+    // Leaves room for the action bar so it cannot sit over the watermark.
+    height: 'calc(100% - 150px)',
+    // `contain`, not `cover`. The operator is checking that the burned-in dMRV
+    // band is legible before accepting the photo, and cover crops the edges of
+    // the frame, which is exactly where the band sits. Letterboxing is the
+    // right trade: the whole capture has to be visible.
+    objectFit: 'contain',
+    backgroundColor: VIEWFINDER_BACKDROP,
   },
   vfOverlay: {
     position: 'absolute',
